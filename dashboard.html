@@ -48,13 +48,14 @@
         }
         .dashboard-transfer-btn {
             display: inline-block;
-            text-decoration: none;
             padding: 12px 20px;
             background: #006341;
             color: white;
+            border: none;
             border-radius: 5px;
             font-weight: bold;
             margin-top: 20px;
+            cursor: pointer;
             transition: background-color 0.3s;
         }
         .dashboard-transfer-btn:hover {
@@ -170,7 +171,7 @@
                 <div>Mitchell's Fidelity Go: <strong>$256,456.56</strong></div>
             </div>
 
-            <a href="#" class="dashboard-transfer-btn">Transfer Money</a>
+            <button class="dashboard-transfer-btn" onclick="window.location.href='transfer.html'">Transfer Money</button>
         </div>
 
         <div class="main-content">

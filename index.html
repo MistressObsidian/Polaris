@@ -807,18 +807,22 @@
                 overflow-y: auto;
                 box-sizing: border-box;
             }
+            /* Make sure the form inside modal uses all available width */
             .modal form {
                 width: 100%;
             }
+            /* Optional: Make form groups a bit more spaced for desktop */
             .modal .form-group {
                 margin-bottom: 1.5rem;
             }
         }
+        /* Make sure modal is vertically centered on desktop */
         @media (min-width: 992px) {
             .modal-content {
                 margin: 4% auto;
             }
         }
+        /* Make alert messages more visible on desktop */
         @media (min-width: 992px) {
             .alert {
                 font-size: 1.05rem;
@@ -857,11 +861,175 @@
     </header>
 
     <section class="hero" id="home">
-        </section>
+        <div class="container">
+            <div class="hero-content">
+                <h1>Send Money From The US To 130+ Countries Within Minutes</h1>
+                <p>Transfer money cheaper and faster to anyone anywhere in the world with no hidden charges. Experience the best banking and money transfer services.</p>
+                <div class="hero-buttons">
+                    <a href="#" class="btn btn-primary" onclick="openModal('transferModal')">Send Money Now</a>
+                    <a href="#services" class="btn btn-secondary">Learn More</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="services">
+        <div class="container">
+            <div class="section-header">
+                <h2>Why Choose Shenzhenswift?</h2>
+                <p>We provide comprehensive financial services designed to meet your personal and business banking needs</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🏦</div>
+                    <h3>Complete Banking Solutions</h3>
+                    <p>Walk into any of our nationwide office locations and create a bank account for personal or business needs and start enjoying the best banking experience.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>Fast Money Transfers</h3>
+                    <p>Transferring money has never been so easy. We have many options to transfer to both local and international accounts within minutes.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Advanced Security</h3>
+                    <p>We have many options to detect fraud and account hacking activities. We provide the best bank safety experience anytime, anywhere.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌍</div>
+                    <h3>Global Reach</h3>
+                    <p>Receive payments from different countries with different currencies. Hold over 54 currencies in one account and be at the center of the world.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💼</div>
+                    <h3>Business Solutions</h3>
+                    <p>Tell us about your business. We're interested in helping growing local businesses, whether private or public. We've got you covered.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤝</div>
+                    <h3>Customer Partnership</h3>
+                    <p>Our culture enables extraordinary people to perform in outstanding ways. We believe in forming life-long partnerships with our customers.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="services">
+        <div class="container">
+            <div class="section-header">
+                <h2>Our Services</h2>
+                <p>Everything you need for modern banking and money transfers</p>
+            </div>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">💸</div>
+                    <h3>Send Money</h3>
+                    <p>Quick transfers worldwide</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">💰</div>
+                    <h3>Receive Money</h3>
+                    <p>Get payments globally</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">💳</div>
+                    <h3>Banking Cards</h3>
+                    <p>Debit and credit solutions</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">📱</div>
+                    <h3>Mobile Banking</h3>
+                    <p>Bank on the go</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="currency">
+        <div class="container">
+            <div class="section-header">
+                <h2>Supported Currencies</h2>
+                <p>We support major global currencies for seamless international transactions</p>
+            </div>
+            <div class="currency-grid">
+                <div class="currency-card">
+                    <div class="currency-code">GBP</div>
+                    <div class="currency-name">British Pound</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">EUR</div>
+                    <div class="currency-name">Euro</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">USD</div>
+                    <div class="currency-name">US Dollar</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">KWD</div>
+                    <div class="currency-name">Kuwaiti Dinar</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">AUD</div>
+                    <div class="currency-name">Australian Dollar</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">HUF</div>
+                    <div class="currency-name">Hungarian Forint</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">CAD</div>
+                    <div class="currency-name">Canadian Dollar</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">SGD</div>
+                    <div class="currency-name">Singapore Dollar</div>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <footer>
-        </footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Shenzhenswift</h3>
+                    <p>Your trusted partner for money transfers and banking services worldwide. We make financial transactions simple, secure, and fast.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Services</h3>
+                    <ul>
+                        <li><a href="#">Money Transfer</a></li>
+                        <li><a href="#">Banking</a></li>
+                        <li><a href="#">Currency Exchange</a></li>
+                        <li><a href="#">Business Solutions</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Support</h3>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">Track Transfer</a></li>
+                        <li><a href="#">Security</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Legal</h3>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Compliance</a></li>
+                        <li><a href="#">Licensing</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Shenzhenswift. All rights reserved. | Licensed Money Transfer & Banking Services</p>
+            </div>
+        </div>
+    </footer>
 
+    <!-- Login Modal -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('loginModal')">&times;</span>
@@ -885,6 +1053,157 @@
         </div>
     </div>
 
+    <!-- Dashboard -->
+     <div id="dashboard" class="dashboard">
+        <div class="dashboard-container">
+            <div class="dashboard-sidebar">
+                <button class="dashboard-close-btn" onclick="closeDashboard()" title="Logout">&times;</button>
+                <h2>All Accounts</h2>
+                <div class="dashboard-balance">$2,972,569.21</div>
+                <h3>Account Owners:</h3>
+                <div>toyotoyo</div>
+                <div>Michael Mitchell</div>
+                <h3>Investment</h3>
+                <div class="dashboard-account-list">
+                    <div>Individual - TOD: <strong>$6,835.77</strong></div>
+                </div>
+                <h3>Professionally Managed</h3>
+                <div class="dashboard-account-list">
+                    <div>Mitchell's Fidelity Go: <strong>$256,456.56</strong></div>
+                </div>
+                <br>
+                <button class="dashboard-transfer-btn" onclick="window.location.href='transfer.html'">Transfer Money</button>
+            </div>
+           <div class="dashboard-main-content">
+                <div class="welcome-banner">
+                    <h3>Welcome back, <span id="dashboardUserName">User</span>!</h3>
+                    <p>Manage your accounts and transactions from your Shenzhenswift dashboard</p>
+                </div>
+                <div class="dashboard-header">
+                    <h2>All Accounts</h2>
+                    <input type="text" class="dashboard-search-bar" placeholder="Search Activity & Orders" onkeyup="searchTransactions(this.value)">
+                </div>
+                <div class="dashboard-filters">
+                    <button onclick="filterTransactions('30days', event)" class="filter-active">Past 30 Days</button>
+                    <button onclick="filterTransactions('orders', event)">Orders</button>
+                    <button onclick="filterTransactions('transfers', event)">Transfers</button>
+                    <button onclick="openModal('filterModal')">More Filters</button>
+                </div>
+                <div class="dashboard-transaction-history">
+                    <h3>Past 30 Days</h3>
+                    <table id="transactionTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Account</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionTableBody">
+                            <tr>
+                                <td>Apr-2-2025</td>
+                                <td>Mitchell's Fidelity Go</td>
+                                <td>ACH Transfer to Bank</td>
+                                <td>Cash</td>
+                                <td>
+                                    <a href="#" onclick="showTransactionDetails('TXN001')" style="color: red; text-decoration: none;">- $30,000.00</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Apr-1-2025</td>
+                                <td>Individual - TOD</td>
+                                <td>Dividend Payment</td>
+                                <td>Investment</td>
+                                <td>
+                                    <a href="#" onclick="showTransactionDetails('TXN002')" style="color: green; text-decoration: none;">+ $1,250.00</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Mar-28-2025</td>
+                                <td>Mitchell's Fidelity Go</td>
+                                <td>Monthly Investment</td>
+                                <td>Investment</td>
+                                <td>
+                                    <a href="#" onclick="showTransactionDetails('TXN003')" style="color: red; text-decoration: none;">- $5,000.00</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Mar-25-2025</td>
+                                <td>Individual - TOD</td>
+                                <td>Wire Transfer Received</td>
+                                <td>Transfer</td>
+                                <td>
+                                    <a href="#" onclick="showTransactionDetails('TXN004')" style="color: green; text-decoration: none;">+ $15,000.00</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Mar-20-2025</td>
+                                <td>Mitchell's Fidelity Go</td>
+                                <td>Portfolio Rebalancing</td>
+                                <td>Investment</td>
+                                <td>
+                                    <a href="#" onclick="showTransactionDetails('TXN005')" style="color: blue; text-decoration: none;">$0.00</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Modal -->
+    <div id="transferModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('transferModal')">&times;</span>
+            <h2>Send Money</h2>
+            <div id="transferAlert" class="alert"></div>
+            <form id="transferForm">
+                <div class="form-group">
+                    <label for="sendAmount">Amount to Send</label>
+                    <input type="number" id="sendAmount" name="amount" min="1" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="fromCurrency">From Currency</label>
+                    <select id="fromCurrency" name="fromCurrency" required>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="toCurrency">To Currency</label>
+                    <select id="toCurrency" name="toCurrency" required>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="KWD">KWD - Kuwaiti Dinar</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
+                        <option value="HUF">HUF - Hungarian Forint</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="SGD">SGD - Singapore Dollar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="recipientName">Recipient Name</label>
+                    <input type="text" id="recipientName" name="recipientName" required>
+                </div>
+                <div class="form-group">
+                    <label for="recipientEmail">Recipient Email</label>
+                    <input type="email" id="recipientEmail" name="recipientEmail" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Continue Transfer</button>
+            </form>
+            <div class="form-footer">
+                <p>Need help? <a href="#contact">Contact Support</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
     <div id="registerModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('registerModal')">&times;</span>
@@ -918,172 +1237,198 @@
             </div>
         </div>
     </div>
-    
-    <div id="dashboard" class="dashboard">
-        <div class="dashboard-container">
-             <div class="dashboard-sidebar">
-                <button class="dashboard-close-btn" onclick="closeDashboard()" title="Logout">&times;</button>
-                </div>
-             <div class="dashboard-main-content">
-                <div class="welcome-banner">
-                    <h3>Welcome back, <span id="dashboardUserName">User</span>!</h3>
-                    <p>Manage your accounts and transactions from your Shenzhenswift dashboard</p>
-                </div>
-                </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('forgotPasswordModal')">&times;</span>
+        <h2>Reset Password</h2>
+        <div id="forgotAlert" class="alert"></div>
+        <form id="forgotPasswordForm">
+            <div class="form-group">
+                <label for="forgotEmail">Email Address</label>
+                <input type="email" id="forgotEmail" name="email" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Send Reset Link</button>
+        </form>
+        <div class="form-footer">
+            <p>Remember your password? <a href="#" onclick="switchModal('forgotPasswordModal', 'loginModal')">Login here</a></p>
+        </div>
+    </div>
+</div>
+                  <script>
+                    
+    // Modal open/close logic
+    function openModal(id) {
+        document.getElementById(id).style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    // Close modal when clicking outside content
+    window.onclick = function(event) {
+        var modal = document.getElementById('transferModal');
+        if (event.target == modal) {
+            closeModal('transferModal');
+        }
+    }
+    // Handle transfer form submission
+    function submitTransfer(event) {
+        event.preventDefault();
+        // You can add your transfer logic here
+        alert('Transfer submitted!');
+        closeModal('transferModal');
+        document.getElementById('transferForm').reset();
+    }
+</script>
+            </div>
         </div>
     </div>
 
     <script>
-        // --- API ENDPOINTS ---
-        // For Registration
-        const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
-        // For Secure Login (Your personal Web App URL is now included)
-        const LOGIN_APP_URL = "https://script.google.com/macros/s/AKfycbxAHvUH0rhQVEx3PukFapL0_826gxxwbu7yhYZ8IXI_UtYjZeZjQRkEaVEJ8mnMjQ54/exec";
+        // Replace Google Form submission with SheetDB API integration
 
+    // Your SheetDB API endpoint
+    const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
 
-        // --- UTILITY FUNCTIONS ---
-        function openModal(id) {
-            const modal = document.getElementById(id);
-            if(modal) modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
+    // Helper to send data to Google Sheet via SheetDB
+    async function submitToSheetDB(data) {
+        try {
+            const response = await fetch(SHEETDB_API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ data })
+            });
+            return response.ok;
+        } catch (error) {
+            console.error("SheetDB submission error:", error);
+            return false;
+        }
+    }
+
+    // Registration Handler
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const name = document.getElementById('registerName').value;
+        const email = document.getElementById('registerEmail').value;
+        const phone = document.getElementById('registerPhone').value;
+        const password = document.getElementById('registerPassword').value;
+        const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+        if (password !== confirmPassword) {
+            showAlert('registerAlert', 'Passwords do not match', 'error');
+            return;
         }
 
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            if(modal) modal.style.display = 'none';
-            document.body.style.overflow = '';
-        }
+        if (name && email && phone && password) {
+            // Send to Google Sheet via SheetDB
+            const success = await submitToSheetDB({
+                formType: 'Registration',
+                name,
+                email,
+                phone,
+                password,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            });
 
-        function closeDashboard() {
-            const dashboard = document.getElementById('dashboard');
-            if (dashboard) dashboard.classList.remove('active');
-            // Optional: You might want to reload the page on logout
-            // window.location.reload();
-        }
-
-        function switchModal(currentId, targetId) {
-            closeModal(currentId);
-            setTimeout(() => openModal(targetId), 300);
-        }
-
-        function showAlert(alertId, message, type) {
-            const alertBox = document.getElementById(alertId);
-            if(alertBox) {
-                alertBox.className = `alert alert-${type}`;
-                alertBox.textContent = message;
-                alertBox.style.display = 'block';
-            }
-        }
-        
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobileMenu');
-            menu.classList.toggle('active');
-        }
-
-
-        // --- FORM HANDLERS ---
-
-        // Registration Handler
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const name = document.getElementById('registerName').value.trim();
-            const email = document.getElementById('registerEmail').value.trim();
-            const phone = document.getElementById('registerPhone').value.trim();
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = document.getElementById('registerConfirmPassword').value;
-            
-            if (password !== confirmPassword) {
-                showAlert('registerAlert', 'Passwords do not match.', 'error');
-                return;
-            }
-            
-            if (name && email && phone && password) {
-                const submitButton = e.target.querySelector('button[type="submit"]');
-                submitButton.disabled = true;
-                submitButton.textContent = 'Creating Account...';
-
-                // Send registration data to SheetDB
-                const response = await fetch(SHEETDB_API_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        data: {
-                            formType: 'Registration', name, email, phone, password, 
-                            timestamp: new Date().toISOString(),
-                            userAgent: navigator.userAgent
-                        }
-                    })
-                });
-                
-                if (response.ok) {
-                    // The verification email is sent by your Google Apps Script trigger
-                    showAlert('registerAlert', 'Account created! Please check your email to verify.', 'success');
-                    
-                    setTimeout(() => {
-                        switchModal('registerModal', 'loginModal');
-                        document.getElementById('loginEmail').value = email;
-                        document.getElementById('registerForm').reset();
-                        submitButton.disabled = false;
-                        submitButton.textContent = 'Create Account';
-                    }, 3000);
-                } else {
-                    showAlert('registerAlert', 'Registration failed. Please try again.', 'error');
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Create Account';
-                }
+            if (success) {
+                showAlert('registerAlert', 'Account created successfully! You can now login with your credentials.', 'success');
+                setTimeout(() => {
+                    switchModal('registerModal', 'loginModal');
+                    document.getElementById('loginEmail').value = email;
+                }, 2000);
             } else {
-                showAlert('registerAlert', 'Please fill in all fields.', 'error');
+                showAlert('registerAlert', 'Registration failed. Please try again.', 'error');
             }
-        });
-        
-        // Login Form Handler (Now with secure backend verification)
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            const submitButton = e.target.querySelector('button[type="submit"]');
+        } else {
+            showAlert('registerAlert', 'Please fill in all fields', 'error');
+        }
+    });
 
-            if (email && password) {
-                submitButton.disabled = true;
-                submitButton.textContent = 'Logging In...';
+    // Transfer Handler
+    document.getElementById('transferForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const amount = document.getElementById('sendAmount').value;
+        const fromCurrency = document.getElementById('fromCurrency').value;
+        const toCurrency = document.getElementById('toCurrency').value;
+        const recipientName = document.getElementById('recipientName').value;
+        const recipientEmail = document.getElementById('recipientEmail').value;
 
-                try {
-                    const response = await fetch(LOGIN_APP_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        redirect: 'follow', // Important for Google Scripts
-                        body: JSON.stringify({ email: email, password: password })
-                    });
-                    
-                    const result = await response.json();
+        if (fromCurrency === toCurrency) {
+            showAlert('transferAlert', 'Please select different currencies for conversion', 'error');
+            return;
+        }
 
-                    if (result.success) {
-                        showAlert('loginAlert', 'Login successful! Loading dashboard...', 'success');
-                        setTimeout(() => {
-                            closeModal('loginModal');
-                            const dashboard = document.getElementById('dashboard');
-                            if (dashboard) {
-                                document.getElementById('dashboardUserName').textContent = result.name || email.split('@')[0];
-                                dashboard.classList.add('active');
-                            }
-                            document.getElementById('loginForm').reset();
-                        }, 1500);
-                    } else {
-                        showAlert('loginAlert', result.message || 'Invalid email or password.', 'error');
-                    }
-                } catch (error) {
-                    console.error('Login error:', error);
-                    showAlert('loginAlert', 'An error occurred during login. Please try again.', 'error');
-                } finally {
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Login';
-                }
+        if (amount && recipientName && recipientEmail) {
+            // Send to Google Sheet via SheetDB
+            const success = await submitToSheetDB({
+                formType: 'Money Transfer',
+                amount,
+                fromCurrency,
+                toCurrency,
+                recipientName,
+                recipientEmail,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            });
+
+            if (success) {
+                showAlert('transferAlert', `Transfer of ${amount} ${fromCurrency} to ${toCurrency} initiated for ${recipientName}`, 'success');
+                setTimeout(() => {
+                    closeModal('transferModal');
+                    alert('Transfer request submitted! You will receive a confirmation email shortly.');
+                }, 2000);
             } else {
-                showAlert('loginAlert', 'Please enter your email and password.', 'error');
+                showAlert('transferAlert', 'Transfer failed. Please try again.', 'error');
             }
-        });
+        } else {
+            showAlert('transferAlert', 'Please fill in all required fields', 'error');
+        }
+    });
 
-    </script>
+    // Forgot Password Handler
+    document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const email = document.getElementById('forgotEmail').value;
+
+        if (email) {
+            // Send to Google Sheet via SheetDB
+            const success = await submitToSheetDB({
+                formType: 'Forgot Password',
+                email,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            });
+
+            if (success) {
+                showAlert('forgotAlert', 'Password reset link sent to your email!', 'success');
+                setTimeout(() => {
+                    closeModal('forgotPasswordModal');
+                }, 2000);
+            } else {
+                showAlert('forgotAlert', 'Request failed. Please try again.', 'error');
+            }
+        } else {
+            showAlert('forgotAlert', 'Please enter your email address', 'error');
+        }
+    });
+
+    // Modal switching logic
+    function switchModal(currentId, targetId) {
+        closeModal(currentId);
+        setTimeout(function() {
+            openModal(targetId);
+        }, 200); // Small delay for smooth transition
+    }
+    // Remove Google Form submission functions and demo user logic above
+
+    // ...keep the rest of your code as is...
+</script>
 </body>
 </html>
+

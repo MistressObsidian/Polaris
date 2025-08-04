@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Go Platinum - Fee Locked</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+    }
+
+    .header {
+      background-color: #006341;
+      color: white;
+      padding: 15px 20px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 500px;
+      background-color: white;
+      margin: 50px auto;
+      padding: 30px 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .title {
+      font-size: 24px;
+      color: #006341;
+      margin-bottom: 10px;
+    }
+
+    .highlight-box {
+      background-color: #e6f4ec;
+      padding: 20px;
+      border: 2px solid #006341;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+
+    .fee {
+      font-size: 28px;
+      color: #006341;
+      font-weight: bold;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: #333;
+    }
+
+    .note {
+      color: #aa0000;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .btn {
+      background-color: #006341;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    .btn:hover {
+      background-color: #004d2c;
+    }
+
+    .status-tab {
+      margin-top: 40px;
+      background-color: #f9f9f9;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      text-align: left;
+    }
+
+    .status-tab h3 {
+      margin-bottom: 10px;
+      color: #006341;
+    }
+
+    .progress {
+      background-color: #ddd;
+      border-radius: 20px;
+      overflow: hidden;
+      height: 20px;
+      margin: 10px 0;
+    }
+
+    .progress-bar {
+      background-color: #006341;
+      width: 49.4%; /* $4000 of $8100 */
+      height: 100%;
+    }
+
+    .pending {
+      color: orange;
+      font-weight: bold;
+    }
+
+    .info-text {
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">Fidelity Secure Account</div>
+
+  <div class="container">
+    <div class="title">Go Platinum Upgrade</div>
+    <div class="highlight-box">
+      <div class="fee">$2150</div>
+      <div class="subtitle">Fee Locked In</div>
+      <p style="margin-top: 10px;">Activate Platinum Tier to enjoy 0% tax on all transactions.</p>
+    </div>
+    <p class="note">Note: This is a one-time platinum upgrade fee.</p>
+    <button class="btn" onclick="alert('Platinum Upgrade Initiated')">Activate Platinum</button>
+
+    <!-- Status Tab -->
+    <div class="status-tab">
+      <h3>Payment Progress</h3>
+      <p><strong>$400 of $2150 paid</strong></p>
+      <div class="progress">
+        <div class="progress-bar"></div>
+      </div>
+      <p><strong>Transaction Status:</strong> <span class="pending">Pending</span></p>
+      <p><strong>Amount:</strong> $30,000 to Sutton #3832</p>
+      <p class="info-text">Transaction will go through once full payment of $8100 is completed.</p>
+    </div>
+  </div>
+
+</body>
+</html>

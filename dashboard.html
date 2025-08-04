@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Accounts - Fidelity</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            display: flex;
+        }
+        .sidebar {
+            width: 280px;
+            background: #e7e7e7;
+            padding: 20px;
+            height: 100vh;
+        }
+        .sidebar h2 {
+            font-size: 18px;
+            color: #006341;
+        }
+        .sidebar .balance {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .account-list {
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .main-content {
+            flex: 1;
+            background: white;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .search-bar {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .transaction-history table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .transaction-history th, .transaction-history td {
+            border-bottom: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        .transaction-history th {
+            background: #f0f0f0;
+        }
+        .filters button, .transfer-btn {
+            padding: 10px 15px;
+            background: #006341;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .filters button:hover, .transfer-btn:hover {
+            background: #004d2c;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="sidebar">
+            <h2>All Accounts</h2>
+            <div class="balance">$2,972,569.21</div>
+
+            <h3>Account Owners:</h3>
+            <div>toyotoyo</div>
+            <div>Michael Mitchell</div>
+
+            <h3>Investment</h3>
+            <div class="account-list">
+                <div>Individual - TOD: <strong>$6,835.77</strong></div>
+            </div>
+
+            <h3>Professionally Managed</h3>
+            <div class="account-list">
+                <div>Mitchell's Fidelity Go: <strong>256,456.56</strong></div>
+            </div>
+
+            <br>
+            <button class="dashboard-transfer-btn" onclick="window.location.href='transfer.html'">Transfer Money</button>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h2>All Accounts</h2>
+                <input type="text" class="search-bar" placeholder="Search Activity & Orders">
+            </div>
+
+            <div class="filters">
+                <button>Past 30 Days</button>
+                <button>Orders</button>
+                <button>Transfers</button>
+                <button>More Filters</button>
+            </div>
+
+            <div class="transaction-history">
+                <h3>Past 30 Days</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Account</th>
+                            <th>Description</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+    <td>Apr-2-2025</td>
+    <td>Mitchell's Fidelity Go</td>
+    <td>Ach Transfer to Bank</td>
+    <td>Cash</td>
+    <td>
+        <a href="transaction-details.html" style="color: red; text-decoration: none;">- 30,000</a>
+    </td>
+</tr>
+                        <tr>
+													<
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

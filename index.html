@@ -1033,50 +1033,41 @@
     </div>
 
     <!-- Dashboard -->
-    <div id="dashboard" class="dashboard">
+     <div id="dashboard" class="dashboard">
         <div class="dashboard-container">
             <div class="dashboard-sidebar">
                 <button class="dashboard-close-btn" onclick="closeDashboard()" title="Logout">&times;</button>
-                
                 <h2>All Accounts</h2>
                 <div class="dashboard-balance">$2,972,569.21</div>
-
                 <h3>Account Owners:</h3>
                 <div>toyotoyo</div>
                 <div>Michael Mitchell</div>
-
                 <h3>Investment</h3>
                 <div class="dashboard-account-list">
                     <div>Individual - TOD: <strong>$6,835.77</strong></div>
                 </div>
-
                 <h3>Professionally Managed</h3>
                 <div class="dashboard-account-list">
                     <div>Mitchell's Fidelity Go: <strong>$256,456.56</strong></div>
                 </div>
-
                 <br>
                 <button class="dashboard-transfer-btn" onclick="openModal('transferModal')">Transfer Money</button>
             </div>
-
-            <div class="dashboard-main-content">
+           <div class="dashboard-main-content">
                 <div class="welcome-banner">
                     <h3>Welcome back, <span id="dashboardUserName">User</span>!</h3>
                     <p>Manage your accounts and transactions from your Shenzhenswift dashboard</p>
                 </div>
-
                 <div class="dashboard-header">
                     <h2>All Accounts</h2>
                     <input type="text" class="dashboard-search-bar" placeholder="Search Activity & Orders" onkeyup="searchTransactions(this.value)">
                 </div>
-
                 <div class="dashboard-filters">
-                    <button onclick="filterTransactions('30days')" class="filter-active">Past 30 Days</button>
-                    <button onclick="filterTransactions('orders')">Orders</button>
-                    <button onclick="filterTransactions('transfers')">Transfers</button>
+                    <button onclick="filterTransactions('30days', event)" class="filter-active">Past 30 Days</button>
+                    <button onclick="filterTransactions('orders', event)">Orders</button>
+                    <button onclick="filterTransactions('transfers', event)">Transfers</button>
                     <button onclick="openModal('filterModal')">More Filters</button>
                 </div>
-
                 <div class="dashboard-transaction-history">
                     <h3>Past 30 Days</h3>
                     <table id="transactionTable">
@@ -1142,41 +1133,6 @@
         </div>
     </div>
 
-    <!-- Register Modal -->
-    <div id="registerModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('registerModal')">&times;</span>
-            <h2>Create Account</h2>
-            <div id="registerAlert" class="alert"></div>
-            <form id="registerForm">
-                <div class="form-group">
-                    <label for="registerName">Full Name</label>
-                    <input type="text" id="registerName" name="name" required>
-                </div>
-                <div class="form-group">
-                    <label for="registerEmail">Email Address</label>
-                    <input type="email" id="registerEmail" name="email" required>
-                </div>
-                <div class="form-group">
-                    <label for="registerPhone">Phone Number</label>
-                    <input type="tel" id="registerPhone" name="phone" required>
-                </div>
-                <div class="form-group">
-                    <label for="registerPassword">Password</label>
-                    <input type="password" id="registerPassword" name="password" required>
-                </div>
-                <div class="form-group">
-                    <label for="registerConfirmPassword">Confirm Password</label>
-                    <input type="password" id="registerConfirmPassword" name="confirmPassword" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Create Account</button>
-            </form>
-            <div class="form-footer">
-                <p>Already have an account? <a href="#" onclick="switchModal('registerModal', 'loginModal')">Login here</a></p>
-            </div>
-        </div>
-    </div>
-
     <!-- Transfer Modal -->
     <div id="transferModal" class="modal">
         <div class="modal-content">
@@ -1226,21 +1182,86 @@
         </div>
     </div>
 
-    <!-- Forgot Password Modal -->
-    <div id="forgotPasswordModal" class="modal">
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal('forgotPasswordModal')">&times;</span>
-            <h2>Reset Password</h2>
-            <div id="forgotAlert" class="alert"></div>
-            <form id="forgotPasswordForm">
+            <span class="close" onclick="closeModal('registerModal')">&times;</span>
+            <h2>Create Account</h2>
+            <div id="registerAlert" class="alert"></div>
+            <form id="registerForm">
                 <div class="form-group">
-                    <label for="forgotEmail">Email Address</label>
-                    <input type="email" id="forgotEmail" name="email" required>
+                    <label for="registerName">Full Name</label>
+                    <input type="text" id="registerName" name="name" required>
                 </div>
-                <button type="submit" class="btn btn-primary">Send Reset Link</button>
+                <div class="form-group">
+                    <label for="registerEmail">Email Address</label>
+                    <input type="email" id="registerEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPhone">Phone Number</label>
+                    <input type="tel" id="registerPhone" name="phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerConfirmPassword">Confirm Password</label>
+                    <input type="password" id="registerConfirmPassword" name="confirmPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Account</button>
             </form>
             <div class="form-footer">
-                <p>Remember your password? <a href="#" onclick="switchModal('forgotPasswordModal', 'loginModal')">Login here</a></p>
+                <p>Already have an account? <a href="#" onclick="switchModal('registerModal', 'loginModal')">Login here</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('forgotPasswordModal')">&times;</span>
+        <h2>Reset Password</h2>
+        <div id="forgotAlert" class="alert"></div>
+        <form id="forgotPasswordForm">
+            <div class="form-group">
+                <label for="forgotEmail">Email Address</label>
+                <input type="email" id="forgotEmail" name="email" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Send Reset Link</button>
+        </form>
+        <div class="form-footer">
+            <p>Remember your password? <a href="#" onclick="switchModal('forgotPasswordModal', 'loginModal')">Login here</a></p>
+        </div>
+    </div>
+</div>
+                  <script>
+                    
+    // Modal open/close logic
+    function openModal(id) {
+        document.getElementById(id).style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    // Close modal when clicking outside content
+    window.onclick = function(event) {
+        var modal = document.getElementById('transferModal');
+        if (event.target == modal) {
+            closeModal('transferModal');
+        }
+    }
+    // Handle transfer form submission
+    function submitTransfer(event) {
+        event.preventDefault();
+        // You can add your transfer logic here
+        alert('Transfer submitted!');
+        closeModal('transferModal');
+        document.getElementById('transferForm').reset();
+    }
+</script>
             </div>
         </div>
     </div>
@@ -1360,22 +1381,18 @@
             document.body.style.overflow = 'auto';
         }
 
-        function filterTransactions(filterType) {
+       function filterTransactions(filterType, event) {
             // Remove active class from all filter buttons
             document.querySelectorAll('.dashboard-filters button').forEach(btn => {
                 btn.classList.remove('filter-active');
             });
-            
             // Add active class to clicked button
-            event.target.classList.add('filter-active');
-            
+            if (event) event.target.classList.add('filter-active');
             const tbody = document.getElementById('transactionTableBody');
             const rows = tbody.querySelectorAll('tr');
-            
             rows.forEach(row => {
                 const type = row.cells[3].textContent.toLowerCase();
                 const description = row.cells[2].textContent.toLowerCase();
-                
                 switch(filterType) {
                     case 'orders':
                         row.style.display = description.includes('investment') || description.includes('order') ? '' : 'none';

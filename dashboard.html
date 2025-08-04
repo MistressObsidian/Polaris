@@ -19,105 +19,138 @@
             background: #e7e7e7;
             padding: 20px;
             height: 100vh;
+            box-sizing: border-box;
         }
         .sidebar h2 {
             font-size: 18px;
             color: #006341;
+            margin-top: 0;
+        }
+        .sidebar h3 {
+            font-size: 16px;
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 10px;
         }
         .sidebar .balance {
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 15px;
+            color: #006341;
         }
         .account-list {
-            font-size: 16px;
+            font-size: 14px;
             margin-top: 10px;
+        }
+        .account-list div {
+            margin-bottom: 8px;
+            padding: 5px 0;
+        }
+        .dashboard-transfer-btn {
+            display: inline-block;
+            text-decoration: none;
+            padding: 12px 20px;
+            background: #006341;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        .dashboard-transfer-btn:hover {
+            background: #004d2c;
         }
         .main-content {
             flex: 1;
             background: white;
             padding: 20px;
+            box-sizing: border-box;
         }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 20px;
+        }
+        .header h2 {
+            margin: 0;
+            color: #333;
         }
         .search-bar {
             padding: 10px;
             width: 300px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            font-size: 14px;
         }
-        .transaction-history table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
+        .filters {
+            margin-bottom: 20px;
         }
-        .transaction-history th, .transaction-history td {
-            border-bottom: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }
-        .transaction-history th {
-            background: #f0f0f0;
-        }
-        .filters button, .transfer-btn {
+        .filters button {
             padding: 10px 15px;
             background: #006341;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+            transition: background-color 0.3s;
         }
-        .filters button:hover, .transfer-btn:hover {
+        .filters button:hover {
             background: #004d2c;
         }
-        /* Modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0; top: 0;
-            width: 100%; height: 100%;
-            overflow: auto;
-            background: rgba(0,0,0,0.4);
+        .transaction-history h3 {
+            color: #333;
+            margin-bottom: 15px;
         }
-        .modal-content {
-            background: #fff;
-            margin: 10% auto;
-            padding: 30px 20px;
-            border-radius: 8px;
+        .transaction-history table {
             width: 100%;
-            max-width: 400px;
-            position: relative;
+            border-collapse: collapse;
+            margin-top: 10px;
         }
-        .close {
-            color: #aaa;
-            position: absolute;
-            right: 15px;
-            top: 10px;
-            font-size: 28px;
+        .transaction-history th, 
+        .transaction-history td {
+            border-bottom: 1px solid #ddd;
+            padding: 12px 10px;
+            text-align: left;
+        }
+        .transaction-history th {
+            background: #f0f0f0;
             font-weight: bold;
-            cursor: pointer;
+            color: #333;
         }
-        .close:hover { color: #000; }
-        .modal label { display: block; margin-top: 15px; }
-        .modal input, .modal select {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
+        .transaction-history td a {
+            text-decoration: none;
+            font-weight: bold;
         }
-        .modal .transfer-btn {
-            margin-top: 20px;
-            width: 100%;
+        .amount-negative {
+            color: red;
+        }
+        .amount-positive {
+            color: green;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+            }
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .search-bar {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-
     <div class="container">
         <div class="sidebar">
             <h2>All Accounts</h2>
@@ -134,11 +167,10 @@
 
             <h3>Professionally Managed</h3>
             <div class="account-list">
-                <div>Mitchell's Fidelity Go: <strong>256,456.56</strong></div>
+                <div>Mitchell's Fidelity Go: <strong>$256,456.56</strong></div>
             </div>
 
-            <br>
-            <button class="dashboard-transfer-btn transfer-btn" onclick="openModal('transferModal')">Transfer Money</button>
+            <a href="#" class="dashboard-transfer-btn">Transfer Money</a>
         </div>
 
         <div class="main-content">
@@ -168,12 +200,30 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Apr-2-2025</td>
+                            <td>Apr 2, 2025</td>
                             <td>Mitchell's Fidelity Go</td>
-                            <td>Ach Transfer to Bank</td>
+                            <td>ACH Transfer to Bank</td>
                             <td>Cash</td>
                             <td>
-                                <a href="transaction-details.html" style="color: red; text-decoration: none;">- 30,000</a>
+                                <a href="#" class="amount-negative">-$30,000.00</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Mar 28, 2025</td>
+                            <td>Individual - TOD</td>
+                            <td>Dividend Payment</td>
+                            <td>Dividend</td>
+                            <td>
+                                <a href="#" class="amount-positive">+$125.50</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Mar 25, 2025</td>
+                            <td>Mitchell's Fidelity Go</td>
+                            <td>Investment Purchase</td>
+                            <td>Buy</td>
+                            <td>
+                                <a href="#" class="amount-negative">-$5,000.00</a>
                             </td>
                         </tr>
                     </tbody>
@@ -181,53 +231,5 @@
             </div>
         </div>
     </div>
-
-    <!-- Transfer Modal -->
-    <div id="transferModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('transferModal')">&times;</span>
-            <h2>Transfer Money</h2>
-            <form id="transferForm" onsubmit="submitTransfer(event)">
-                <label for="fromAccount">From Account</label>
-                <select id="fromAccount" required>
-                    <option value="">Select</option>
-                    <option value="Individual - TOD">Individual - TOD</option>
-                    <option value="Mitchell's Fidelity Go">Mitchell's Fidelity Go</option>
-                </select>
-                <label for="toAccount">To Account</label>
-                <input type="text" id="toAccount" placeholder="Recipient or Account Number" required>
-                <label for="amount">Amount</label>
-                <input type="number" id="amount" min="1" step="any" required>
-                <button type="submit" class="transfer-btn">Submit Transfer</button>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        // Modal open/close logic
-        function openModal(id) {
-            document.getElementById(id).style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
-            document.body.style.overflow = '';
-        }
-        // Close modal when clicking outside content
-        window.onclick = function(event) {
-            var modal = document.getElementById('transferModal');
-            if (event.target == modal) {
-                closeModal('transferModal');
-            }
-        }
-        // Handle transfer form submission
-        function submitTransfer(event) {
-            event.preventDefault();
-            // You can add your transfer logic here
-            alert('Transfer submitted!');
-            closeModal('transferModal');
-            document.getElementById('transferForm').reset();
-        }
-    </script>
 </body>
 </html>

@@ -515,10 +515,210 @@
             border: 1px solid #a7f3d0;
         }
 
-        .alert-error {
-            background: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fca5a5;
+        /* Dashboard Styles */
+        .dashboard {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f4f4f4;
+            z-index: 3000;
+            overflow-y: auto;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .dashboard-sidebar {
+            width: 280px;
+            background: #e7e7e7;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .dashboard-sidebar h2 {
+            font-size: 18px;
+            color: #006341;
+            margin-bottom: 10px;
+        }
+
+        .dashboard-balance {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .dashboard-account-list {
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        .dashboard-account-list > div {
+            margin-bottom: 8px;
+        }
+
+        .dashboard-main-content {
+            flex: 1;
+            background: white;
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .dashboard-header h2 {
+            color: #333;
+            margin: 0;
+        }
+
+        .dashboard-search-bar {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .dashboard-filters {
+            margin-bottom: 20px;
+        }
+
+        .dashboard-filters button, .dashboard-transfer-btn {
+            padding: 10px 15px;
+            background: #006341;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        .dashboard-filters button:hover, .dashboard-transfer-btn:hover {
+            background: #004d2c;
+        }
+
+        .dashboard-transaction-history table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .dashboard-transaction-history th, .dashboard-transaction-history td {
+            border-bottom: 1px solid #ddd;
+            padding: 12px 10px;
+            text-align: left;
+        }
+
+        .dashboard-transaction-history th {
+            background: #f0f0f0;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .dashboard-transaction-history td {
+            color: #555;
+        }
+
+        .dashboard-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .dashboard-close-btn:hover {
+            background: #c82333;
+        }
+
+        .welcome-banner {
+            background: linear-gradient(135deg, #006341 0%, #004d2c 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .welcome-banner h3 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+
+        .welcome-banner p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        /* Mobile Dashboard */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                flex-direction: column;
+            }
+
+            .dashboard-sidebar {
+                width: 100%;
+                min-height: auto;
+                padding: 15px;
+            }
+
+            .dashboard-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .dashboard-search-bar {
+                width: 100%;
+            }
+
+            .dashboard-filters {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .dashboard-filters button {
+                margin-right: 0;
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .dashboard-transaction-history {
+                overflow-x: auto;
+            }
+
+            .dashboard-transaction-history table {
+                min-width: 600px;
+            }
         }
 
         .mobile-menu-btn {
@@ -609,6 +809,74 @@
                 <a href="#" class="btn btn-secondary" onclick="openModal('loginModal')">Login</a>
                 <a href="#" class="btn btn-primary" onclick="openModal('registerModal')">Register</a>
             </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard">
+        <div class="dashboard-container">
+            <div class="dashboard-sidebar">
+                <button class="dashboard-close-btn" onclick="closeDashboard()" title="Logout">&times;</button>
+                <h2>All Accounts</h2>
+                <div class="dashboard-balance">$2,972,569.21</div>
+                <h3>Account Owner:</h3>
+                <div id="dashboardUserName">User</div>
+                <h3>Investment</h3>
+                <div class="dashboard-account-list">
+                    <div>Individual - TOD: <strong>$6,835.77</strong></div>
+                </div>
+                <h3>Professionally Managed</h3>
+                <div class="dashboard-account-list">
+                    <div>User's Investment Account: <strong>$256,456.56</strong></div>
+                </div>
+                <br>
+                <button class="dashboard-transfer-btn" onclick="openModal('transferModal')">Transfer Money</button>
+            </div>
+            <div class="dashboard-main-content">
+                <div class="welcome-banner">
+                    <h3>Welcome back, <span id="dashboardUserNameHeader">User</span>!</h3>
+                    <p>Manage your accounts and transactions from your Shenzhenswift dashboard</p>
+                </div>
+                <div class="dashboard-header">
+                    <h2>All Accounts</h2>
+                    <input type="text" class="dashboard-search-bar" placeholder="Search Activity & Orders">
+                </div>
+                <div class="dashboard-filters">
+                    <button onclick="filterTransactions('30days', event)" class="filter-active">Past 30 Days</button>
+                    <button onclick="filterTransactions('orders', event)">Orders</button>
+                    <button onclick="filterTransactions('transfers', event)">Transfers</button>
+                </div>
+                <div class="dashboard-transaction-history">
+                    <h3>Past 30 Days</h3>
+                    <table id="transactionTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Account</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionTableBody">
+                            <tr>
+                                <td>Jan-5-2025</td>
+                                <td>Investment Account</td>
+                                <td>Initial Deposit</td>
+                                <td>Deposit</td>
+                                <td style="color: green;">+ $10,000.00</td>
+                            </tr>
+                            <tr>
+                                <td>Jan-4-2025</td>
+                                <td>Individual - TOD</td>
+                                <td>Account Opening</td>
+                                <td>Setup</td>
+                                <td style="color: blue;">$0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
             <div class="mobile-menu" id="mobileMenu">
                 <ul>
@@ -1086,7 +1354,28 @@
             }
         });
 
-        // Login Form Handler with SheetDB
+        // Helper function to verify user credentials
+        async function verifyUserCredentials(email, password) {
+            try {
+                // Fetch all registered users from SheetDB
+                const response = await fetch(SHEETDB_API_URL);
+                const data = await response.json();
+                
+                // Find user with matching email and password who registered
+                const user = data.find(row => 
+                    row.formType === 'Registration' && 
+                    row.email === email && 
+                    row.password === password
+                );
+                
+                return user || null;
+            } catch (error) {
+                console.error("Error verifying credentials:", error);
+                return null;
+            }
+        }
+
+        // Login Form Handler with Authentication
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -1097,32 +1386,89 @@
                 // Show loading state
                 const submitBtn = this.querySelector('button[type="submit"]');
                 const originalText = submitBtn.textContent;
-                submitBtn.textContent = 'Logging in...';
+                submitBtn.textContent = 'Verifying credentials...';
                 submitBtn.disabled = true;
 
-                // Submit login attempt to SheetDB for tracking
-                const success = await submitToSheetDB({
-                    formType: 'Login Attempt',
-                    email: email,
-                    timestamp: new Date().toISOString(),
-                    userAgent: navigator.userAgent
-                });
+                // Verify user credentials against registered users
+                const user = await verifyUserCredentials(email, password);
+
+                if (user) {
+                    // Log successful login attempt
+                    await submitToSheetDB({
+                        formType: 'Successful Login',
+                        email: email,
+                        userName: user.name,
+                        timestamp: new Date().toISOString(),
+                        userAgent: navigator.userAgent
+                    });
+
+                    // Store user info for session (in memory only)
+                    sessionStorage.setItem('loggedInUser', JSON.stringify({
+                        name: user.name,
+                        email: user.email,
+                        loginTime: new Date().toISOString()
+                    }));
+
+                    showAlert('loginAlert', `Welcome back, ${user.name}! Redirecting to dashboard...`, 'success');
+                    
+                    setTimeout(() => {
+                        closeModal('loginModal');
+                        this.reset();
+                        showDashboard(user);
+                    }, 2000);
+
+                } else {
+                    // Log failed login attempt
+                    await submitToSheetDB({
+                        formType: 'Failed Login',
+                        email: email,
+                        timestamp: new Date().toISOString(),
+                        userAgent: navigator.userAgent
+                    });
+
+                    showAlert('loginAlert', 'Invalid email or password. Please check your credentials or register first.', 'error');
+                }
 
                 // Reset button state
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
 
-                if (success) {
-                    showAlert('loginAlert', 'Login recorded successfully! (Note: This is a demo - real authentication would be implemented server-side)', 'success');
-                    setTimeout(() => {
-                        closeModal('loginModal');
-                        this.reset();
-                    }, 2000);
-                } else {
-                    showAlert('loginAlert', 'Login attempt failed. Please try again.', 'error');
-                }
             } else {
                 showAlert('loginAlert', 'Please enter both email and password', 'error');
+            }
+        });
+
+        // Function to show dashboard for logged-in users
+        function showDashboard(user) {
+            // Update dashboard with user info
+            document.getElementById('dashboardUserName').textContent = user.name;
+            document.getElementById('dashboardUserNameHeader').textContent = user.name;
+            
+            // Hide main content and show dashboard
+            document.body.style.overflow = 'hidden';
+            document.getElementById('dashboard').classList.add('active');
+        }
+
+        // Function to logout user
+        function closeDashboard() {
+            // Clear session
+            sessionStorage.removeItem('loggedInUser');
+            
+            // Hide dashboard and show main content
+            document.getElementById('dashboard').classList.remove('active');
+            document.body.style.overflow = 'auto';
+            
+            // Optional: Show logout confirmation
+            alert('You have been logged out successfully.');
+        }
+
+        // Check if user is already logged in on page load
+        window.addEventListener('load', function() {
+            const loggedInUser = sessionStorage.getItem('loggedInUser');
+            if (loggedInUser) {
+                const user = JSON.parse(loggedInUser);
+                // Optional: Auto-show dashboard if user was previously logged in
+                // showDashboard(user);
             }
         });
 

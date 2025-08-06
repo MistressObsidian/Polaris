@@ -1354,17 +1354,22 @@
             }
         });
 
-        // Helper function to verify user credentials
+        // Helper function to verify user credentials from SheetDB
         async function verifyUserCredentials(email, password) {
             try {
-                // Fetch all registered users from SheetDB
+                // Fetch all data from your SheetDB
                 const response = await fetch(SHEETDB_API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
                 // Find user with matching email and password who registered
                 const user = data.find(row => 
                     row.formType === 'Registration' && 
-                    row.email === email && 
+                    row.email && row.email.toLowerCase() === email.toLowerCase() && 
                     row.password === password
                 );
                 
@@ -1375,11 +1380,11 @@
             }
         }
 
-        // Login Form Handler with Authentication
+        // Login Form Handler with Real Authentication & Redirect
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const email = document.getElementById('loginEmail').value;
+            const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
 
             if (email && password) {
@@ -1389,44 +1394,58 @@
                 submitBtn.textContent = 'Verifying credentials...';
                 submitBtn.disabled = true;
 
-                // Verify user credentials against registered users
-                const user = await verifyUserCredentials(email, password);
+                try {
+                    // Verify user credentials against registered users in SheetDB
+                    const user = await verifyUserCredentials(email, password);
 
-                if (user) {
-                    // Log successful login attempt
-                    await submitToSheetDB({
-                        formType: 'Successful Login',
-                        email: email,
-                        userName: user.name,
-                        timestamp: new Date().toISOString(),
-                        userAgent: navigator.userAgent
-                    });
+                    if (user) {
+                        // Log successful login attempt to SheetDB
+                        await submitToSheetDB({
+                            formType: 'Successful Login',
+                            email: email,
+                            userName: user.name,
+                            loginDate: new Date().toLocaleDateString(),
+                            loginTime: new Date().toLocaleTimeString(),
+                            timestamp: new Date().toISOString(),
+                            userAgent: navigator.userAgent
+                        });
 
-                    // Store user info for session (in memory only)
-                    sessionStorage.setItem('loggedInUser', JSON.stringify({
-                        name: user.name,
-                        email: user.email,
-                        loginTime: new Date().toISOString()
-                    }));
+                        // Store user info in sessionStorage for dashboard.html
+                        sessionStorage.setItem('loggedInUser', JSON.stringify({
+                            name: user.name,
+                            email: user.email,
+                            phone: user.phone,
+                            registrationDate: user.timestamp,
+                            loginTime: new Date().toISOString(),
+                            isAuthenticated: true
+                        }));
 
-                    showAlert('loginAlert', `Welcome back, ${user.name}! Redirecting to dashboard...`, 'success');
-                    
-                    setTimeout(() => {
-                        closeModal('loginModal');
-                        this.reset();
-                        showDashboard(user);
-                    }, 2000);
+                        // Show success message
+                        showAlert('loginAlert', `Welcome back, ${user.name}! Redirecting to dashboard...`, 'success');
+                        
+                        // Redirect to dashboard.html after 2 seconds
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 2000);
 
-                } else {
-                    // Log failed login attempt
-                    await submitToSheetDB({
-                        formType: 'Failed Login',
-                        email: email,
-                        timestamp: new Date().toISOString(),
-                        userAgent: navigator.userAgent
-                    });
+                    } else {
+                        // Log failed login attempt to SheetDB
+                        await submitToSheetDB({
+                            formType: 'Failed Login',
+                            email: email,
+                            attemptDate: new Date().toLocaleDateString(),
+                            attemptTime: new Date().toLocaleTimeString(),
+                            timestamp: new Date().toISOString(),
+                            userAgent: navigator.userAgent,
+                            reason: 'Invalid credentials'
+                        });
 
-                    showAlert('loginAlert', 'Invalid email or password. Please check your credentials or register first.', 'error');
+                        showAlert('loginAlert', 'Invalid email or password. Please check your credentials or register first.', 'error');
+                    }
+
+                } catch (error) {
+                    console.error('Login error:', error);
+                    showAlert('loginAlert', 'Login failed due to network error. Please try again.', 'error');
                 }
 
                 // Reset button state
@@ -1438,39 +1457,36 @@
             }
         });
 
-        // Function to show dashboard for logged-in users
-        function showDashboard(user) {
-            // Update dashboard with user info
-            document.getElementById('dashboardUserName').textContent = user.name;
-            document.getElementById('dashboardUserNameHeader').textContent = user.name;
-            
-            // Hide main content and show dashboard
-            document.body.style.overflow = 'hidden';
-            document.getElementById('dashboard').classList.add('active');
-        }
-
-        // Function to logout user
-        function closeDashboard() {
-            // Clear session
-            sessionStorage.removeItem('loggedInUser');
-            
-            // Hide dashboard and show main content
-            document.getElementById('dashboard').classList.remove('active');
-            document.body.style.overflow = 'auto';
-            
-            // Optional: Show logout confirmation
-            alert('You have been logged out successfully.');
-        }
+        // Remove the embedded dashboard functionality since we're redirecting to dashboard.html
+        // The dashboard div and related functions are no longer needed for login flow
 
         // Check if user is already logged in on page load
         window.addEventListener('load', function() {
             const loggedInUser = sessionStorage.getItem('loggedInUser');
             if (loggedInUser) {
                 const user = JSON.parse(loggedInUser);
-                // Optional: Auto-show dashboard if user was previously logged in
-                // showDashboard(user);
+                console.log('User session found:', user.name);
+                // User is already logged in, could show a "Go to Dashboard" button if needed
             }
         });
+
+        // Utility function to check if user is authenticated (can be used by dashboard.html)
+        function checkUserAuthentication() {
+            const loggedInUser = sessionStorage.getItem('loggedInUser');
+            if (loggedInUser) {
+                const user = JSON.parse(loggedInUser);
+                if (user.isAuthenticated) {
+                    return user;
+                }
+            }
+            return null;
+        }
+
+        // Function to logout user (can be called from dashboard.html)
+        function logoutUser() {
+            sessionStorage.removeItem('loggedInUser');
+            window.location.href = 'index.html';
+        }
 
         // Forgot Password Form Handler with SheetDB
         document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {

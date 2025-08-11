@@ -402,27 +402,31 @@
 
         /* Modal Styles */
         .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-        }
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    overflow-y: auto;
+    padding: 20px 0;
+}
 
-        .modal-content {
-            background: white;
-            margin: 5% auto;
-            padding: 2rem;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 400px;
-            position: relative;
-            animation: modalSlideIn 0.3s ease;
-        }
+.modal-content {
+    background: white;
+    margin: 5% auto;
+    padding: 2rem;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    animation: modalSlideIn 0.3s ease;
+    max-height: 90vh;
+    overflow-y: auto;
+}
 
         @keyframes modalSlideIn {
             from {
@@ -436,18 +440,27 @@
         }
 
         .close {
-            position: absolute;
-            right: 1rem;
-            top: 1rem;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #666;
-            transition: color 0.3s ease;
-        }
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.3s ease;
+    z-index: 10;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.1);
+}
 
-        .close:hover {
-            color: #333;
-        }
+.close:hover {
+    color: #333;
+    background: rgba(0,0,0,0.2);
+}
 
         .modal h2 {
             margin-bottom: 1.5rem;
@@ -467,18 +480,22 @@
         }
 
         .form-group input, .form-group select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    transition: border-color 0.3s ease;
+    background: white;
+    -webkit-appearance: none;
+    appearance: none;
+}
 
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
 
         .modal .btn {
             width: 100%;
@@ -792,6 +809,158 @@
                 display: none;
             }
         }
+        /* Enhanced Mobile Responsive Styles */
+@media (max-width: 768px) {
+    /* Mobile Modal Adjustments */
+    .modal {
+        padding: 10px;
+    }
+
+    .modal-content {
+        margin: 0;
+        padding: 1.5rem;
+        width: 100%;
+        max-width: none;
+        border-radius: 10px;
+        position: relative;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .modal h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        font-size: 0.9rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .form-group input, .form-group select {
+        padding: 14px 12px;
+        font-size: 16px; /* Prevents zoom on mobile */
+    }
+
+    .modal .btn {
+        padding: 16px;
+        font-size: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .close {
+        right: 0.5rem;
+        top: 0.5rem;
+        font-size: 1.3rem;
+    }
+
+    .form-footer {
+        font-size: 0.85rem;
+        margin-top: 1.5rem;
+        line-height: 1.5;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+    .modal {
+        padding: 5px;
+    }
+
+    .modal-content {
+        padding: 1rem;
+        border-radius: 8px;
+    }
+
+    .modal h2 {
+        font-size: 1.3rem;
+    }
+
+    .form-group input, .form-group select {
+        padding: 12px 10px;
+    }
+}
+
+/* High resolution displays */
+@media (min-width: 1200px) {
+    .modal-content {
+        max-width: 600px;
+        padding: 3rem;
+    }
+
+    .modal h2 {
+        font-size: 2rem;
+    }
+
+    .form-group input, .form-group select {
+        padding: 15px 18px;
+        font-size: 1.1rem;
+    }
+}
+
+/* Landscape mobile orientation */
+@media (max-height: 600px) and (orientation: landscape) {
+    .modal {
+        padding: 5px 0;
+    }
+
+    .modal-content {
+        margin: 2% auto;
+        max-height: 95vh;
+    }
+}
+
+/* Touch device improvements */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        min-height: 44px; /* Apple's recommended touch target size */
+    }
+
+    .form-group input, .form-group select {
+        min-height: 44px;
+    }
+
+    .close {
+        width: 44px;
+        height: 44px;
+        font-size: 1.2rem;
+    }
+}
+
+/* Loading state for forms */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn.loading {
+    background: #6c757d;
+    position: relative;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: auto;
+    border: 2px solid #fff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+@keyframes spin {
+    0% { transform: translateY(-50%) rotate(0deg); }
+    100% { transform: translateY(-50%) rotate(360deg); }
+}
     </style>
 </head>
 <body>
@@ -1143,23 +1312,23 @@
             <form id="registerForm">
                 <div class="form-group">
                     <label for="registerName">Full Name</label>
-                    <input type="text" id="registerName" name="name" required>
+                    <input type="text" id="registerName" name="name" placeholder="Enter your full name" required autocomplete="name">
                 </div>
                 <div class="form-group">
                     <label for="registerEmail">Email Address</label>
-                    <input type="email" id="registerEmail" name="email" required>
+                    <input type="email" id="registerEmail" name="email" placeholder="Enter your email address" required autocomplete="email">
                 </div>
                 <div class="form-group">
                     <label for="registerPhone">Phone Number</label>
-                    <input type="tel" id="registerPhone" name="phone" required>
+                    <input type="tel" id="registerPhone" name="phone" placeholder="Enter your phone number" required autocomplete="tel">
                 </div>
                 <div class="form-group">
                     <label for="registerPassword">Password</label>
-                    <input type="password" id="registerPassword" name="password" required>
+                    <input type="password" id="registerPassword" name="password" placeholder="Create a strong password" required autocomplete="new-password">
                 </div>
                 <div class="form-group">
                     <label for="registerConfirmPassword">Confirm Password</label>
-                    <input type="password" id="registerConfirmPassword" name="confirmPassword" required>
+                    <input type="password" id="registerConfirmPassword" name="confirmPassword" placeholder="Confirm your password" required autocomplete="new-password">
                 </div>
                 <button type="submit" class="btn btn-primary">Create Account</button>
             </form>

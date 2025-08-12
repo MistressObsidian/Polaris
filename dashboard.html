@@ -1,368 +1,356 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-  <title>All Accounts - Fidelity</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard • Shenzhenswift</title>
   <style>
+    /* Base and Theme (aligned with index/login/register/transfer) */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     :root{
-      --brand:#006341;
-      --brand-dark:#004d2c;
-      --bg:#f4f4f4;
+      --brand:#1e3c72;        /* header gradient start */
+      --brand2:#2a5298;       /* header gradient end */
+      --accent1:#667eea;      /* button gradient start */
+      --accent2:#764ba2;      /* button gradient end */
+      --bg:#f6f7fb;
+      --card:#ffffff;
       --text:#333;
-      --muted:#888;
-      --card:#fff;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text);
-    }
-    .container{ display:flex; min-height:100vh; }
-    .sidebar{
-      width: 300px; background:#e7e7e7; padding:20px; position:sticky; top:0; height:100vh; overflow:auto;
-    }
-    .sidebar h2{ font-size:18px; color:var(--brand); margin:0 0 8px; }
-    .balance{
-      font-size:28px; font-weight:bold; color:var(--brand); margin: 6px 0 16px;
-    }
-    .sidebar section{ margin-top:16px; }
-    .sidebar h3{ font-size:15px; margin:10px 0; color:#222; }
-    .account-list{ font-size:14px }
-    .account-row{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #ddd; }
-    .pill{
-      display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#dfeee8; color:var(--brand);
-    }
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      padding:12px 16px; border:none; border-radius:6px; cursor:pointer; font-weight:600;
-      background:var(--brand); color:white; transition:.2s background;
-    }
-    .btn:hover{ background:var(--brand-dark); }
-    .btn-ghost{ background:#fff; color:var(--brand); border:1px solid #cfd7d3 }
-    .stack-8 > *{ margin-right:8px }
-    .stack-8 > *:last-child{ margin-right:0 }
-
-    .main{ flex:1; padding:20px; background:#fff; }
-    .header{
-      display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px;
-    }
-    .header h2{ margin:0; }
-    .right-actions{ display:flex; align-items:center; gap:10px }
-    .search{
-      width:320px; max-width:45vw; padding:10px 12px; border:1px solid #ccc; border-radius:6px; font-size:14px;
-    }
-    .filters{ margin:6px 0 18px; }
-    .filters .btn{ padding:8px 12px; font-weight:500 }
-
-    .card{
-      background:var(--card); border:1px solid #e7e7e7; border-radius:10px; padding:16px;
-      box-shadow: 0 1px 2px rgba(0,0,0,.03);
-    }
-    .welcome{ background:linear-gradient(135deg, var(--brand), var(--brand-dark)); color:#fff; border:none; }
-    .welcome h3{ margin:0 0 6px; }
-    .muted{ color:#e9f5ef; opacity:.9; }
-
-    table{ width:100%; border-collapse:collapse }
-    th, td{ padding:12px 10px; border-bottom:1px solid #eee; text-align:left; }
-    th{ background:#f7f7f7; color:#222; font-weight:700 }
-    td a{ text-decoration:none; font-weight:700 }
-    .amt-pos{ color:green }
-    .amt-neg{ color:#c62828 }
-
-    .loader{
-      display:inline-block; width:16px; height:16px; border-radius:50%;
-      border:2px solid #cfe5db; border-top-color:#fff; margin-left:8px; animation:spin 1s linear infinite;
-    }
-    @keyframes spin{ to{ transform:rotate(360deg) } }
-
-    .skeleton{
-      background:linear-gradient(90deg,#eee,#f6f6f6,#eee);
-      background-size:200% 100%;
-      animation:skeleton 1.2s infinite;
-      border-radius:6px;
-    }
-    @keyframes skeleton{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-
-    .row{ display:flex; gap:16px; flex-wrap:wrap }
-    .col{ flex:1 1 320px }
-
-    .topbar{
-      position:sticky; top:0; z-index:5; background:#fff; border-bottom:1px solid #eee; padding:10px 16px; display:none;
+      --muted:#666;
+      --border:#e5e7eb;
+      --shadow: 0 10px 30px rgba(0,0,0,.08);
     }
 
-    @media (max-width: 900px){
-      .container{ flex-direction:column; }
-      .sidebar{ width:100%; height:auto; position:relative }
-      .main{ padding:16px }
-      .search{ width:100% }
-      .topbar{ display:block }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      overflow-x: hidden;
     }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Fixed Header/Nav (matches index.html style) */
+    header {
+      background: linear-gradient(135deg, var(--brand) 0%, var(--brand2) 100%);
+      color: white;
+      padding: 1rem 0;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: linear-gradient(45deg, #fff, #e0e7ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: .3px;
+    }
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 1.5rem;
+    }
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+      font-weight: 600;
+    }
+    .nav-links a:hover { color: #e0e7ff; transform: translateY(-2px); }
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -5px;
+      left: 0;
+      background: #e0e7ff;
+      transition: width 0.3s ease;
+    }
+    .nav-links a:hover::after { width: 100%; }
+
+    .auth-buttons { display: flex; gap: 0.75rem; }
+
+    .btn {
+      padding: 10px 18px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+    }
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+      transition: left 0.5s ease;
+    }
+    .btn:hover::before { left: 100%; }
+    .btn-primary {
+      background: linear-gradient(45deg, var(--accent1) 0%, var(--accent2) 100%);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(118, 75, 162, 0.25);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: #fff;
+      border-color: rgba(255,255,255,.35);
+    }
+
+    /* Main layout */
+    main { padding-top: 96px; }
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 18px 0 14px;
+    }
+    .page-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--brand);
+      letter-spacing: .2px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .toolbar .search {
+      width: 320px; max-width: 60vw;
+      padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px;
+      background: #fff;
+    }
+
+    /* Cards */
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+    @media (min-width: 700px) {
+      .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+      .grid.cols-2 { grid-template-columns: 2fr 1fr; }
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .card h3 {
+      margin-bottom: 8px;
+      color: var(--brand);
+      font-size: 1.05rem;
+    }
+    .kpi {
+      display: flex; align-items: baseline; gap: 10px;
+    }
+    .kpi .value { font-size: 1.8rem; font-weight: 800; }
+    .kpi .muted { color: var(--muted); font-size: .9rem; }
+
+    /* Account list */
+    .accounts { display: grid; gap: 10px; }
+    .account-row {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff;
+    }
+    .account-row .left {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .pill {
+      display: inline-block; padding: 4px 10px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; color: var(--accent1); background: #eef2ff;
+    }
+    .amount { font-weight: 800; }
+
+    /* Transactions */
+    .tx-list { display: grid; gap: 10px; }
+    .tx {
+      display: grid; grid-template-columns: 1fr auto; gap: 6px 10px;
+      padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #fff;
+    }
+    .tx .name { font-weight: 700; }
+    .tx .meta { color: var(--muted); font-size: .9rem; }
+    .tx .delta.pos { color: #047857; font-weight: 800; }
+    .tx .delta.neg { color: #b91c1c; font-weight: 800; }
+
+    /* Quick actions */
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-action {
+      background: linear-gradient(45deg, var(--accent1), var(--accent2));
+      color: #fff; border-radius: 12px; padding: 12px 16px; border: none; cursor: pointer;
+      box-shadow: 0 6px 18px rgba(102, 126, 234, 0.28);
+      font-weight: 800;
+    }
+    .btn-action:hover { filter: brightness(1.05); transform: translateY(-1px); }
+
+    /* Footer space */
+    .footer-space { height: 24px; }
   </style>
 </head>
 <body>
-  <!-- Mobile topbar -->
-  <div class="topbar row" id="topbarUser">
-    <div class="col" style="flex:2 1 auto;">
-      <strong>Welcome, <span id="tbUserName">User</span></strong>
+  <!-- Fixed header -->
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">Shenzhenswift</div>
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="transfer.html">Transfer</a></li>
+          <li><a href="#">Cards</a></li>
+          <li><a href="#">Support</a></li>
+        </ul>
+        <div class="auth-buttons">
+          <a class="btn btn-ghost" href="login.html">Log in</a>
+          <a class="btn btn-primary" href="register.html">Sign up</a>
+        </div>
+      </nav>
     </div>
-    <div class="col stack-8" style="justify-content:flex-end;">
-      <button class="btn-ghost btn" id="logoutTop">Log out</button>
+  </header>
+
+  <!-- Main content -->
+  <main>
+    <div class="container">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div style="color:var(--muted); margin-top:4px;">Overview of your accounts and recent activity</div>
+        </div>
+        <div class="toolbar">
+          <input class="search" placeholder="Search transactions, accounts…" />
+          <a class="btn btn-primary" href="transfer.html">New transfer</a>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <section class="grid cols-3" style="margin: 10px 0 8px;">
+        <div class="card">
+          <h3>Total balance</h3>
+          <div class="kpi">
+            <div class="value">$256,780.00</div>
+            <div class="muted">All accounts</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Available</h3>
+          <div class="kpi">
+            <div class="value">$221,540.20</div>
+            <div class="muted">After holds</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Month-to-date</h3>
+          <div class="kpi">
+            <div class="value">+$4,920.11</div>
+            <div class="muted">Net cash flow</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Accounts and recent transactions -->
+      <section class="grid cols-2" style="margin-top: 8px;">
+        <div class="card">
+          <h3>Your accounts</h3>
+          <div class="accounts" style="margin-top:10px;">
+            <div class="account-row">
+              <div class="left">
+                <span class="pill">Checking</span>
+                <div>
+                  <div style="font-weight:800;">Everyday Checking</div>
+                  <div class="muted" style="font-size:.9rem;">••• 3482</div>
+                </div>
+              </div>
+              <div class="amount">$24,380.22</div>
+            </div>
+            <div class="account-row">
+              <div class="left">
+                <span class="pill">Savings</span>
+                <div>
+                  <div style="font-weight:800;">High-Yield Savings</div>
+                  <div class="muted" style="font-size:.9rem;">••• 9015</div>
+                </div>
+              </div>
+              <div class="amount">$198,440.98</div>
+            </div>
+            <div class="account-row">
+              <div class="left">
+                <span class="pill">Brokerage</span>
+                <div>
+                  <div style="font-weight:800;">Invest Portfolio</div>
+                  <div class="muted" style="font-size:.9rem;">••• 1170</div>
+                </div>
+              </div>
+              <div class="amount">$33,958.80</div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+            <a class="btn btn-primary" href="transfer.html">Transfer money</a>
+            <button class="btn btn-action" type="button">Deposit funds</button>
+            <button class="btn btn-action" type="button">Statements</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Recent transactions</h3>
+          <div class="tx-list" style="margin-top:10px;">
+            <div class="tx">
+              <div class="name">Payroll • Shenzhenswift LLC</div>
+              <div class="delta pos">+ $3,420.00</div>
+              <div class="meta">Aug 07 • ACH Credit • Checking • •••3482</div>
+            </div>
+            <div class="tx">
+              <div class="name">ATM Withdrawal</div>
+              <div class="delta neg">- $200.00</div>
+              <div class="meta">Aug 05 • ATM • Checking • •••3482</div>
+            </div>
+            <div class="tx">
+              <div class="name">Transfer to Savings</div>
+              <div class="delta neg">- $2,000.00</div>
+              <div class="meta">Aug 03 • Internal Transfer • •••3482 → •••9015</div>
+            </div>
+            <div class="tx">
+              <div class="name">Interest Credit</div>
+              <div class="delta pos">+ $42.11</div>
+              <div class="meta">Aug 01 • Interest • Savings • •••9015</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <a class="btn btn-primary" href="transaction-details.html">View details</a>
+          </div>
+        </div>
+      </section>
+
+      <div class="footer-space"></div>
     </div>
-  </div>
-
-  <div class="container">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <h2>All Accounts</h2>
-      <div id="totalBalance" class="balance skeleton" style="height:36px; width:70%"></div>
-
-      <section>
-        <h3>Account Owner</h3>
-        <div id="accountOwner" class="pill">Loading…</div>
-      </section>
-
-      <section>
-        <h3>Accounts</h3>
-        <div id="accountsList" class="account-list">
-          <div class="account-row skeleton" style="height:20px"></div>
-          <div class="account-row skeleton" style="height:20px"></div>
-        </div>
-      </section>
-
-      <section>
-        <button class="btn" id="transferBtn">Transfer Money</button>
-      </section>
-
-      <section style="margin-top:24px">
-        <button class="btn-ghost btn" id="logoutBtn">Log out</button>
-      </section>
-    </aside>
-
-    <!-- Main -->
-    <main class="main">
-      <div class="header">
-        <h2>All Accounts</h2>
-        <div class="right-actions">
-          <input type="text" id="searchInput" class="search" placeholder="Search Activity & Orders" />
-        </div>
-      </div>
-
-      <div class="card welcome" id="welcomeCard">
-        <h3>Welcome back, <span id="welcomeName">User</span>!</h3>
-        <div class="muted">Manage your accounts and transactions from your dashboard.</div>
-      </div>
-
-      <div class="filters" style="margin-top:16px">
-        <div class="stack-8">
-          <button class="btn" data-range="30">Past 30 Days</button>
-          <button class="btn" data-range="90">Past 90 Days</button>
-          <button class="btn" id="refreshBtn">Refresh<span class="loader" id="refreshSpin" style="display:none"></span></button>
-        </div>
-      </div>
-
-      <section class="card" style="margin-top:12px">
-        <h3 style="margin:0 0 10px">Recent Transactions</h3>
-        <div style="overflow:auto">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Account</th>
-                <th>Description</th>
-                <th>Type</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody id="txBody">
-              <tr><td colspan="5"><div class="skeleton" style="height:18px"></div></td></tr>
-              <tr><td colspan="5"><div class="skeleton" style="height:18px"></div></td></tr>
-              <tr><td colspan="5"><div class="skeleton" style="height:18px"></div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <script>
-    const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
-
-    // --- Utilities ----------------------------------------------------------
-    const qs = (sel, el=document) => el.querySelector(sel);
-    const qsa = (sel, el=document) => [...el.querySelectorAll(sel)];
-    const fmtMoney = (n) => {
-      const num = typeof n === 'string' ? Number(n) : n;
-      if (!isFinite(num)) return '$0.00';
-      return num.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
-    };
-    const safe = (v, d='') => (v===undefined || v===null ? d : v);
-
-    // Build a /search URL for SheetDB
-    function buildSearch(params){
-      const usp = new URLSearchParams({...params, casesensitive: 'false'});
-      return `${SHEETDB_API_URL}/search?${usp.toString()}`;
-    }
-
-    async function fetchJSON(url){
-      const r = await fetch(url);
-      if(!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    }
-
-    // --- Data fetchers ------------------------------------------------------
-    async function fetchAccountsByEmail(email){
-      // formType=Account rows
-      const url = buildSearch({ formType:'Account', email: email });
-      return fetchJSON(url);
-    }
-
-    async function fetchTransactionsByEmail(email, options={}){
-      const url = buildSearch({ formType:'Transaction', email: email });
-      const rows = await fetchJSON(url);
-      // optional: filter by last N days
-      if (options.days){
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - options.days);
-        return rows.filter(r => {
-          const d = new Date(r.date || r.timestamp || Date.now());
-          return d >= cutoff;
-        });
-      }
-      return rows;
-    }
-
-    // --- Renderers ----------------------------------------------------------
-    function renderAccounts(ownerName, accounts){
-      // Total
-      const total = accounts.reduce((sum, a) => sum + (Number(a.balance)||0), 0);
-      qs('#totalBalance').classList.remove('skeleton');
-      qs('#totalBalance').textContent = fmtMoney(total);
-
-      // Owner
-      qs('#accountOwner').textContent = ownerName || 'User';
-
-      // List
-      const wrap = qs('#accountsList');
-      wrap.innerHTML = '';
-      if (accounts.length === 0){
-        wrap.innerHTML = '<div class="muted">No accounts yet.</div>';
-        return;
-      }
-      accounts.forEach(a => {
-        const row = document.createElement('div');
-        row.className = 'account-row';
-        row.innerHTML = `
-          <span>${safe(a.accountType,'Account')} — <strong>${safe(a.accountName,'Unnamed')}</strong></span>
-          <span>${fmtMoney(a.balance)}</span>
-        `;
-        wrap.appendChild(row);
-      });
-    }
-
-    function renderTransactions(rows){
-      const tbody = qs('#txBody');
-      tbody.innerHTML = '';
-      if (!rows || rows.length === 0){
-        tbody.innerHTML = `<tr><td colspan="5" class="muted">No recent transactions.</td></tr>`;
-        return;
-      }
-      // sort desc by date
-      rows.sort((a,b) => new Date(b.date||b.timestamp||0) - new Date(a.date||a.timestamp||0));
-      rows.slice(0, 50).forEach(tx => {
-        const amt = Number(tx.amount);
-        const cls = amt < 0 ? 'amt-neg' : 'amt-pos';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${safe(tx.date, new Date().toLocaleDateString())}</td>
-          <td>${safe(tx.account, '—')}</td>
-          <td>${safe(tx.description,'—')}</td>
-          <td>${safe(tx.type,'—')}</td>
-          <td><a href="#" class="${cls}">${amt < 0 ? '-' : '+'}${fmtMoney(Math.abs(amt))}</a></td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    // --- Session / Auth -----------------------------------------------------
-    function requireSession(){
-      const s = sessionStorage.getItem('loggedInUser');
-      if (!s){
-        window.location.href = 'index.html';
-        return null;
-      }
-      try { return JSON.parse(s); } catch { return null; }
-    }
-
-    // --- Initialization -----------------------------------------------------
-    async function initDashboard(){
-      const user = requireSession();
-      if (!user) return;
-
-      // Welcome & topbar
-      qs('#welcomeName').textContent = user.name || 'User';
-      qs('#tbUserName').textContent = user.name || 'User';
-      qs('#accountOwner').textContent = user.name || 'User';
-
-      // Buttons
-      qs('#transferBtn').addEventListener('click', () => window.location.href='transfer.html');
-      const doLogout = () => { sessionStorage.removeItem('loggedInUser'); window.location.href='index.html'; };
-      qs('#logoutBtn').addEventListener('click', doLogout);
-      qs('#logoutTop').addEventListener('click', doLogout);
-
-      // Load accounts & transactions
-      await loadData(user.email);
-      // Refresh handler
-      qs('#refreshBtn').addEventListener('click', async () => {
-        qs('#refreshSpin').style.display = 'inline-block';
-        try { await loadData(user.email); }
-        finally { qs('#refreshSpin').style.display = 'none'; }
-      });
-
-      // Simple search filter (client-side)
-      qs('#searchInput').addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        qsa('#txBody tr').forEach(tr => {
-          const txt = tr.textContent.toLowerCase();
-          tr.style.display = txt.includes(term) ? '' : 'none';
-        });
-      });
-    }
-
-    async function loadData(email){
-      // Fetch accounts
-      let accounts = [];
-      try {
-        accounts = await fetchAccountsByEmail(email);
-      } catch (e) {
-        console.error('Accounts fetch failed', e);
-      }
-
-      // If no account rows exist, show a sane default (non-persistent)
-      if (!accounts || accounts.length === 0){
-        accounts = [
-          { accountType:'Individual - TOD', accountName:'Core Position', balance: 6835.77 },
-          { accountType:'Managed', accountName:`${email.split('@')[0]}'s Investment`, balance: 256456.56 }
-        ];
-      }
-
-      renderAccounts(email, accounts);
-
-      // Fetch transactions (last 90 days by default)
-      let txs = [];
-      try {
-        txs = await fetchTransactionsByEmail(email, { days: 90 });
-      } catch (e) {
-        console.error('Transactions fetch failed', e);
-      }
-
-      renderTransactions(txs);
-    }
-
-    // Kickoff
-    window.addEventListener('DOMContentLoaded', initDashboard);
-  </script>
+  </main>
 </body>
 </html>

@@ -317,27 +317,8 @@
 
         <div class="card">
           <h3>Recent transactions</h3>
-          <div class="tx-list" style="margin-top:10px;">
-            <div class="tx">
-              <div class="name">Payroll • Shenzhenswift LLC</div>
-              <div class="delta pos">+ $3,420.00</div>
-              <div class="meta">Aug 07 • ACH Credit • Checking • •••3482</div>
-            </div>
-            <div class="tx">
-              <div class="name">ATM Withdrawal</div>
-              <div class="delta neg">- $200.00</div>
-              <div class="meta">Aug 05 • ATM • Checking • •••3482</div>
-            </div>
-            <div class="tx">
-              <div class="name">Transfer to Savings</div>
-              <div class="delta neg">- $2,000.00</div>
-              <div class="meta">Aug 03 • Internal Transfer • •••3482 → •••9015</div>
-            </div>
-            <div class="tx">
-              <div class="name">Interest Credit</div>
-              <div class="delta pos">+ $42.11</div>
-              <div class="meta">Aug 01 • Interest • Savings • •••9015</div>
-            </div>
+          <div class="tx-list" style="margin-top:10px;" id="txList">
+            <!-- Transactions will be injected here -->
           </div>
           <div style="margin-top:12px;">
             <a class="btn btn-primary" href="transaction-details.html">View details</a>
@@ -348,5 +329,56 @@
       <div class="footer-space"></div>
     </div>
   </main>
+  <script>
+  // Check session for logged in user
+  const session = sessionStorage.getItem('loggedInUser');
+  let isNewUser = false;
+  if (!session) {
+    window.location.href = 'index.html';
+  } else {
+    try {
+      const user = JSON.parse(session);
+      // If registration date and login time are very close, treat as new user
+      if (user.registrationDate && user.loginTime) {
+        const reg = new Date(user.registrationDate);
+        const login = new Date(user.loginTime);
+        if (Math.abs(login - reg) < 2 * 60 * 1000) { // within 2 minutes
+          isNewUser = true;
+        }
+      }
+    } catch {}
+  }
+
+  // Render transactions
+  window.addEventListener('DOMContentLoaded', () => {
+    const txList = document.getElementById('txList');
+    if (isNewUser) {
+      txList.innerHTML = `<div style="color:var(--muted);text-align:center;padding:24px 0;">No recent transactions yet.<br>Start by making your first transfer.</div>`;
+    } else {
+      txList.innerHTML = `
+        <div class="tx">
+          <div class="name">Payroll • Shenzhenswift LLC</div>
+          <div class="delta pos">+ $3,420.00</div>
+          <div class="meta">Aug 07 • ACH Credit • Checking • •••3482</div>
+        </div>
+        <div class="tx">
+          <div class="name">ATM Withdrawal</div>
+          <div class="delta neg">- $200.00</div>
+          <div class="meta">Aug 05 • ATM • Checking • •••3482</div>
+        </div>
+        <div class="tx">
+          <div class="name">Transfer to Savings</div>
+          <div class="delta neg">- $2,000.00</div>
+          <div class="meta">Aug 03 • Internal Transfer • •••3482 → •••9015</div>
+        </div>
+        <div class="tx">
+          <div class="name">Interest Credit</div>
+          <div class="delta pos">+ $42.11</div>
+          <div class="meta">Aug 01 • Interest • Savings • •••9015</div>
+        </div>
+      `;
+    }
+  });
+  </script>
 </body>
 </html>

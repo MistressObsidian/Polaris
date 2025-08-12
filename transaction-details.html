@@ -1,79 +1,235 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transaction Pending - Shenzhenswift</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Transaction Details • Shenzhenswift</title>
   <style>
+    /* Base theme aligned with other pages (index/login/register/transfer) */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root{
+      --brand:#1e3c72;
+      --brand2:#2a5298;
+      --accent1:#667eea;
+      --accent2:#764ba2;
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#333;
+      --muted:#666;
+      --border:#e5e7eb;
+      --ok:#047857;
+      --err:#b91c1c;
+      --warn:#b45309;
+      --shadow: 0 10px 30px rgba(0,0,0,.08);
+    }
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      overflow-x: hidden;
     }
-    .container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #f4f4f4;
-    }
-    .confirmation-box {
-      background-color: #ffffff;
-      padding: 40px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      width: 400px;
-      text-align: center;
-    }
-    .confirmation-box h1 {
-      color: #006341;
-      font-size: 28px;
-      margin-bottom: 20px;
-    }
-    .confirmation-box p {
-      font-size: 18px;
-      color: #333;
-      margin-bottom: 30px;
-    }
-    .confirmation-box .btn {
-      background-color: #006341;
+    .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+    /* Fixed Header/Nav (same as index.html style) */
+    header {
+      background: linear-gradient(135deg, var(--brand) 0%, var(--brand2) 100%);
       color: white;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 5px;
-      text-decoration: none;
-      font-size: 16px;
+      padding: 1rem 0;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
     }
-    .confirmation-box .btn:hover {
-      background-color: #004d2c;
+    nav { display: flex; justify-content: space-between; align-items: center; }
+    .logo {
+      font-size: 1.6rem; font-weight: 800;
+      background: linear-gradient(45deg, #fff, #e0e7ff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; letter-spacing: .3px;
     }
-    .footer {
-      font-size: 12px;
-      color: #888;
-      text-align: center;
-      margin-top: 30px;
+    .nav-links { display: flex; list-style: none; gap: 1.5rem; }
+    .nav-links a {
+      color: white; text-decoration: none; transition: all .3s ease; position: relative; font-weight: 600;
     }
-    .footer a {
-      color: #006341;
-      text-decoration: none;
+    .nav-links a:hover { color: #e0e7ff; transform: translateY(-2px); }
+    .nav-links a::after {
+      content: ''; position: absolute; width: 0; height: 2px; bottom: -5px; left: 0;
+      background: #e0e7ff; transition: width .3s ease;
+    }
+    .nav-links a:hover::after { width: 100%; }
+    .auth-buttons { display: flex; gap: .75rem; }
+
+    .btn {
+      padding: 10px 18px; border-radius: 12px; text-decoration: none; font-weight: 700;
+      transition: all .3s ease; border: 2px solid transparent; cursor: pointer; position: relative; overflow: hidden;
+      display: inline-flex; align-items: center; justify-content: center; font-size: .95rem;
+    }
+    .btn::before {
+      content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); transition: left .5s ease;
+    }
+    .btn:hover::before { left: 100%; }
+    .btn-primary {
+      background: linear-gradient(45deg, var(--accent1) 0%, var(--accent2) 100%);
+      color: #fff; box-shadow: 0 6px 20px rgba(118, 75, 162, .25);
+    }
+    .btn-ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,.35); }
+    .btn-outline {
+      background: #fff; color: var(--accent2); border-color: #d9ddff;
+    }
+    .btn-outline:hover {
+      color: #fff; border-color: transparent; background: linear-gradient(45deg, var(--accent1), var(--accent2));
+      box-shadow: 0 6px 20px rgba(118, 75, 162, .22);
+    }
+
+    /* Page structure */
+    main { padding-top: 96px; }
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 14px;
+    }
+    .page-title { font-size: 1.6rem; font-weight: 800; color: var(--brand); letter-spacing: .2px; }
+    .subtitle { color: var(--muted); }
+
+    /* Card and content */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .confirm {
+      display: grid; gap: 16px;
+    }
+    .success-banner {
+      display: flex; align-items: center; gap: 12px; padding: 14px;
+      border: 1px solid #bbf7d0; background: #ecfdf5; color: var(--ok); border-radius: 12px;
+      font-weight: 700;
+    }
+    .success-icon {
+      width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+      background: #10b981; color: white; font-weight: 900;
+      box-shadow: 0 6px 18px rgba(16,185,129,.3);
+    }
+
+    .amount-line { display: flex; align-items: baseline; gap: 10px; }
+    .amount-line .value { font-size: 2rem; font-weight: 900; }
+    .amount-line .muted { color: var(--muted); }
+
+    .details-grid {
+      display: grid; gap: 12px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 720px) {
+      .details-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .detail {
+      padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #fff;
+    }
+    .detail .label { color: var(--muted); font-size: .85rem; margin-bottom: 6px; }
+    .detail .value { font-weight: 800; }
+
+    .status-pill {
+      display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: .8rem;
+      color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0;
+    }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+    .note { color: var(--muted); font-size: .9rem; margin-top: 6px; }
+
+    /* Print styles */
+    @media print {
+      header, .actions { display: none !important; }
+      main { padding-top: 0; }
+      .card { box-shadow: none; }
     }
   </style>
 </head>
 <body>
-
-  <div class="container">
-    <div class="confirmation-box">
-      <h1>Transaction Pending</h1>
-      <p>Your transfer is currently being processed and will be posted to your account immediately the fee has been paid.</p>
-      <a href="dashboard.html" class="btn">Return to Dashboard</a>
-      
-      <div class="footer">
-        <p>Shenzhenswift © 2025</p>
-        <p><a href="#">Privacy Policy</a> | <a href="#">Terms & Conditions</a></p>
-      </div>
+  <!-- Fixed header -->
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">Shenzhenswift</div>
+        <ul class="nav-links">
+          <li><a href="dashboard.html">Home</a></li>
+          <li><a href="transfer.html">Transfer</a></li>
+          <li><a href="#">Cards</a></li>
+          <li><a href="#">Support</a></li>
+        </ul>
+      </nav>
     </div>
-  </div>
+  </header>
 
+  <!-- Main content -->
+  <main>
+    <div class="container">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Transaction details</div>
+          <div class="subtitle">Confirmation and breakdown of your recent transaction</div>
+        </div>
+      </div>
+
+      <section class="card confirm">
+        <div class="success-banner">
+          <div class="success-icon">✓</div>
+          <div>Processing</div>
+        </div>
+
+        <div class="amount-line">
+          <div class="value">$2,000.00</div>
+          <div class="muted">Transferred from Everyday Checking to High‑Yield Savings</div>
+        </div>
+
+        <div class="details-grid">
+          <div class="detail">
+            <div class="label">Status</div>
+            <div class="value"><span class="status-pill">Pending</span></div>
+          </div>
+          <div class="detail">
+            <div class="label">Date & time</div>
+            <div class="value">Aug 12, 2025 • 14:03 UTC</div>
+          </div>
+          <div class="detail">
+            <div class="label">From account</div>
+            <div class="value">Everyday Checking • •••3482</div>
+          </div>
+          <div class="detail">
+            <div class="label">To account</div>
+            <div class="value">High‑Yield Savings • •••9015</div>
+          </div>
+          <div class="detail">
+            <div class="label">Reference / ID</div>
+            <div class="value">TX-9F2C-1170</div>
+          </div>
+          <div class="detail">
+            <div class="label">Network / Type</div>
+            <div class="value">Internal Transfer</div>
+          </div>
+          <div class="detail">
+            <div class="label">Fees</div>
+            <div class="value">$3207</div>
+          </div>
+          <div class="detail">
+            <div class="label">Posted by</div>
+            <div class="value">Shenzhenswift Processing</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-outline" onclick="window.print()">Download receipt</button>
+          <a class="btn btn-primary" href="transfer.html">Make another transfer</a>
+          <a class="btn btn-outline" href="dashboard.html">Back to dashboard</a>
+        </div>
+
+        <div class="note">Transfers between your Shenzhenswift accounts usually post instantly. External transfers may take 1–3 business days.</div>
+      </section>
+
+      <div style="height:24px;"></div>
+    </div>
+  </main>
 </body>
 </html>

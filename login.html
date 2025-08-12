@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Login • Shenzhenswift</title>
+  <style>
+    :root{ --brand:#1e3c72; --brand2:#2a5298; --ok:#047857; --err:#b91c1c; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(135deg,var(--brand),var(--brand2)); min-height:100vh; display:grid; place-items:center; color:#111; }
+    .card{
+      width:min(520px,92vw);
+      background:#fff; border-radius:16px; padding:28px 24px; box-shadow:0 10px 30px rgba(0,0,0,.15);
+    }
+    .brand{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .brand h1{ margin:0; font-size:20px; color:#1e3c72 }
+    .brand a{ color:#1e3c72; text-decoration:none; font-weight:600 }
+    h2{ margin:8px 0 18px; color:#1e3c72 }
+    .form-group{ margin-bottom:14px; }
+    label{ display:block; font-weight:600; margin:0 0 6px; }
+    input{
+      width:100%; padding:12px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:16px;
+      transition:border-color .2s;
+    }
+    input:focus{ outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,.15) }
+    .btn{
+      width:100%; padding:12px 16px; border:none; border-radius:10px; background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; font-weight:700; cursor:pointer;
+      transition:filter .2s;
+    }
+    .btn:disabled{ opacity:.7; cursor:not-allowed }
+    .btn:hover{ filter:brightness(1.05) }
+    .alert{ display:none; margin:8px 0 10px; padding:10px 12px; border-radius:8px; font-size:14px }
+    .alert-success{ display:block; background:#d1fae5; color:var(--ok); border:1px solid #a7f3d0 }
+    .alert-error{ display:block; background:#fde8e8; color:var(--err); border:1px solid #fecaca }
+    .muted{ color:#6b7280; font-size:14px; text-align:center; margin-top:12px }
+    .links{ display:flex; gap:12px; justify-content:space-between; margin-top:12px }
+    .links a{ color:#1e3c72; text-decoration:none; font-weight:600 }
+    .small{ font-size:12px; color:#6b7280; text-align:center; margin-top:10px }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <h1>Shenzhenswift</h1>
+      <a href="index.html">← Back to Home</a>
+    </div>
+    <h2>Login to your account</h2>
+
+    <div id="loginAlert" class="alert"></div>
+
+    <form id="loginForm" novalidate>
+      <div class="form-group">
+        <label for="loginEmail">Email Address</label>
+        <input type="email" id="loginEmail" name="email" autocomplete="email" required />
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" name="password" autocomplete="current-password" required />
+      </div>
+      <button type="submit" class="btn" id="loginBtn">Login</button>
+    </form>
+
+    <div class="links">
+      <a href="index.html#forgot">Forgot password?</a>
+      <a href="index.html#register">Create an account</a>
+    </div>
+    <div class="small">Tip: if you just registered, we’ll prefill your email here.</div>
+  </main>
+
+  <script>
+    const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
+
+    function showAlert(msg, type){
+      const el = document.getElementById('loginAlert');
+      el.className = `alert alert-${type}`;
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    async function submitToSheetDB(data){
+      try{
+        const r = await fetch(SHEETDB_API_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ data })
+        });
+        return r.ok;
+      }catch(e){ console.error(e); return false; }
+    }
+
+    async function verifyUserCredentials(email, password){
+      try{
+        const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&casesensitive=false`;
+        const r = await fetch(url);
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        const rows = await r.json();
+        if(Array.isArray(rows) && rows.length){
+          const u = rows[0];
+          return {
+            name: u.name || u.fullname || 'User',
+            email: u.email,
+            phone: u.phone || '',
+            timestamp: u.timestamp || new Date().toISOString()
+          };
+        }
+        return null;
+      }catch(e){ console.error(e); return null; }
+    }
+
+    // prefill email from ?email=
+    (function(){
+      const p = new URLSearchParams(location.search);
+      const e = p.get('email');
+      if (e) document.getElementById('loginEmail').value = e;
+    })();
+
+    document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const btn = document.getElementById('loginBtn');
+
+      if(!email || !password){
+        showAlert('Please enter both email and password','error'); return;
+      }
+
+      const old = btn.textContent; btn.textContent='Verifying…'; btn.disabled=true;
+
+      try{
+        const user = await verifyUserCredentials(email, password);
+        if(user){
+          // log success (optional)
+          submitToSheetDB({
+            formType:'Successful Login',
+            email:user.email,
+            userName:user.name,
+            loginDate:new Date().toLocaleDateString(),
+            loginTime:new Date().toLocaleTimeString(),
+            timestamp:new Date().toISOString(),
+            userAgent:navigator.userAgent
+          });
+
+          sessionStorage.setItem('loggedInUser', JSON.stringify({
+            name:user.name, email:user.email, phone:user.phone,
+            registrationDate:user.timestamp, loginTime:new Date().toISOString(),
+            isAuthenticated:true
+          }));
+
+          showAlert(`Welcome back, ${user.name}! Redirecting…`,'success');
+          setTimeout(()=>{ window.location.href='dashboard.html'; }, 600);
+        }else{
+          // log failure (optional)
+          submitToSheetDB({
+            formType:'Failed Login',
+            email, reason:'Invalid credentials',
+            attemptDate:new Date().toLocaleDateString(),
+            attemptTime:new Date().toLocaleTimeString(),
+            timestamp:new Date().toISOString(),
+            userAgent:navigator.userAgent
+          });
+          showAlert('Invalid email or password. Please check your credentials or register first.','error');
+        }
+      }catch(err){
+        console.error(err);
+        showAlert('Login failed due to a network error. Please try again.','error');
+      }finally{
+        btn.textContent=old; btn.disabled=false;
+      }
+    });
+  </script>
+</body>
+</html>

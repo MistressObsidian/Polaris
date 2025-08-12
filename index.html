@@ -972,7 +972,7 @@
                 <li><a href="#contact">Contact</a></li>
             </ul>
             <div class="auth-buttons">
-                <a href="#" class="btn btn-secondary" onclick="openModal('loginModal')">Login</a>
+                <a href="login.html" class="btn btn-secondary">Login</a>
                 <a href="#" class="btn btn-primary" onclick="openModal('registerModal')">Register</a>
             </div>
 
@@ -1052,7 +1052,7 @@
                     <li><a href="#transfer" onclick="toggleMobileMenu()">Transfer</a></li>
                     <li><a href="#banking" onclick="toggleMobileMenu()">Banking</a></li>
                     <li><a href="#contact" onclick="toggleMobileMenu()">Contact</a></li>
-                    <li><a href="#" onclick="openModal('loginModal'); toggleMobileMenu()">Login</a></li>
+                    <li><a href="login.html" onclick="toggleMobileMenu()">Login</a></li>
                     <li><a href="#" onclick="openModal('registerModal'); toggleMobileMenu()">Register</a></li>
                 </ul>
             </div>
@@ -1228,30 +1228,6 @@
         </div>
     </footer>
 
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('loginModal')">&times;</span>
-            <h2>Login to Shenzhenswift</h2>
-            <div id="loginAlert" class="alert"></div>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="loginEmail">Email Address</label>
-                    <input type="email" id="loginEmail" name="email" required>
-                </div>
-                <div class="form-group">
-                    <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" name="password" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Login</button>
-            </form>
-            <div class="form-footer">
-                <p>Don't have an account? <a href="#" onclick="switchModal('loginModal', 'registerModal'); return false;">Register here</a></p>
-                <p><a href="#" onclick="openModal('forgotPasswordModal'); closeModal('loginModal'); return false;">Forgot Password?</a></p>
-            </div>
-        </div>
-    </div>
-
     <!-- Transfer Modal -->
     <div id="transferModal" class="modal">
         <div class="modal-content">
@@ -1331,7 +1307,7 @@
                 <button type="submit" class="btn btn-primary">Create Account</button>
             </form>
             <div class="form-footer">
-                <p>Already have an account? <a href="#" onclick="switchModal('registerModal', 'loginModal'); return false;">Login here</a></p>
+                <p>Already have an account? <a href="login.html">Login here</a></p>
             </div>
         </div>
     </div>
@@ -1350,7 +1326,7 @@
                 <button type="submit" class="btn btn-primary">Send Reset Link</button>
             </form>
             <div class="form-footer">
-                <p>Remember your password? <a href="#" onclick="switchModal('forgotPasswordModal', 'loginModal')">Login here</a></p>
+                <p>Remember your password? <a href="login.html">Login here</a></p>
             </div>
         </div>
     </div>
@@ -1373,37 +1349,6 @@
             } catch (error) {
                 console.error("SheetDB submission error:", error);
                 return false;
-            }
-        }
-
-        // Helper function to verify user credentials from SheetDB
-        async function verifyUserCredentials(email, password) {
-            try {
-                // Use SheetDB search endpoint for case-insensitive matching
-                const searchUrl = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&casesensitive=false`;
-                const response = await fetch(searchUrl, { method: 'GET' });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                // Check if we found any matching users
-                if (Array.isArray(data) && data.length > 0) {
-                    const user = data[0];
-                    return {
-                        name: user.name || user.fullname || user.full_name || 'User',
-                        email: user.email,
-                        phone: user.phone || '',
-                        timestamp: user.timestamp || new Date().toISOString()
-                    };
-                }
-                
-                return null;
-            } catch (error) {
-                console.error("Error verifying credentials:", error);
-                return null;
             }
         }
 
@@ -1509,8 +1454,7 @@
             if (success) {
                 showAlert('registerAlert', 'Account created successfully! You can now login with your credentials.', 'success');
                 setTimeout(() => {
-                    switchModal('registerModal', 'loginModal');
-                    document.getElementById('loginEmail').value = email;
+                    window.location.href = 'login.html';
                     this.reset();
                 }, 1000);
             } else {
@@ -1573,83 +1517,6 @@
             }
         });
 
-        // Login Form Handler with Real Authentication & Redirect
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-
-            if (!email || !password) {
-                showAlert('loginAlert', 'Please enter both email and password', 'error');
-                return;
-            }
-
-            // Show loading state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Verifying credentials...';
-            submitBtn.disabled = true;
-
-            try {
-                // Verify user credentials against registered users in SheetDB
-                const user = await verifyUserCredentials(email, password);
-
-                if (user) {
-                    // Log successful login attempt to SheetDB
-                    await submitToSheetDB({
-                        formType: 'Successful Login',
-                        email: user.email,
-                        userName: user.name,
-                        loginDate: new Date().toLocaleDateString(),
-                        loginTime: new Date().toLocaleTimeString(),
-                        timestamp: new Date().toISOString(),
-                        userAgent: navigator.userAgent
-                    });
-
-                    // Store user info in sessionStorage for dashboard.html
-                    sessionStorage.setItem('loggedInUser', JSON.stringify({
-                        name: user.name,
-                        email: user.email,
-                        phone: user.phone,
-                        registrationDate: user.timestamp,
-                        loginTime: new Date().toISOString(),
-                        isAuthenticated: true
-                    }));
-
-                    // Show success message
-                    showAlert('loginAlert', `Welcome back, ${user.name}! Redirecting to dashboard...`, 'success');
-                    
-                    // Redirect to dashboard.html after short delay
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 800);
-
-                } else {
-                    // Log failed login attempt to SheetDB
-                    await submitToSheetDB({
-                        formType: 'Failed Login',
-                        email: email,
-                        attemptDate: new Date().toLocaleDateString(),
-                        attemptTime: new Date().toLocaleTimeString(),
-                        timestamp: new Date().toISOString(),
-                        userAgent: navigator.userAgent,
-                        reason: 'Invalid credentials'
-                    });
-
-                    showAlert('loginAlert', 'Invalid email or password. Please check your credentials or register first.', 'error');
-                }
-
-            } catch (error) {
-                console.error('Login error:', error);
-                showAlert('loginAlert', 'Login failed due to network error. Please try again.', 'error');
-            }
-
-            // Reset button state
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-        });
-
         // Forgot Password Form Handler with SheetDB
         document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1690,34 +1557,6 @@
             }
         });
 
-        // Check if user is already logged in on page load
-        window.addEventListener('load', function() {
-            const loggedInUser = sessionStorage.getItem('loggedInUser');
-            if (loggedInUser) {
-                const user = JSON.parse(loggedInUser);
-                console.log('User session found:', user.name);
-                // User is already logged in - could show a "Go to Dashboard" button if needed
-            }
-        });
-
-        // Utility function to check if user is authenticated (can be used by dashboard.html)
-        function checkUserAuthentication() {
-            const loggedInUser = sessionStorage.getItem('loggedInUser');
-            if (loggedInUser) {
-                const user = JSON.parse(loggedInUser);
-                if (user.isAuthenticated) {
-                    return user;
-                }
-            }
-            return null;
-        }
-
-        // Function to logout user (can be called from dashboard.html)
-        function logoutUser() {
-            sessionStorage.removeItem('loggedInUser');
-            window.location.href = 'index.html';
-        }
-
         // Smooth scrolling for navigation links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
@@ -1733,6 +1572,13 @@
                     }
                 }
             });
+        });
+
+        // If URL hash is #forgot, open forgot password modal on load
+        window.addEventListener('DOMContentLoaded', function() {
+            if (window.location.hash === '#forgot') {
+                openModal('forgotPasswordModal');
+            }
         });
     </script>
 </body>

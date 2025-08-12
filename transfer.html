@@ -417,7 +417,7 @@
     <div id="successModal" class="success-modal">
         <div class="success-content">
             <div class="success-icon">✅</div>
-            <h2 style="color: #28a745; margin-bottom: 15px;">Transfer Successful!</h2>
+            <h2 style="color: #28a745; margin-bottom: 15px;">Transfer Processing!</h2>
             <div id="successDetails" class="success-details"></div>
             <button class="close-btn" onclick="closeSuccessModal()">Continue</button>
         </div>
@@ -540,7 +540,7 @@
                     setTimeout(() => {
                         submitBtn.classList.remove("loading");
                         submitBtn.classList.add("success");
-                        submitBtn.innerHTML = "Transfer Successful ✓";
+                        submitBtn.innerHTML = "Transfer Processing ...";
                         const successData = prepareSuccessData(formId, formData);
                         setTimeout(() => {
                             showSuccessModal(successData);
@@ -580,7 +580,7 @@
                 reference: referenceNumber,
                 date: new Date().toLocaleDateString(),
                 time: new Date().toLocaleTimeString(),
-                status: 'Completed',
+                status: 'Pending', // <-- changed from 'Completed' to 'Pending'
                 btcAddress: formData.btcAddress ? formData.btcAddress.substring(0, 10) + '...' : null
             };
         }

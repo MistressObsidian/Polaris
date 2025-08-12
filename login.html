@@ -9,11 +9,11 @@
     *{ box-sizing:border-box; }
     body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(135deg,var(--brand),var(--brand2)); min-height:100vh; display:grid; place-items:center; color:#111; }
     .card{
-      width:min(520px,92vw);
-      background:#fff; border-radius:16px; padding:28px 24px; box-shadow:0 10px 30px rgba(0,0,0,.15);
+      width:min(400px,92vw);
+      background:#fff; border-radius:16px; padding:32px 24px 24px; box-shadow:0 10px 30px rgba(0,0,0,.15);
     }
     .brand{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-    .brand h1{ margin:0; font-size:20px; color:#1e3c72 }
+    .brand h1{ margin:0; font-size:22px; color:#1e3c72 }
     .brand a{ color:#1e3c72; text-decoration:none; font-weight:600 }
     h2{ margin:8px 0 18px; color:#1e3c72 }
     .form-group{ margin-bottom:14px; }
@@ -32,10 +32,10 @@
     .alert{ display:none; margin:8px 0 10px; padding:10px 12px; border-radius:8px; font-size:14px }
     .alert-success{ display:block; background:#d1fae5; color:var(--ok); border:1px solid #a7f3d0 }
     .alert-error{ display:block; background:#fde8e8; color:var(--err); border:1px solid #fecaca }
-    .muted{ color:#6b7280; font-size:14px; text-align:center; margin-top:12px }
     .links{ display:flex; gap:12px; justify-content:space-between; margin-top:12px }
     .links a{ color:#1e3c72; text-decoration:none; font-weight:600 }
-    .small{ font-size:12px; color:#6b7280; text-align:center; margin-top:10px }
+    .register-btn{ margin-top:18px; background:linear-gradient(45deg,#1e3c72,#2a5298); }
+    @media (max-width:500px){ .card{padding:18px 6vw;} }
   </style>
 </head>
 <body>
@@ -45,10 +45,8 @@
       <a href="index.html">← Back to Home</a>
     </div>
     <h2>Login to your account</h2>
-
     <div id="loginAlert" class="alert"></div>
-
-    <form id="loginForm" novalidate>
+    <form id="loginForm" autocomplete="off">
       <div class="form-group">
         <label for="loginEmail">Email Address</label>
         <input type="email" id="loginEmail" name="email" autocomplete="email" required />
@@ -59,73 +57,76 @@
       </div>
       <button type="submit" class="btn" id="loginBtn">Login</button>
     </form>
-
     <div class="links">
       <a href="index.html#forgot">Forgot password?</a>
-      <a href="index.html#register">Create an account</a>
+      <a href="register.html">Create an account</a>
     </div>
-    <div class="small">Tip: if you just registered, we’ll prefill your email here.</div>
   </main>
-
   <script>
     const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
-
     function showAlert(msg, type){
       const el = document.getElementById('loginAlert');
       el.className = `alert alert-${type}`;
       el.textContent = msg;
-      el.style.display = 'block';
+      el.style.display = msg ? 'block' : 'none';
     }
-
     // Prefill email from ?email=
     (function(){
       const p = new URLSearchParams(location.search);
       const e = p.get('email');
       if (e) document.getElementById('loginEmail').value = e;
     })();
-
-    // Only fetch data from the sheet and auto-login if credentials match
-    document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+    document.getElementById('loginForm').addEventListener('submit', async function(e){
       e.preventDefault();
       const email = document.getElementById('loginEmail').value.trim();
       const password = document.getElementById('loginPassword').value;
       const btn = document.getElementById('loginBtn');
-
+      showAlert('', ''); // clear
       if(!email || !password){
-        showAlert('Please enter both email and password','error'); return;
+        showAlert('Please enter both email and password.','error'); return;
       }
-
-      const old = btn.textContent; btn.textContent='Verifying…'; btn.disabled=true;
-
+      btn.disabled = true; btn.textContent = 'Logging in...';
       try{
-        // Fetch all registration records and check for a match
-        const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&casesensitive=false`;
-        const r = await fetch(url);
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        const rows = await r.json();
-        if(Array.isArray(rows) && rows.length){
-          const u = rows[0];
-          const user = {
-            name: u.name || u.fullname || 'User',
-            email: u.email,
-            phone: u.phone || '',
-            timestamp: u.timestamp || new Date().toISOString()
-          };
-          sessionStorage.setItem('loggedInUser', JSON.stringify({
-            name:user.name, email:user.email, phone:user.phone,
-            registrationDate:user.timestamp, loginTime:new Date().toISOString(),
-            isAuthenticated:true
-          }));
-          showAlert(`Welcome back, ${user.name}! Redirecting…`,'success');
-          setTimeout(()=>{ window.location.href='dashboard.html'; }, 600);
-        }else{
-          showAlert('Invalid email or password. Please check your credentials or register first.','error');
+        // Fetch user by email (case-insensitive)
+        const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
+        const res = await fetch(url);
+        if(!res.ok) throw new Error('Network');
+        const users = await res.json();
+        if(!users.length){
+          showAlert('User not found. Please check your email or register.','error'); return;
         }
+        const user = users[0];
+        // Check password match (client-side for speed, server-side for security)
+        if(user.password !== password){
+          showAlert('Invalid password. Please try again.','error');
+          // Optionally, log this event
+          await fetch(SHEETDB_API_URL, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              formType:'Login Attempt',
+              email,
+              success:false,
+              reason:'Invalid password',
+              timestamp:new Date().toISOString(),
+              userAgent:navigator.userAgent
+            })
+          });
+          return;
+        }
+        // Successful login
+        sessionStorage.setItem('loggedInUser', JSON.stringify({
+          name:user.name, email:user.email, phone:user.phone,
+          registrationDate:user.timestamp, loginTime:new Date().toISOString(),
+          isAuthenticated:true
+        }));
+        showAlert(`Welcome back, ${user.name}! Redirecting…`,'success');
+        setTimeout(()=>{ window.location.href='dashboard.html'; }, 600);
       }catch(err){
         console.error(err);
         showAlert('Login failed due to a network error. Please try again.','error');
       }finally{
-        btn.textContent=old; btn.disabled=false;
+        btn.disabled = false; btn.textContent = 'Login';
       }
     });
   </script>

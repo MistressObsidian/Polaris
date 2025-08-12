@@ -71,97 +71,67 @@
   </main>
 
   <script>
-    // === CONFIG ===
-    const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
-    const REGISTRATION_SHEET = "Registration"; // Sheet/tab name in Google Sheet
+const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
 
-    // === UI helpers ===
-    const alertBox = document.getElementById('loginAlert');
-    function showAlert(msg, type='error'){
-      alertBox.textContent = msg;
-      alertBox.className = `alert show ${type === 'success' ? 'ok' : 'error'}`;
-    }
-    function clearAlert(){
-      alertBox.textContent = '';
-      alertBox.className = 'alert';
-    }
+function showAlert(msg){
+  const el = document.getElementById('loginAlert');
+  el.textContent = msg;
+  el.className = 'alert show';
+}
+function clearAlert(){
+  const el = document.getElementById('loginAlert');
+  el.textContent = '';
+  el.className = 'alert';
+}
 
-    // Safely read a field from a SheetDB row trying multiple possible header names
-    function pick(user, keys, fallback=''){
-      for (const k of keys){
-        if (user[k] !== undefined && user[k] !== '') return user[k];
-      }
-      return fallback;
-    }
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearAlert();
 
-    async function fetchUserByEmail(email){
-      // Query the Registration SHEET by email (case-insensitive)
-      const url = `${SHEETDB_API_URL}/search?sheet=${encodeURIComponent(REGISTRATION_SHEET)}&email=${encodeURIComponent(email)}&casesensitive=false`;
-      const res = await fetch(url);
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json(); // -> array of rows
-    }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.innerHTML = 'Logging in <span class="spinner"></span>';
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearAlert();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
 
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-      const btn = document.getElementById('loginBtn');
+  try {
+    // Find the registration row for this email
+    const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('Network');
 
-      if(!email || !password){
-        showAlert('Please enter both email and password.');
-        return;
-      }
+    const rows = await res.json();
+    if(!Array.isArray(rows) || rows.length === 0){
+      showAlert('Invalid email or password. Please check your credentials or register first.');
+    } else {
+      const user = rows[0];
 
-      btn.disabled = true;
-      btn.innerHTML = 'Logging in <span class="spinner"></span>';
-
-      try{
-        const users = await fetchUserByEmail(email);
-
-        if(!Array.isArray(users) || users.length === 0){
-          showAlert('Invalid email or password. Please check your credentials or register first.');
-          return;
-        }
-
-        const user = users[0];
-
-        // Try both "password" and "Password" headers just in case
-        const sheetPassword = pick(user, ['password','Password'], null);
-
-        if(sheetPassword === null || sheetPassword !== password){
-          showAlert('Invalid email or password. Please check your credentials or register first.');
-          return;
-        }
-
-        // Normalize common fields
-        const name  = pick(user, ['name','fullname','full name','Full Name'], 'User');
-        const phone = pick(user, ['phone','phone number','Phone','Phone Number'], '');
-        const timestamp = pick(user, ['timestamp','Timestamp','registrationDate'], '');
-
-        // Save session for dashboard.html
+      // compare password from sheet
+      if((user.password || '') !== password){
+        showAlert('Invalid email or password. Please check your credentials or register first.');
+      } else {
+        // success — store session for dashboard.html
         sessionStorage.setItem('loggedInUser', JSON.stringify({
-          name, email: user.email, phone,
-          registrationDate: timestamp || new Date().toISOString(),
-          loginTime: new Date().toISOString(),
+          name: user.fullname || 'User',
+          email: user.email,
+          phone: user.phone || '',
+          registrationDate: user.date || new Date().toISOString(),
           isAuthenticated: true
         }));
 
-        showAlert(`Welcome back, ${name}! Redirecting…`, 'success');
-
-        // Fast redirect to dashboard
-        setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
-
-      }catch(err){
-        console.error('Login error:', err);
-        showAlert('Login failed due to a network error. Please try again.');
-      }finally{
-        btn.disabled = false;
-        btn.innerHTML = 'Login';
+        // go to dashboard
+        window.location.href = 'dashboard.html';
       }
-    });
-  </script>
+    }
+  } catch(err){
+    console.error(err);
+    showAlert('Login failed due to a network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Login';
+  }
+});
+</script>
 </body>
 </html>

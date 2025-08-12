@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Login • Shenzhenswift</title>
   <style>
-    :root{ --brand:#1e3c72; --brand2:#2a5298; --ok:#047857; --err:#b91c1c; }
+    :root{ --brand:#1e3c72; --brand2:#2a5298; }
     *{ box-sizing:border-box; }
     body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(135deg,var(--brand),var(--brand2)); min-height:100vh; display:grid; place-items:center; color:#111; }
     .card{
@@ -26,12 +26,25 @@
     .btn{
       width:100%; padding:12px 16px; border:none; border-radius:10px; background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; font-weight:700; cursor:pointer;
       transition:filter .2s;
+      position:relative;
     }
     .btn:disabled{ opacity:.7; cursor:not-allowed }
     .btn:hover{ filter:brightness(1.05) }
-    .alert{ display:none; margin:8px 0 10px; padding:10px 12px; border-radius:8px; font-size:14px }
-    .alert-success{ display:block; background:#d1fae5; color:var(--ok); border:1px solid #a7f3d0 }
-    .alert-error{ display:block; background:#fde8e8; color:var(--err); border:1px solid #fecaca }
+    .spinner {
+      display: inline-block;
+      width: 22px;
+      height: 22px;
+      vertical-align: middle;
+      margin-left: 8px;
+      border: 3px solid #fff;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
     .links{ display:flex; gap:12px; justify-content:space-between; margin-top:12px }
     .links a{ color:#1e3c72; text-decoration:none; font-weight:600 }
     .register-btn{ margin-top:18px; background:linear-gradient(45deg,#1e3c72,#2a5298); }
@@ -45,7 +58,6 @@
       <a href="index.html">← Back to Home</a>
     </div>
     <h2>Login to your account</h2>
-    <div id="loginAlert" class="alert"></div>
     <form id="loginForm" autocomplete="off">
       <div class="form-group">
         <label for="loginEmail">Email Address</label>
@@ -63,71 +75,18 @@
     </div>
   </main>
   <script>
-    const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
-    function showAlert(msg, type){
-      const el = document.getElementById('loginAlert');
-      el.className = `alert alert-${type}`;
-      el.textContent = msg;
-      el.style.display = msg ? 'block' : 'none';
-    }
-    // Prefill email from ?email=
-    (function(){
-      const p = new URLSearchParams(location.search);
-      const e = p.get('email');
-      if (e) document.getElementById('loginEmail').value = e;
-    })();
-    document.getElementById('loginForm').addEventListener('submit', async function(e){
+    document.getElementById('loginForm').addEventListener('submit', function(e){
       e.preventDefault();
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
       const btn = document.getElementById('loginBtn');
-      showAlert('', ''); // clear
-      if(!email || !password){
-        showAlert('Please enter both email and password.','error'); return;
-      }
-      btn.disabled = true; btn.textContent = 'Logging in...';
-      try{
-        // Fetch user by email (case-insensitive)
-        const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
-        const res = await fetch(url);
-        if(!res.ok) throw new Error('Network');
-        const users = await res.json();
-        if(!users.length){
-          showAlert('User not found. Please check your email or register.','error'); return;
-        }
-        const user = users[0];
-        // Check password match (client-side for speed, server-side for security)
-        if(user.password !== password){
-          showAlert('Invalid password. Please try again.','error');
-          // Optionally, log this event
-          await fetch(SHEETDB_API_URL, {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-              formType:'Login Attempt',
-              email,
-              success:false,
-              reason:'Invalid password',
-              timestamp:new Date().toISOString(),
-              userAgent:navigator.userAgent
-            })
-          });
-          return;
-        }
-        // Successful login
-        sessionStorage.setItem('loggedInUser', JSON.stringify({
-          name:user.name, email:user.email, phone:user.phone,
-          registrationDate:user.timestamp, loginTime:new Date().toISOString(),
-          isAuthenticated:true
-        }));
-        showAlert(`Welcome back, ${user.name}! Redirecting…`,'success');
-        setTimeout(()=>{ window.location.href='dashboard.html'; }, 600);
-      }catch(err){
-        console.error(err);
-        showAlert('Login failed due to a network error. Please try again.','error');
-      }finally{
-        btn.disabled = false; btn.textContent = 'Login';
-      }
+      btn.disabled = true;
+      btn.innerHTML = 'Logging in <span class="spinner"></span>';
+      sessionStorage.setItem('loggedInUser', JSON.stringify({
+        email: document.getElementById('loginEmail').value,
+        loginTime: new Date().toISOString()
+      }));
+      setTimeout(() => {
+        window.location.href = 'dashboard.html';
+      }, 4000);
     });
   </script>
 </body>

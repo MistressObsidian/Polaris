@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Register • Shenzhenswift</title>
+  <style>
+    :root{ --brand:#1e3c72; --brand2:#2a5298; --ok:#047857; --err:#b91c1c; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(135deg,var(--brand),var(--brand2)); min-height:100vh; display:grid; place-items:center; color:#111; }
+    .card{
+      width:min(400px,92vw);
+      background:#fff; border-radius:16px; padding:32px 24px 24px; box-shadow:0 10px 30px rgba(0,0,0,.15);
+    }
+    .brand{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .brand h1{ margin:0; font-size:22px; color:#1e3c72 }
+    .brand a{ color:#1e3c72; text-decoration:none; font-weight:600 }
+    h2{ margin:8px 0 18px; color:#1e3c72 }
+    .form-group{ margin-bottom:14px; }
+    label{ display:block; font-weight:600; margin:0 0 6px; }
+    input{
+      width:100%; padding:12px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:16px;
+      transition:border-color .2s;
+    }
+    input:focus{ outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,.15) }
+    .btn{
+      width:100%; padding:12px 16px; border:none; border-radius:10px; background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; font-weight:700; cursor:pointer;
+      transition:filter .2s;
+    }
+    .btn:disabled{ opacity:.7; cursor:not-allowed }
+    .btn:hover{ filter:brightness(1.05) }
+    .alert{ display:none; margin:8px 0 10px; padding:10px 12px; border-radius:8px; font-size:14px }
+    .alert-success{ display:block; background:#d1fae5; color:var(--ok); border:1px solid #a7f3d0 }
+    .alert-error{ display:block; background:#fde8e8; color:var(--err); border:1px solid #fecaca }
+    .form-footer{ text-align:center; margin-top:1rem; color:#666; }
+    .form-footer a{ color:#667eea; text-decoration:none; }
+    .form-footer a:hover{ text-decoration:underline; }
+    @media (max-width:500px){ .card{padding:18px 6vw;} }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <h1>Shenzhenswift</h1>
+      <a href="index.html">← Back to Home</a>
+    </div>
+    <h2>Create Account</h2>
+    <div id="registerAlert" class="alert"></div>
+    <form id="registerForm" autocomplete="off">
+      <div class="form-group">
+        <label for="registerName">Full Name</label>
+        <input type="text" id="registerName" name="name" placeholder="Enter your full name" required autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label for="registerEmail">Email Address</label>
+        <input type="email" id="registerEmail" name="email" placeholder="Enter your email address" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="registerPhone">Phone Number</label>
+        <input type="tel" id="registerPhone" name="phone" placeholder="Enter your phone number" required autocomplete="tel">
+      </div>
+      <div class="form-group">
+        <label for="registerPassword">Password</label>
+        <input type="password" id="registerPassword" name="password" placeholder="Create a strong password" required autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label for="registerConfirmPassword">Confirm Password</label>
+        <input type="password" id="registerConfirmPassword" name="confirmPassword" placeholder="Confirm your password" required autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn" id="registerBtn">Create Account</button>
+    </form>
+    <div class="form-footer">
+      <p>Already have an account? <a href="login.html">Login here</a></p>
+    </div>
+  </main>
+  <script>
+    const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
+    function showAlert(msg, type){
+      const el = document.getElementById('registerAlert');
+      el.className = `alert alert-${type}`;
+      el.textContent = msg;
+      el.style.display = msg ? 'block' : 'none';
+    }
+    document.getElementById('registerForm').addEventListener('submit', async function(e){
+      e.preventDefault();
+      const name = document.getElementById('registerName').value.trim();
+      const email = document.getElementById('registerEmail').value.trim();
+      const phone = document.getElementById('registerPhone').value.trim();
+      const password = document.getElementById('registerPassword').value;
+      const confirmPassword = document.getElementById('registerConfirmPassword').value;
+      const btn = document.getElementById('registerBtn');
+      showAlert('', ''); // clear
+      if(password !== confirmPassword){
+        showAlert('Passwords do not match','error'); return;
+      }
+      if(!name || !email || !phone || !password){
+        showAlert('Please fill in all fields','error'); return;
+      }
+      btn.disabled = true; btn.textContent = 'Creating Account...';
+      try{
+        const res = await fetch(SHEETDB_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: {
+            formType: 'Registration',
+            name, email, phone, password,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent
+          }})
+        });
+        if(res.ok){
+          showAlert('Account created successfully! You can now login with your credentials.','success');
+          setTimeout(()=>{ window.location.href = 'login.html'; }, 1000);
+          this.reset();
+        }else{
+          showAlert('Registration failed. Please try again.','error');
+        }
+      }catch{
+        showAlert('Registration failed. Please try again.','error');
+      }finally{
+        btn.disabled = false; btn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>

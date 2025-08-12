@@ -77,43 +77,14 @@
       el.style.display = 'block';
     }
 
-    async function submitToSheetDB(data){
-      try{
-        const r = await fetch(SHEETDB_API_URL, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ data })
-        });
-        return r.ok;
-      }catch(e){ console.error(e); return false; }
-    }
-
-    async function verifyUserCredentials(email, password){
-      try{
-        const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&casesensitive=false`;
-        const r = await fetch(url);
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        const rows = await r.json();
-        if(Array.isArray(rows) && rows.length){
-          const u = rows[0];
-          return {
-            name: u.name || u.fullname || 'User',
-            email: u.email,
-            phone: u.phone || '',
-            timestamp: u.timestamp || new Date().toISOString()
-          };
-        }
-        return null;
-      }catch(e){ console.error(e); return null; }
-    }
-
-    // prefill email from ?email=
+    // Prefill email from ?email=
     (function(){
       const p = new URLSearchParams(location.search);
       const e = p.get('email');
       if (e) document.getElementById('loginEmail').value = e;
     })();
 
+    // Only fetch data from the sheet and auto-login if credentials match
     document.getElementById('loginForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const email = document.getElementById('loginEmail').value.trim();
@@ -127,37 +98,27 @@
       const old = btn.textContent; btn.textContent='Verifying…'; btn.disabled=true;
 
       try{
-        const user = await verifyUserCredentials(email, password);
-        if(user){
-          // log success (optional)
-          submitToSheetDB({
-            formType:'Successful Login',
-            email:user.email,
-            userName:user.name,
-            loginDate:new Date().toLocaleDateString(),
-            loginTime:new Date().toLocaleTimeString(),
-            timestamp:new Date().toISOString(),
-            userAgent:navigator.userAgent
-          });
-
+        // Fetch all registration records and check for a match
+        const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&casesensitive=false`;
+        const r = await fetch(url);
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        const rows = await r.json();
+        if(Array.isArray(rows) && rows.length){
+          const u = rows[0];
+          const user = {
+            name: u.name || u.fullname || 'User',
+            email: u.email,
+            phone: u.phone || '',
+            timestamp: u.timestamp || new Date().toISOString()
+          };
           sessionStorage.setItem('loggedInUser', JSON.stringify({
             name:user.name, email:user.email, phone:user.phone,
             registrationDate:user.timestamp, loginTime:new Date().toISOString(),
             isAuthenticated:true
           }));
-
           showAlert(`Welcome back, ${user.name}! Redirecting…`,'success');
           setTimeout(()=>{ window.location.href='dashboard.html'; }, 600);
         }else{
-          // log failure (optional)
-          submitToSheetDB({
-            formType:'Failed Login',
-            email, reason:'Invalid credentials',
-            attemptDate:new Date().toLocaleDateString(),
-            attemptTime:new Date().toLocaleTimeString(),
-            timestamp:new Date().toISOString(),
-            userAgent:navigator.userAgent
-          });
           showAlert('Invalid email or password. Please check your credentials or register first.','error');
         }
       }catch(err){

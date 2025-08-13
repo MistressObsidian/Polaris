@@ -329,6 +329,7 @@
       <div class="footer-space"></div>
     </div>
   </main>
+  <div id="transactions"></div>
   <script>
   // Check session for logged in user
   const session = sessionStorage.getItem('loggedInUser');
@@ -379,6 +380,34 @@
       `;
     }
   });
+
+  // After confirming the user is logged in and you have their email:
+  const user = JSON.parse(sessionStorage.getItem('loggedInUser'));
+  const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
+
+  // Fetch transactions for the logged-in user
+  async function loadTransactions() {
+    const txContainer = document.getElementById('transactions');
+    txContainer.innerHTML = 'Loading...';
+    try {
+      const res = await fetch(`${SHEETDB_API_URL}/search?email=${encodeURIComponent(user.email)}&formType=Transaction`);
+      const txs = await res.json();
+      if (!txs.length) {
+        txContainer.innerHTML = `<div class="empty-state">No recent transactions or activity.</div>`;
+      } else {
+        // Render transactions as needed
+        txContainer.innerHTML = txs.map(tx => `
+          <div class="transaction">
+            <div>${tx.date} - ${tx.amount} - ${tx.type}</div>
+          </div>
+        `).join('');
+      }
+    } catch {
+      txContainer.innerHTML = `<div class="empty-state">Unable to load transactions.</div>`;
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', loadTransactions);
   </script>
 </body>
 </html>

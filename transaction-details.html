@@ -7,144 +7,55 @@
   <style>
     /* Base theme aligned with other pages (index/login/register/transfer) */
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root{
-      --brand:#1e3c72;
-      --brand2:#2a5298;
-      --accent1:#667eea;
-      --accent2:#764ba2;
-      --bg:#f6f7fb;
-      --card:#ffffff;
-      --text:#333;
-      --muted:#666;
-      --border:#e5e7eb;
-      --ok:#047857;
-      --err:#b91c1c;
-      --warn:#b45309;
-      --shadow: 0 10px 30px rgba(0,0,0,.08);
-    }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: var(--text);
-      background: var(--bg);
-      overflow-x: hidden;
-    }
+    :root{ --brand:#1e3c72; --brand2:#2a5298; --accent1:#667eea; --accent2:#764ba2;
+           --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666; --border:#e5e7eb;
+           --ok:#047857; --err:#b91c1c; --warn:#b45309; --shadow: 0 10px 30px rgba(0,0,0,.08); }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--text); background: var(--bg); overflow-x: hidden; }
     .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
-
-    /* Fixed Header/Nav (same as index.html style) */
-    header {
-      background: linear-gradient(135deg, var(--brand) 0%, var(--brand2) 100%);
-      color: white;
-      padding: 1rem 0;
-      position: fixed;
-      width: 100%;
-      top: 0;
-      z-index: 1000;
-      backdrop-filter: blur(10px);
-    }
+    header { background: linear-gradient(135deg, var(--brand) 0%, var(--brand2) 100%); color: white; padding: 1rem 0; position: fixed; width: 100%; top: 0; z-index: 1000; backdrop-filter: blur(10px); }
     nav { display: flex; justify-content: space-between; align-items: center; }
-    .logo {
-      font-size: 1.6rem; font-weight: 800;
-      background: linear-gradient(45deg, #fff, #e0e7ff);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text; letter-spacing: .3px;
-    }
+    .logo { font-size: 1.6rem; font-weight: 800; background: linear-gradient(45deg, #fff, #e0e7ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: .3px; }
     .nav-links { display: flex; list-style: none; gap: 1.5rem; }
-    .nav-links a {
-      color: white; text-decoration: none; transition: all .3s ease; position: relative; font-weight: 600;
-    }
+    .nav-links a { color: white; text-decoration: none; transition: all .3s ease; position: relative; font-weight: 600; }
     .nav-links a:hover { color: #e0e7ff; transform: translateY(-2px); }
-    .nav-links a::after {
-      content: ''; position: absolute; width: 0; height: 2px; bottom: -5px; left: 0;
-      background: #e0e7ff; transition: width .3s ease;
-    }
+    .nav-links a::after { content: ''; position: absolute; width: 0; height: 2px; bottom: -5px; left: 0; background: #e0e7ff; transition: width .3s ease; }
     .nav-links a:hover::after { width: 100%; }
     .auth-buttons { display: flex; gap: .75rem; }
 
-    .btn {
-      padding: 10px 18px; border-radius: 12px; text-decoration: none; font-weight: 700;
-      transition: all .3s ease; border: 2px solid transparent; cursor: pointer; position: relative; overflow: hidden;
-      display: inline-flex; align-items: center; justify-content: center; font-size: .95rem;
-    }
-    .btn::before {
-      content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); transition: left .5s ease;
-    }
+    .btn { padding: 10px 18px; border-radius: 12px; text-decoration: none; font-weight: 700; transition: all .3s ease; border: 2px solid transparent; cursor: pointer; position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-size: .95rem; }
+    .btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); transition: left .5s ease; }
     .btn:hover::before { left: 100%; }
-    .btn-primary {
-      background: linear-gradient(45deg, var(--accent1) 0%, var(--accent2) 100%);
-      color: #fff; box-shadow: 0 6px 20px rgba(118, 75, 162, .25);
-    }
-    .btn-ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,.35); }
-    .btn-outline {
-      background: #fff; color: var(--accent2); border-color: #d9ddff;
-    }
-    .btn-outline:hover {
-      color: #fff; border-color: transparent; background: linear-gradient(45deg, var(--accent1), var(--accent2));
-      box-shadow: 0 6px 20px rgba(118, 75, 162, .22);
-    }
+    .btn-primary { background: linear-gradient(45deg, var(--accent1) 0%, var(--accent2) 100%); color: #fff; box-shadow: 0 6px 20px rgba(118, 75, 162, .25); }
+    .btn-outline { background: #fff; color: var(--accent2); border-color: #d9ddff; }
+    .btn-outline:hover { color: #fff; border-color: transparent; background: linear-gradient(45deg, var(--accent1), var(--accent2)); box-shadow: 0 6px 20px rgba(118, 75, 162, .22); }
 
     /* Page structure */
     main { padding-top: 96px; }
-    .page-header {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 14px;
-    }
+    .page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 14px; }
     .page-title { font-size: 1.6rem; font-weight: 800; color: var(--brand); letter-spacing: .2px; }
     .subtitle { color: var(--muted); }
 
     /* Card and content */
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: var(--shadow);
-    }
-    .confirm {
-      display: grid; gap: 16px;
-    }
-    .success-banner {
-      display: flex; align-items: center; gap: 12px; padding: 14px;
-      border: 1px solid #bbf7d0; background: #ecfdf5; color: var(--ok); border-radius: 12px;
-      font-weight: 700;
-    }
-    .success-icon {
-      width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
-      background: #10b981; color: white; font-weight: 900;
-      box-shadow: 0 6px 18px rgba(16,185,129,.3);
-    }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
+    .confirm { display: grid; gap: 16px; }
+    .success-banner { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid #bbf7d0; background: #ecfdf5; color: var(--ok); border-radius: 12px; font-weight: 700; }
+    .success-icon { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #10b981; color: white; font-weight: 900; box-shadow: 0 6px 18px rgba(16,185,129,.3); }
 
     .amount-line { display: flex; align-items: baseline; gap: 10px; }
     .amount-line .value { font-size: 2rem; font-weight: 900; }
     .amount-line .muted { color: var(--muted); }
 
-    .details-grid {
-      display: grid; gap: 12px;
-      grid-template-columns: 1fr;
-    }
-    @media (min-width: 720px) {
-      .details-grid { grid-template-columns: 1fr 1fr; }
-    }
-    .detail {
-      padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #fff;
-    }
+    .details-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+    @media (min-width: 720px) { .details-grid { grid-template-columns: 1fr 1fr; } }
+    .detail { padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
     .detail .label { color: var(--muted); font-size: .85rem; margin-bottom: 6px; }
     .detail .value { font-weight: 800; }
 
-    .status-pill {
-      display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: .8rem;
-      color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0;
-    }
+    .status-pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: .8rem; color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0; }
 
     .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
-
     .note { color: var(--muted); font-size: .9rem; margin-top: 6px; }
-
-    /* Print styles */
-    @media print {
-      header, .actions { display: none !important; }
-      main { padding-top: 0; }
-      .card { box-shadow: none; }
-    }
+    @media print { header, .actions { display: none !important; } main { padding-top: 0; } .card { box-shadow: none; } }
   </style>
 </head>
 <body>
@@ -173,49 +84,49 @@
         </div>
       </div>
 
-      <section class="card confirm">
+      <section class="card confirm" id="txContainer">
         <div class="success-banner">
           <div class="success-icon">✓</div>
-          <div>Processing</div>
+          <div id="bannerText">Processing</div>
         </div>
 
         <div class="amount-line">
-          <div class="value">$2,000.00</div>
-          <div class="muted">Transferred from Everyday Checking to High‑Yield Savings</div>
+          <div class="value" id="amountValue">$0.00</div>
+          <div class="muted" id="summaryText">—</div>
         </div>
 
         <div class="details-grid">
           <div class="detail">
             <div class="label">Status</div>
-            <div class="value"><span class="status-pill">Pending</span></div>
+            <div class="value"><span class="status-pill" id="statusPill">Pending</span></div>
           </div>
           <div class="detail">
             <div class="label">Date & time</div>
-            <div class="value">Aug 12, 2025 • 14:03 UTC</div>
+            <div class="value" id="dateTimeValue">—</div>
           </div>
           <div class="detail">
             <div class="label">From account</div>
-            <div class="value">Everyday Checking • •••3482</div>
+            <div class="value" id="fromValue">—</div>
           </div>
           <div class="detail">
             <div class="label">To account</div>
-            <div class="value">High‑Yield Savings • •••9015</div>
+            <div class="value" id="toValue">—</div>
           </div>
           <div class="detail">
             <div class="label">Reference / ID</div>
-            <div class="value">TX-9F2C-1170</div>
+            <div class="value" id="referenceValue">—</div>
           </div>
           <div class="detail">
             <div class="label">Network / Type</div>
-            <div class="value">Internal Transfer</div>
+            <div class="value" id="networkValue">—</div>
           </div>
           <div class="detail">
             <div class="label">Fees</div>
-            <div class="value">$3207</div>
+            <div class="value" id="feesValue">—</div>
           </div>
           <div class="detail">
             <div class="label">Posted by</div>
-            <div class="value">Shenzhenswift Processing</div>
+            <div class="value" id="postedByValue">Shenzhenswift Processing</div>
           </div>
         </div>
 
@@ -231,5 +142,84 @@
       <div style="height:24px;"></div>
     </div>
   </main>
+
+  <script>
+    // Build the page from only the current transaction:
+    // - If ?ref=<id> present, show that tx
+    // - Else show the most recent initiated transaction for the logged-in user
+    (function(){
+      const user = safeParse(sessionStorage.getItem('loggedInUser')) || {};
+      let list = safeParse(sessionStorage.getItem('initiatedTransactions')) || [];
+
+      // Keep only this user's transactions if email is stored
+      if (user.email) {
+        list = list.filter(t => !t.email || t.email === user.email);
+      }
+
+      const params = new URLSearchParams(location.search);
+      const ref = params.get('ref') || params.get('id') || params.get('reference');
+
+      let tx = null;
+      if (ref) {
+        tx = list.find(t => (t.reference || t.ref || t.id) === ref) || null;
+      }
+      if (!tx) {
+        // Use the most recent one (assuming you unshift on creation)
+        tx = list[0] || null;
+      }
+
+      if (!tx) {
+        // Nothing to show — replace card with empty state
+        const container = document.getElementById('txContainer');
+        container.innerHTML = `
+          <div class="amount-line">
+            <div class="value">$0.00</div>
+            <div class="muted">No current transaction to display</div>
+          </div>
+          <div class="actions" style="margin-top:8px;">
+            <a class="btn btn-primary" href="transfer.html">Make a transfer</a>
+            <a class="btn btn-outline" href="dashboard.html">Back to dashboard</a>
+          </div>
+        `;
+        return;
+      }
+
+      // Helpers
+      function safeParse(s){ try { return JSON.parse(s||''); } catch { return null; } }
+      function fmtAmount(a, delta){
+        if (!a && delta) return delta; // e.g., "- $2,000.00"
+        if (typeof a === 'string') return a;
+        if (typeof a === 'number') return a.toLocaleString(undefined, { style:'currency', currency: (tx.currency||'USD') });
+        return '$0.00';
+      }
+      function nowISOToLocal(iso){
+        try{
+          const d = iso ? new Date(iso) : new Date();
+          return `${d.toLocaleDateString()} • ${d.toLocaleTimeString()}`;
+        }catch{ return '—'; }
+      }
+
+      // Populate UI
+      const status = tx.status || 'Pending';
+      document.getElementById('bannerText').textContent = (status.toLowerCase()==='pending') ? 'Processing' : 'Completed';
+      document.getElementById('amountValue').textContent = fmtAmount(tx.amount, tx.delta);
+      const fromText = tx.from || tx.fromAccount || '—';
+      const toText = tx.to || tx.toAccount || '—';
+      const actionWord = (tx.type && /deposit|credit/i.test(tx.type)) ? 'to' : 'to';
+      document.getElementById('summaryText').textContent =
+        (fromText !== '—' || toText !== '—')
+          ? `Transferred from ${fromText} ${actionWord} ${toText}`
+          : (tx.name || tx.type || 'Transfer');
+
+      document.getElementById('statusPill').textContent = status;
+      document.getElementById('dateTimeValue').textContent = tx.dateTime || nowISOToLocal(tx.dateISO || tx.date);
+      document.getElementById('fromValue').textContent = fromText;
+      document.getElementById('toValue').textContent = toText;
+      document.getElementById('referenceValue').textContent = tx.reference || tx.ref || tx.id || '—';
+      document.getElementById('networkValue').textContent = tx.network || tx.type || 'Transfer';
+      document.getElementById('feesValue').textContent = tx.fees || tx.fee || '—';
+      document.getElementById('postedByValue').textContent = tx.postedBy || 'Shenzhenswift Processing';
+    })();
+  </script>
 </body>
 </html>

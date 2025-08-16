@@ -294,31 +294,57 @@
       nameEl.textContent = `Welcome, ${displayName}`;
     }
 
+    // Helper: read only transactions initiated by this user (if email is saved with tx)
+    function getInitiatedTransactions() {
+      try {
+        const all = JSON.parse(sessionStorage.getItem('initiatedTransactions') || '[]');
+        if (user && user.email) {
+          return all.filter(tx => !tx.email || tx.email === user.email);
+        }
+        return all;
+      } catch {
+        return [];
+      }
+    }
+
+    const initiated = getInitiatedTransactions();
+    const txListHtml = initiated.length
+      ? initiated.map(tx => `
+          <div class="tx">
+            <div class="name">${tx.name || tx.type || 'Transfer'}</div>
+            <div class="delta ${tx.delta && tx.delta.startsWith('+') ? 'pos' : 'neg'}">
+              ${tx.delta || (tx.amount ? `- $${tx.amount}` : '')}
+            </div>
+            <div class="meta">
+              ${(tx.date || new Date().toLocaleDateString())}
+              ${tx.network ? ` • ${tx.network}` : ' • Transfer'}
+              ${tx.from ? ` • ${tx.from}` : ''}${tx.to ? ` → ${tx.to}` : ''}
+              ${tx.status ? ` • ${tx.status}` : ''}
+            </div>
+          </div>
+        `).join('')
+      : `<div style="color:var(--muted);text-align:center;padding:24px 0;">
+           No recent transactions yet.<br>
+           Start by making your first transfer.
+         </div>`;
+
     const kpiSection = document.getElementById('kpiSection');
     const accountSection = document.getElementById('accountSection');
+
     if (isNewUser) {
       // New user: show empty state for balances and accounts
       kpiSection.innerHTML = `
         <div class="card">
           <h3>Total balance</h3>
-          <div class="kpi">
-            <div class="value">$0.00</div>
-            <div class="muted">All accounts</div>
-          </div>
+          <div class="kpi"><div class="value">$0.00</div><div class="muted">All accounts</div></div>
         </div>
         <div class="card">
           <h3>Available</h3>
-          <div class="kpi">
-            <div class="value">$0.00</div>
-            <div class="muted">After holds</div>
-          </div>
+          <div class="kpi"><div class="value">$0.00</div><div class="muted">After holds</div></div>
         </div>
         <div class="card">
           <h3>Month-to-date</h3>
-          <div class="kpi">
-            <div class="value">$0.00</div>
-            <div class="muted">Net cash flow</div>
-          </div>
+          <div class="kpi"><div class="value">$0.00</div><div class="muted">Net cash flow</div></div>
         </div>
       `;
       accountSection.innerHTML = `
@@ -331,37 +357,25 @@
         </div>
         <div class="card">
           <h3>Recent transactions</h3>
-          <div class="tx-list" style="margin-top:10px;">
-            <div style="color:var(--muted);text-align:center;padding:24px 0;">
-              No recent transactions yet.<br>
-              Start by making your first transfer.
-            </div>
+          <div class="tx-list" style="margin-top:10px;" id="txList">
+            ${txListHtml}
           </div>
         </div>
       `;
     } else {
-      // Existing user: show default balances and accounts
+      // Existing user: keep accounts, but show ONLY user-initiated transactions (no samples)
       kpiSection.innerHTML = `
         <div class="card">
           <h3>Total balance</h3>
-          <div class="kpi">
-            <div class="value">$256,780.00</div>
-            <div class="muted">All accounts</div>
-          </div>
+          <div class="kpi"><div class="value">$256,780.00</div><div class="muted">All accounts</div></div>
         </div>
         <div class="card">
           <h3>Available</h3>
-          <div class="kpi">
-            <div class="value">$221,540.20</div>
-            <div class="muted">After holds</div>
-          </div>
+          <div class="kpi"><div class="value">$221,540.20</div><div class="muted">After holds</div></div>
         </div>
         <div class="card">
           <h3>Month-to-date</h3>
-          <div class="kpi">
-            <div class="value">+$4,920.11</div>
-            <div class="muted">Net cash flow</div>
-          </div>
+          <div class="kpi"><div class="value">+$4,920.11</div><div class="muted">Net cash flow</div></div>
         </div>
       `;
       accountSection.innerHTML = `
@@ -408,29 +422,7 @@
         <div class="card">
           <h3>Recent transactions</h3>
           <div class="tx-list" style="margin-top:10px;" id="txList">
-            <div class="tx">
-              <div class="name">Payroll • Shenzhenswift LLC</div>
-              <div class="delta pos">+ $3,420.00</div>
-              <div class="meta">Aug 07 • ACH Credit • Checking • •••3482</div>
-            </div>
-            <div class="tx">
-              <div class="name">ATM Withdrawal</div>
-              <div class="delta neg">- $200.00</div>
-              <div class="meta">Aug 05 • ATM • Checking • •••3482</div>
-            </div>
-            <div class="tx">
-              <div class="name">Transfer to Savings</div>
-              <div class="delta neg">- $2,000.00</div>
-              <div class="meta">Aug 03 • Internal Transfer • •••3482 → •••9015</div>
-            </div>
-            <div class="tx">
-              <div class="name">Interest Credit</div>
-              <div class="delta pos">+ $42.11</div>
-              <div class="meta">Aug 01 • Interest • Savings • •••9015</div>
-            </div>
-          </div>
-          <div style="margin-top:12px;">
-            <a class="btn btn-primary" href="transaction-details.html">View details</a>
+            ${txListHtml}
           </div>
         </div>
       `;

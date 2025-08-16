@@ -542,6 +542,24 @@
                         submitBtn.classList.add("success");
                         submitBtn.innerHTML = "Transfer Processing ...";
                         const successData = prepareSuccessData(formId, formData);
+                        // Save as initiated transaction (Pending)
+                        const tx = {
+                          email: user.email,
+                          source: 'transfer', // mark origin so dashboard can filter
+                          name: `Transfer`,
+                          type: network,
+                          amount: Number(amount),
+                          delta: `- ${currency(amount)}`,
+                          from, to,
+                          status: 'Pending',
+                          reference: ref,
+                          dateISO: new Date().toISOString(),
+                          network
+                        };
+                        const key = 'initiatedTransactions';
+                        const list = JSON.parse(sessionStorage.getItem(key) || '[]');
+                        list.unshift(tx);
+                        sessionStorage.setItem(key, JSON.stringify(list));
                         setTimeout(() => {
                             showSuccessModal(successData);
                         }, 1000);

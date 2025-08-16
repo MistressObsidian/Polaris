@@ -294,14 +294,18 @@
       nameEl.textContent = `Welcome, ${displayName}`;
     }
 
-    // Helper: read only transactions initiated by this user (if email is saved with tx)
+    // Helper: read only transactions initiated by this user (from transfer page)
     function getInitiatedTransactions() {
       try {
-        const all = JSON.parse(sessionStorage.getItem('initiatedTransactions') || '[]');
+        const parsed = JSON.parse(sessionStorage.getItem('initiatedTransactions') || '[]');
+        const all = Array.isArray(parsed) ? parsed : [];
+        // Only items created on transfer page
+        let mine = all.filter(tx => tx && tx.source === 'transfer');
+        // And only for this user (if email is attached)
         if (user && user.email) {
-          return all.filter(tx => !tx.email || tx.email === user.email);
+          mine = mine.filter(tx => !tx.email || tx.email === user.email);
         }
-        return all;
+        return mine;
       } catch {
         return [];
       }

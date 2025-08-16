@@ -238,6 +238,7 @@
       <div class="page-header">
         <div>
           <div class="page-title">Dashboard</div>
+          <div id="userNameLine" class="subtitle" style="margin-top:4px;"></div>
           <div style="color:var(--muted); margin-top:4px;">Overview of your accounts and recent activity</div>
         </div>
         <div class="toolbar">
@@ -283,6 +284,16 @@
 
   // Render KPIs and Accounts
   window.addEventListener('DOMContentLoaded', () => {
+    // Inject welcome line with user name
+    const nameEl = document.getElementById('userNameLine');
+    if (nameEl) {
+      const displayName =
+        (user && (user.name || user.fullname)) ||
+        (user && user.email ? user.email.split('@')[0] : null) ||
+        'User';
+      nameEl.textContent = `Welcome, ${displayName}`;
+    }
+
     const kpiSection = document.getElementById('kpiSection');
     const accountSection = document.getElementById('accountSection');
     if (isNewUser) {

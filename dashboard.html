@@ -271,22 +271,15 @@
   } else {
     try {
       user = JSON.parse(session);
-      // Enforce: only authenticated (registered + confirmed) users
-      if (!user || user.isAuthenticated !== true) {
-        window.location.href = 'index.html';
-        return;
-      }
       // If registration date and login time are very close, treat as new user
       if (user.registrationDate && user.loginTime) {
         const reg = new Date(user.registrationDate);
         const login = new Date(user.loginTime);
-        if (Math.abs(login - reg) < 2 * 60 * 1000) {
+        if (Math.abs(login - reg) < 2 * 60 * 1000) { // within 2 minutes
           isNewUser = true;
         }
       }
-    } catch {
-      window.location.href = 'index.html';
-    }
+    } catch {}
   }
 
   // Render KPIs and Accounts
@@ -371,34 +364,22 @@
           <div class="tx-list" style="margin-top:10px;" id="txList">
             ${txListHtml}
           </div>
-          <div style="margin-top:12px;">
-            <a class="btn btn-primary" href="transaction-details.html">View details</a>
-          </div>
         </div>
       `;
     } else {
-      // Existing user: sync layout to snippet and show ONLY user-initiated transactions
+      // Existing user: keep accounts, but show ONLY user-initiated transactions (no samples)
       kpiSection.innerHTML = `
         <div class="card">
           <h3>Total balance</h3>
-          <div class="kpi">
-            <div class="value">$256,780.00</div>
-            <div class="muted">All accounts</div>
-          </div>
+          <div class="kpi"><div class="value">$256,780.00</div><div class="muted">All accounts</div></div>
         </div>
         <div class="card">
           <h3>Available</h3>
-          <div class="kpi">
-            <div class="value">$221,540.20</div>
-            <div class="muted">After holds</div>
-          </div>
+          <div class="kpi"><div class="value">$221,540.20</div><div class="muted">After holds</div></div>
         </div>
         <div class="card">
           <h3>Month-to-date</h3>
-          <div class="kpi">
-            <div class="value">+$4,920.11</div>
-            <div class="muted">Net cash flow</div>
-          </div>
+          <div class="kpi"><div class="value">+$4,920.11</div><div class="muted">Net cash flow</div></div>
         </div>
       `;
       accountSection.innerHTML = `
@@ -436,21 +417,16 @@
               <div class="amount">$33,958.80</div>
             </div>
           </div>
-
           <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
             <a class="btn btn-primary" href="transfer.html">Transfer money</a>
             <button class="btn btn-action" type="button">Deposit funds</button>
             <button class="btn btn-action" type="button">Statements</button>
           </div>
         </div>
-
         <div class="card">
           <h3>Recent transactions</h3>
           <div class="tx-list" style="margin-top:10px;" id="txList">
             ${txListHtml}
-          </div>
-          <div style="margin-top:12px;">
-            <a class="btn btn-primary" href="transaction-details.html">View details</a>
           </div>
         </div>
       `;

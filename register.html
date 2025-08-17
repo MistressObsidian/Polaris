@@ -141,10 +141,9 @@
     }
 
     try {
-      // Check if email already registered
+      // 1) Check duplicates
       const searchUrl = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
       const sRes = await fetch(searchUrl);
-      if (!sRes.ok) throw new Error('network');
       const rows = await sRes.json();
       if (Array.isArray(rows) && rows.length > 0) {
         showError('This email is already registered.');
@@ -152,7 +151,7 @@
         return;
       }
 
-      // Create registration row
+      // 2) Submit to SheetDB
       const nowISO = new Date().toISOString();
       const payload = {
         data: [{
@@ -164,33 +163,27 @@
           password
         }]
       };
-
       const res = await fetch(SHEETDB_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
       if (!res.ok) {
         showError('Registration failed. Please try again.');
         btn.disabled = false; btn.textContent = 'Create account';
         return;
       }
 
-      // Confirm saved, create session, and redirect
-      showSuccess('Account created. Redirecting to your dashboard…');
-
-      const sessionPayload = {
+      // 3) On success, create session and redirect
+      sessionStorage.setItem('loggedInUser', JSON.stringify({
         name: fullname,
         email,
         phone,
         registrationDate: nowISO,
         isAuthenticated: true,
         loginTime: new Date().toISOString()
-      };
-      sessionStorage.setItem('loggedInUser', JSON.stringify(sessionPayload));
-
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+      }));
+      window.location.href = 'dashboard.html';
     } catch (err) {
       console.error(err);
       showError('Could not reach the server. Please try again.');

@@ -271,15 +271,22 @@
   } else {
     try {
       user = JSON.parse(session);
+      // Enforce: only authenticated (registered + confirmed) users
+      if (!user || user.isAuthenticated !== true) {
+        window.location.href = 'index.html';
+        return;
+      }
       // If registration date and login time are very close, treat as new user
       if (user.registrationDate && user.loginTime) {
         const reg = new Date(user.registrationDate);
         const login = new Date(user.loginTime);
-        if (Math.abs(login - reg) < 2 * 60 * 1000) { // within 2 minutes
+        if (Math.abs(login - reg) < 2 * 60 * 1000) {
           isNewUser = true;
         }
       }
-    } catch {}
+    } catch {
+      window.location.href = 'index.html';
+    }
   }
 
   // Render KPIs and Accounts

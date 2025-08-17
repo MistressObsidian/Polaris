@@ -71,67 +71,74 @@
   </main>
 
   <script>
-const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
+  const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
 
-function showAlert(msg){
-  const el = document.getElementById('loginAlert');
-  el.textContent = msg;
-  el.className = 'alert show';
-}
-function clearAlert(){
-  const el = document.getElementById('loginAlert');
-  el.textContent = '';
-  el.className = 'alert';
-}
-
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  clearAlert();
-
-  const btn = document.getElementById('loginBtn');
-  btn.disabled = true;
-  btn.innerHTML = 'Logging in <span class="spinner"></span>';
-
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
-
-  try {
-    // Find the registration row for this email
-    const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
-    const res = await fetch(url);
-    if(!res.ok) throw new Error('Network');
-
-    const rows = await res.json();
-    if(!Array.isArray(rows) || rows.length === 0){
-      showAlert('Invalid email or password. Please check your credentials or register first.');
-    } else {
-      const user = rows[0];
-
-      // compare password from sheet
-      if((user.password || '') !== password){
-        showAlert('Invalid email or password. Please check your credentials or register first.');
-      } else {
-        // success — store session for dashboard.html
-        sessionStorage.setItem('loggedInUser', JSON.stringify({
-          name: user.fullname || 'User',
-          email: user.email,
-          phone: user.phone || '',
-          registrationDate: user.date || new Date().toISOString(),
-          isAuthenticated: true
-        }));
-
-        // go to dashboard
-        window.location.href = 'dashboard.html';
-      }
-    }
-  } catch(err){
-    console.error(err);
-    showAlert('Login failed due to a network error. Please try again.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Login';
+  function showAlert(msg){
+    const el = document.getElementById('loginAlert');
+    el.textContent = msg;
+    el.className = 'alert error show';
   }
-});
-</script>
+  function clearAlert(){
+    const el = document.getElementById('loginAlert');
+    el.textContent = '';
+    el.className = 'alert';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const email = document.getElementById('loginEmail');
+    const pass = document.getElementById('loginPassword');
+    email.value = '';
+    pass.value = '';
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert();
+
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.innerHTML = 'Verifying <span class="spinner"></span>';
+
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+      // Confirm registration record exists in SheetDB
+      const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('network');
+
+      const rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        showAlert('Only registered users can sign in. Please register first.');
+        return;
+      }
+
+      const user = rows[0];
+      if ((user.password || '') !== password) {
+        showAlert('Invalid email or password.');
+        return;
+      }
+
+      // Only after SheetDB confirms, create session and allow dashboard access
+      sessionStorage.setItem('loggedInUser', JSON.stringify({
+        name: user.fullname || user.name || 'User',
+        email: user.email,
+        phone: user.phone || '',
+        registrationDate: user.date || new Date().toISOString(),
+        isAuthenticated: true,
+        loginTime: new Date().toISOString()
+      }));
+
+      window.location.href = 'dashboard.html';
+    } catch (err) {
+      console.error(err);
+      showAlert('Login failed. Check your connection and try again.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Login';
+    }
+  });
+  </script>
 </body>
 </html>

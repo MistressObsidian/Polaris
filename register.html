@@ -5,37 +5,41 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Register • Shenzhenswift</title>
   <style>
-    :root{ --brand:#1e3c72; --brand2:#2a5298; --ok:#047857; --err:#b91c1c; }
+    :root{ --brand:#1e3c72; --brand2:#2a5298; }
     *{ box-sizing:border-box; }
     body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(135deg,var(--brand),var(--brand2)); min-height:100vh; display:grid; place-items:center; color:#111; }
-    .card{
-      width:min(400px,92vw);
-      background:#fff; border-radius:16px; padding:32px 24px 24px; box-shadow:0 10px 30px rgba(0,0,0,.15);
-    }
-    .brand{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .card{ width:min(540px,92vw); background:#fff; border-radius:16px; padding:28px 22px 22px; box-shadow:0 10px 30px rgba(0,0,0,.15); }
+    .brand{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
     .brand h1{ margin:0; font-size:22px; color:#1e3c72 }
     .brand a{ color:#1e3c72; text-decoration:none; font-weight:600 }
-    h2{ margin:8px 0 18px; color:#1e3c72 }
-    .form-group{ margin-bottom:14px; }
-    label{ display:block; font-weight:600; margin:0 0 6px; }
+    h2{ margin:8px 0 16px; color:#1e3c72 }
+    .form-row{ display:grid; grid-template-columns:1fr; gap:12px; }
+    @media (min-width:680px){ .form-row.two{ grid-template-columns:1fr 1fr; } }
+    .form-group{ display:flex; flex-direction:column; }
+    label{ font-weight:600; margin:0 0 6px; }
     input{
       width:100%; padding:12px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:16px;
       transition:border-color .2s;
     }
     input:focus{ outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,.15) }
     .btn{
-      width:100%; padding:12px 16px; border:none; border-radius:10px; background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; font-weight:700; cursor:pointer;
-      transition:filter .2s;
+      width:100%; padding:12px 16px; border:none; border-radius:10px;
+      background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; font-weight:700; cursor:pointer;
+      transition:filter .2s; position:relative; margin-top:12px;
     }
-    .btn:disabled{ opacity:.7; cursor:not-allowed }
     .btn:hover{ filter:brightness(1.05) }
-    .alert{ display:none; margin:8px 0 10px; padding:10px 12px; border-radius:8px; font-size:14px }
-    .alert-success{ display:block; background:#d1fae5; color:var(--ok); border:1px solid #a7f3d0 }
-    .alert-error{ display:block; background:#fde8e8; color:var(--err); border:1px solid #fecaca }
-    .form-footer{ text-align:center; margin-top:1rem; color:#666; }
-    .form-footer a{ color:#667eea; text-decoration:none; }
-    .form-footer a:hover{ text-decoration:underline; }
-    @media (max-width:500px){ .card{padding:18px 6vw;} }
+    .btn:disabled{ opacity:.7; cursor:not-allowed }
+    .spinner {
+      display:inline-block; width:18px; height:18px; vertical-align:middle; margin-left:8px;
+      border:2px solid #fff; border-top:2px solid #667eea; border-radius:50%; animation:spin .8s linear infinite;
+    }
+    @keyframes spin { to{ transform:rotate(360deg)} }
+    .alert{ display:none; margin:10px 0; padding:10px 12px; border-radius:8px; font-size:14px; }
+    .alert.show{ display:block; }
+    .alert.error{ background:#fde8e8; color:#b91c1c; border:1px solid #fecaca; }
+    .alert.success{ background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
+    .links{ display:flex; gap:12px; justify-content:space-between; margin-top:12px }
+    .links a{ color:#1e3c72; text-decoration:none; font-weight:600 }
   </style>
 </head>
 <body>
@@ -44,88 +48,155 @@
       <h1>Shenzhenswift</h1>
       <a href="index.html">← Back to Home</a>
     </div>
-    <h2>Create Account</h2>
-    <div id="registerAlert" class="alert"></div>
-    <form id="registerForm" autocomplete="off">
-      <div class="form-group">
-        <label for="registerName">Full Name</label>
-        <input type="text" id="registerName" name="name" placeholder="Enter your full name" required autocomplete="name">
+    <h2>Create your account</h2>
+
+    <div id="regAlert" class="alert error"></div>
+    <div id="regSuccess" class="alert success"></div>
+
+    <form id="registerForm" autocomplete="off" novalidate>
+      <div class="form-row two">
+        <div class="form-group">
+          <label for="fullname">Full name</label>
+          <input id="fullname" name="fullname" required />
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone (optional)</label>
+          <input id="phone" name="phone" inputmode="tel" />
+        </div>
       </div>
-      <div class="form-group">
-        <label for="registerEmail">Email Address</label>
-        <input type="email" id="registerEmail" name="email" placeholder="Enter your email address" required autocomplete="email">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input type="email" id="email" name="email" autocomplete="email" inputmode="email" required />
+        </div>
       </div>
-      <div class="form-group">
-        <label for="registerPhone">Phone Number</label>
-        <input type="tel" id="registerPhone" name="phone" placeholder="Enter your phone number" required autocomplete="tel">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" minlength="6" required />
+        </div>
       </div>
-      <div class="form-group">
-        <label for="registerSSN">SSN</label>
-        <input type="text" id="registerSSN" name="ssn" placeholder="Enter your SSN" required autocomplete="off" maxlength="11">
-      </div>
-      <div class="form-group">
-        <label for="registerPassword">Password</label>
-        <input type="password" id="registerPassword" name="password" placeholder="Create a strong password" required autocomplete="new-password">
-      </div>
-      <div class="form-group">
-        <label for="registerConfirmPassword">Confirm Password</label>
-        <input type="password" id="registerConfirmPassword" name="confirmPassword" placeholder="Confirm your password" required autocomplete="new-password">
-      </div>
-      <button type="submit" class="btn" id="registerBtn">Create Account</button>
+
+      <button type="submit" class="btn" id="registerBtn">Create account</button>
     </form>
-    <div class="form-footer">
-      <p>Already have an account? <a href="login.html">Login here</a></p>
+
+    <div class="links">
+      <span>Already have an account?</span>
+      <a href="login.html">Login</a>
     </div>
   </main>
+
   <script>
-    const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
-    function showAlert(msg, type){
-      const el = document.getElementById('registerAlert');
-      el.className = `alert alert-${type}`;
-      el.textContent = msg;
-      el.style.display = msg ? 'block' : 'none';
-    }
-    document.getElementById('registerForm').addEventListener('submit', async function(e){
-      e.preventDefault();
-      const name = document.getElementById('registerName').value.trim();
-      const email = document.getElementById('registerEmail').value.trim();
-      const phone = document.getElementById('registerPhone').value.trim();
-      const ssn = document.getElementById('registerSSN').value.trim();
-      const password = document.getElementById('registerPassword').value;
-      const confirmPassword = document.getElementById('registerConfirmPassword').value;
-      const btn = document.getElementById('registerBtn');
-      showAlert('', ''); // clear
-      if(password !== confirmPassword){
-        showAlert('Passwords do not match','error'); return;
-      }
-      if(!name || !email || !phone || !ssn || !password){
-        showAlert('Please fill in all fields','error'); return;
-      }
-      btn.disabled = true; btn.textContent = 'Creating Account...';
-      try{
-        const res = await fetch(SHEETDB_API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: {
-            formType: 'Registration',
-            name, email, phone, ssn, password,
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent
-          }})
-        });
-        if(res.ok){
-          showAlert('Account created successfully! You can now login with your credentials.','success');
-          setTimeout(()=>{ window.location.href = 'login.html'; }, 1000);
-          this.reset();
-        }else{
-          showAlert('Registration failed. Please try again.','error');
-        }
-      }catch{
-        showAlert('Registration failed. Please try again.','error');
-      }finally{
-        btn.disabled = false; btn.textContent = 'Create Account';
-      }
+  const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
+
+  function showError(msg){
+    const el = document.getElementById('regAlert');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function clearError(){
+    const el = document.getElementById('regAlert');
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+  function showSuccess(msg){
+    const el = document.getElementById('regSuccess');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function clearSuccess(){
+    const el = document.getElementById('regSuccess');
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // ensure fields are empty
+    ['fullname','phone','email','password'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
     });
+  });
+
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearError(); clearSuccess();
+
+    const btn = document.getElementById('registerBtn');
+    btn.disabled = true;
+    btn.innerHTML = 'Creating account <span class="spinner"></span>';
+
+    const fullname = document.getElementById('fullname').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const password = document.getElementById('password').value;
+
+    // basic client validation
+    if (!fullname || !email || !password || password.length < 6) {
+      showError('Please fill all required fields. Password must be at least 6 characters.');
+      btn.disabled = false; btn.textContent = 'Create account';
+      return;
+    }
+
+    try {
+      // Check if email already registered
+      const searchUrl = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
+      const sRes = await fetch(searchUrl);
+      if (!sRes.ok) throw new Error('network');
+      const rows = await sRes.json();
+      if (Array.isArray(rows) && rows.length > 0) {
+        showError('This email is already registered.');
+        btn.disabled = false; btn.textContent = 'Create account';
+        return;
+      }
+
+      // Create registration row
+      const nowISO = new Date().toISOString();
+      const payload = {
+        data: [{
+          formType: 'Registration',
+          date: nowISO,
+          fullname,
+          email,
+          phone,
+          password
+        }]
+      };
+
+      const res = await fetch(SHEETDB_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        showError('Registration failed. Please try again.');
+        btn.disabled = false; btn.textContent = 'Create account';
+        return;
+      }
+
+      // Confirm saved, create session, and redirect
+      showSuccess('Account created. Redirecting to your dashboard…');
+
+      const sessionPayload = {
+        name: fullname,
+        email,
+        phone,
+        registrationDate: nowISO,
+        isAuthenticated: true,
+        loginTime: new Date().toISOString()
+      };
+      sessionStorage.setItem('loggedInUser', JSON.stringify(sessionPayload));
+
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+    } catch (err) {
+      console.error(err);
+      showError('Could not reach the server. Please try again.');
+      btn.disabled = false; btn.textContent = 'Create account';
+    }
+  });
   </script>
 </body>
 </html>

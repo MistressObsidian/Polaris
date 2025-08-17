@@ -428,6 +428,10 @@
     </div>
     <script>
         let activeForm = null;
+
+        // + helper for currency
+        function currency(n){ try{ return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) }catch{ return `$${n}` } }
+
         function toggleForm(formId) {
             const form = document.getElementById(formId);
             const btn = document.getElementById(formId.replace('Form', 'Btn'));
@@ -541,15 +545,31 @@
                         submitBtn.classList.remove("loading");
                         submitBtn.classList.add("success");
                         submitBtn.innerHTML = "Transfer Processing ...";
+
                         const successData = prepareSuccessData(formId, formData);
-                        // Save as initiated transaction (Pending)
+
+                        // Build and save transaction (so details page can load it by ?ref=)
+                        const user = JSON.parse(sessionStorage.getItem('loggedInUser') || '{}');
+                        const typeMap = { wireForm:'Wire Transfer', eftForm:'EFT Transfer', achForm:'ACH Transfer', btcForm:'Bitcoin Conversion' };
+                        const network = typeMap[formId] || 'Transfer';
+                        const ref = successData.reference;
+                        const amountNum = Number(formData.amount || 0);
+
+                        const from = 'Everyday Checking •••3482';
+                        let to = 'External Account';
+                        if (formId === 'btcForm' && formData.btcAddress) {
+                          to = formData.btcAddress;
+                        } else if (formData.accountNumber) {
+                          to = `Acct •••${String(formData.accountNumber).slice(-4)}`;
+                        }
+
                         const tx = {
                           email: user.email,
-                          source: 'transfer', // mark origin so dashboard can filter
-                          name: `Transfer`,
+                          source: 'transfer',
+                          name: network,
                           type: network,
-                          amount: Number(amount),
-                          delta: `- ${currency(amount)}`,
+                          amount: amountNum,
+                          delta: amountNum ? `- ${currency(amountNum)}` : undefined,
                           from, to,
                           status: 'Pending',
                           reference: ref,
@@ -560,6 +580,15 @@
                         const list = JSON.parse(sessionStorage.getItem(key) || '[]');
                         list.unshift(tx);
                         sessionStorage.setItem(key, JSON.stringify(list));
+
+                        // Allow clicking the button to go to the exact transaction details
+                        submitBtn.disabled = false;               // enable click
+                        submitBtn.style.cursor = 'pointer';
+                        submitBtn.addEventListener('click', () => {
+                          window.location.href = `transaction-details.html?ref=${encodeURIComponent(ref)}`;
+                        }, { once:true });
+
+                        // Also show modal with Continue -> details page
                         setTimeout(() => {
                             showSuccessModal(successData);
                         }, 1000);
@@ -661,6 +690,14 @@
             }
             details.innerHTML = detailsHTML;
             modal.style.display = 'block';
+
+            // Redirect to details for this exact ref on Continue
+            const btn = document.querySelector('.close-btn');
+            if (btn) {
+              btn.onclick = () => {
+                window.location.href = `transaction-details.html?ref=${encodeURIComponent(data.reference)}`;
+              };
+            }
         }
         function closeSuccessModal() {
             document.getElementById('successModal').style.display = 'none';

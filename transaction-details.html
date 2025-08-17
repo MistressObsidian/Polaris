@@ -48,7 +48,7 @@
     .details-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
     @media (min-width: 720px) { .details-grid { grid-template-columns: 1fr 1fr; } }
     .detail { padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
-    .detail .label { color: var(--muted); font-size: .85rem; margin-bottom: 6px; }
+    .detail .label { color: var(--muted); font-size: .85rem; margin-bottom: 6px; font-weight: 800; }
     .detail .value { font-weight: 800; }
 
     .status-pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: .8rem; color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0; }
@@ -101,6 +101,7 @@
             <!-- Added note -->
         <div class="note">Payment required of $2276</div>
         
+
             <div class="value"><span class="status-pill" id="statusPill">Pending</span></div>
           </div>
           <div class="detail">

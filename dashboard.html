@@ -335,102 +335,79 @@
     const kpiSection = document.getElementById('kpiSection');
     const accountSection = document.getElementById('accountSection');
 
-    if (isNewUser) {
-      // New user: show empty state for balances and accounts
-      kpiSection.innerHTML = `
-        <div class="card">
-          <h3>Total balance</h3>
-          <div class="kpi"><div class="value">$0.00</div><div class="muted">All accounts</div></div>
+    // Render the same balances/accounts for all users (new or existing)
+    kpiSection.innerHTML = `
+      <div class="card">
+        <h3>Total balance</h3>
+        <div class="kpi">
+          <div class="value">$256,780.00</div>
+          <div class="muted">All accounts</div>
         </div>
-        <div class="card">
-          <h3>Available</h3>
-          <div class="kpi"><div class="value">$0.00</div><div class="muted">After holds</div></div>
+      </div>
+      <div class="card">
+        <h3>Available</h3>
+        <div class="kpi">
+          <div class="value">$221,540.20</div>
+          <div class="muted">After holds</div>
         </div>
-        <div class="card">
-          <h3>Month-to-date</h3>
-          <div class="kpi"><div class="value">$0.00</div><div class="muted">Net cash flow</div></div>
+      </div>
+      <div class="card">
+        <h3>Month-to-date</h3>
+        <div class="kpi">
+          <div class="value">+$4,920.11</div>
+          <div class="muted">Net cash flow</div>
         </div>
-      `;
-      accountSection.innerHTML = `
-        <div class="card">
-          <h3>Your accounts</h3>
-          <div style="color:var(--muted);text-align:center;padding:24px 0;">
-            No accounts available yet.<br>
-            Your accounts will appear here once set up.
-          </div>
-        </div>
-        <div class="card">
-          <h3>Recent transactions</h3>
-          <div class="tx-list" style="margin-top:10px;" id="txList">
-            ${txListHtml}
-          </div>
-        </div>
-      `;
-    } else {
-      // Existing user: keep accounts, but show ONLY user-initiated transactions (no samples)
-      kpiSection.innerHTML = `
-        <div class="card">
-          <h3>Total balance</h3>
-          <div class="kpi"><div class="value">$256,780.00</div><div class="muted">All accounts</div></div>
-        </div>
-        <div class="card">
-          <h3>Available</h3>
-          <div class="kpi"><div class="value">$221,540.20</div><div class="muted">After holds</div></div>
-        </div>
-        <div class="card">
-          <h3>Month-to-date</h3>
-          <div class="kpi"><div class="value">+$4,920.11</div><div class="muted">Net cash flow</div></div>
-        </div>
-      `;
-      accountSection.innerHTML = `
-        <div class="card">
-          <h3>Your accounts</h3>
-          <div class="accounts" style="margin-top:10px;">
-            <div class="account-row">
-              <div class="left">
-                <span class="pill">Checking</span>
-                <div>
-                  <div style="font-weight:800;">Everyday Checking</div>
-                  <div class="muted" style="font-size:.9rem;">••• 3482</div>
-                </div>
+      </div>
+    `;
+
+    accountSection.innerHTML = `
+      <div class="card">
+        <h3>Your accounts</h3>
+        <div class="accounts" style="margin-top:10px;">
+          <div class="account-row">
+            <div class="left">
+              <span class="pill">Checking</span>
+              <div>
+                <div style="font-weight:800;">Everyday Checking</div>
+                <div class="muted" style="font-size:.9rem;">••• 3482</div>
               </div>
-              <div class="amount">$24,380.22</div>
             </div>
-            <div class="account-row">
-              <div class="left">
-                <span class="pill">Savings</span>
-                <div>
-                  <div style="font-weight:800;">High-Yield Savings</div>
-                  <div class="muted" style="font-size:.9rem;">••• 9015</div>
-                </div>
-              </div>
-              <div class="amount">$198,440.98</div>
-            </div>
-            <div class="account-row">
-              <div class="left">
-                <span class="pill">Brokerage</span>
-                <div>
-                  <div style="font-weight:800;">Invest Portfolio</div>
-                  <div class="muted" style="font-size:.9rem;">••• 1170</div>
-                </div>
-              </div>
-              <div class="amount">$33,958.80</div>
-            </div>
+            <div class="amount">$24,380.22</div>
           </div>
-          <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-            <a class="btn btn-primary" href="transfer.html">Transfer money</a>
-            <button class="btn btn-action" type="button">Deposit funds</button>
-            <button class="btn btn-action" type="button">Statements</button>
+          <div class="account-row">
+            <div class="left">
+              <span class="pill">Savings</span>
+              <div>
+                <div style="font-weight:800;">High-Yield Savings</div>
+                <div class="muted" style="font-size:.9rem;">••• 9015</div>
+              </div>
+            </div>
+            <div class="amount">$198,440.98</div>
+          </div>
+          <div class="account-row">
+            <div class="left">
+              <span class="pill">Brokerage</span>
+              <div>
+                <div style="font-weight:800;">Invest Portfolio</div>
+                <div class="muted" style="font-size:.9rem;">••• 1170</div>
+              </div>
+            </div>
+            <div class="amount">$33,958.80</div>
           </div>
         </div>
-        <div class="card">
-          <h3>Recent transactions</h3>
-          <div class="tx-list" style="margin-top:10px;" id="txList">
-            ${txListHtml}
-          </div>
+        <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+          <a class="btn btn-primary" href="transfer.html">Transfer money</a>
+          <button class="btn btn-action" type="button">Deposit funds</button>
+          <button class="btn btn-action" type="button">Statements</button>
         </div>
-      `;
-    }
+      </div>
+      <div class="card">
+        <h3>Recent transactions</h3>
+        <div class="tx-list" style="margin-top:10px;" id="txList">
+          ${txListHtml}
+        </div>
+      </div>
+    `;
   });
   </script>
 </body>

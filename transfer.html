@@ -208,29 +208,35 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         .success-modal {
-            display: none;
+            display: none; /* will be set to flex via JS when shown */
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            inset: 0;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(5px);
             z-index: 1000;
             animation: fadeIn 0.3s ease;
+            /* Center and allow scrolling on very small viewports */
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            overflow: auto;
         }
         .success-content {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
+            position: relative;
             background: white;
-            padding: 40px;
+            padding: 32px;
             border-radius: 15px;
             text-align: center;
-            max-width: 400px;
-            width: 90%;
-            animation: successSlideIn 0.5s ease;
+            width: min(92vw, 520px);
+            max-width: 520px;
+            /* Constrain height to viewport and allow internal scroll */
+            max-height: calc(100dvh - 48px);
+            overflow: auto;
+            animation: successSlideIn 0.4s ease;
         }
         @keyframes successSlideIn {
-            from { opacity: 0; transform: translate(-50%, -60%);}
-            to { opacity: 1; transform: translate(-50%, -50%);}
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .success-icon {
             font-size: 4rem;
@@ -253,10 +259,15 @@
         .detail-row {
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
             margin: 8px 0;
             padding: 5px 0;
             border-bottom: 1px solid rgba(0,0,0,0.1);
+            flex-wrap: wrap;
         }
+        .detail-row strong { flex: 1 1 45%; min-width: 120px; }
+        .detail-row span { flex: 1 1 50%; text-align: right; word-break: break-word; overflow-wrap: anywhere; }
         .detail-row:last-child { border-bottom: none; }
         .close-btn {
             background: linear-gradient(45deg, #667eea, #764ba2);
@@ -273,12 +284,35 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
+        /* Top-right X close button */
+        .modal-close {
+            position: absolute;
+            top: 10px; right: 10px;
+            width: 32px; height: 32px;
+            display: inline-flex;
+            align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.04);
+            border: none;
+            border-radius: 999px;
+            color: #6c757d;
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+        .modal-close:hover { background: rgba(0,0,0,0.08); transform: scale(1.05); }
+        .modal-close:focus { outline: 2px solid #667eea; outline-offset: 2px; }
         @media (max-width: 768px) {
             .container { margin: 10px; padding: 20px;}
             .transfer-method-btn { padding: 12px 15px; font-size: 14px;}
             .method-icon { font-size: 18px; margin-right: 8px;}
             h2 { font-size: 1.5rem;}
-            .success-content { padding: 30px 20px;}
+            .success-content { padding: 24px 16px; width: min(96vw, 520px); max-height: calc(100dvh - 32px); }
+        }
+        @media (max-width: 360px) {
+            .success-icon { font-size: 3rem; }
+            .close-btn { width: 100%; }
+            .modal-close { width: 28px; height: 28px; font-size: 16px; }
         }
         .loading-overlay {
             position: fixed;
@@ -416,6 +450,7 @@
     <!-- Success Modal -->
     <div id="successModal" class="success-modal">
         <div class="success-content">
+            <button class="modal-close" type="button" aria-label="Close" title="Close">×</button>
             <div class="success-icon">✅</div>
             <h2 style="color: #28a745; margin-bottom: 15px;">Transfer Processing!</h2>
             <div id="successDetails" class="success-details"></div>
@@ -631,9 +666,10 @@
                 btcAddress: formData.btcAddress ? formData.btcAddress.substring(0, 10) + '...' : null
             };
         }
-        function showSuccessModal(data) {
+    function showSuccessModal(data) {
             const modal = document.getElementById('successModal');
             const details = document.getElementById('successDetails');
+            const content = modal.querySelector('.success-content');
             let detailsHTML = `
                 <div class="detail-row">
                     <strong>Transfer Type:</strong>
@@ -688,19 +724,44 @@
                     </div>
                 `;
             }
-            details.innerHTML = detailsHTML;
-            modal.style.display = 'block';
+                        details.innerHTML = detailsHTML;
+                        modal.style.display = 'flex';
 
-            // Redirect to details for this exact ref on Continue
+                        // Redirect to details for this exact ref on Continue
             const btn = document.querySelector('.close-btn');
             if (btn) {
               btn.onclick = () => {
                 window.location.href = `transaction-details.html?ref=${encodeURIComponent(data.reference)}`;
               };
             }
+
+                        // Allow closing by clicking on the dimmed backdrop
+                        modal.addEventListener('click', (e) => {
+                            if (e.target === modal) {
+                                closeSuccessModal();
+                            }
+                        }, { once: true });
+
+                        // X button closes without redirect
+                        const xBtn = modal.querySelector('.modal-close');
+                        if (xBtn) {
+                            xBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                closeSuccessModal();
+                            };
+                        }
+
+                        // Esc key closes
+                        const onKey = (e) => {
+                            if (e.key === 'Escape') {
+                                closeSuccessModal();
+                                document.removeEventListener('keydown', onKey);
+                            }
+                        };
+                        document.addEventListener('keydown', onKey, { once: true });
         }
         function closeSuccessModal() {
-            document.getElementById('successModal').style.display = 'none';
+                        document.getElementById('successModal').style.display = 'none';
             // Optionally reset forms or redirect
         }
         function goBack() {

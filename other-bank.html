@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Other Bank - Incoming Transfers</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f5f6fa; color: #222; }
+    header { background: linear-gradient(135deg, #4c6ef5, #9775fa); color: #fff; padding: 18px 16px; }
+    header h1 { margin: 0; font-size: 1.25rem; }
+    main { padding: 16px; max-width: 900px; margin: 0 auto; }
+    .card { background: #fff; border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 16px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 8px; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .row.header { font-weight: 700; color: #555; }
+    .row:last-child { border-bottom: none; }
+    .pill { padding: 4px 8px; border-radius: 999px; font-size: 12px; display: inline-block; }
+    .pill.pending { background: #fff3cd; color: #7a5d00; }
+    .pill.completed { background: #d4edda; color: #155724; }
+    .controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    input, select, button { padding: 8px 10px; border-radius: 8px; border: 1px solid #ddd; }
+    button.primary { background: #4c6ef5; border: none; color: #fff; }
+  .footer { margin-top: 10px; color: #666; font-size: 12px; }
+    @media (max-width: 720px) {
+      .row { grid-template-columns: 1.2fr 1fr 1fr 1fr; }
+      .col-to { display: none; }
+    }
+    @media (max-width: 460px) {
+      .row { grid-template-columns: 1fr 1fr 1fr; }
+      .col-date, .col-to { display: none; }
+    }
+  </style>
+  <script>
+    const API = (path='') => `http://localhost:3001${path}`;
+  function getToken(){ return localStorage.getItem('api_token') || ''; }
+    function currency(n){ try { return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) } catch { return `$${n}` } }
+    async function fetchTransfers(){
+      const email = document.getElementById('email').value.trim();
+      const ref = document.getElementById('ref').value.trim();
+      const qs = new URLSearchParams();
+      if (email) qs.set('email', email);
+      if (ref) qs.set('ref', ref);
+      const token = getToken();
+      const res = await fetch(API('/api/transfers' + (qs.toString() ? `?${qs}` : '')), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      render(data);
+    }
+    function render(list){
+      const host = document.getElementById('rows');
+      host.innerHTML = '';
+      if (!list || !list.length){
+        host.innerHTML = '<div style="padding:10px;color:#777;">No transfers found.</div>';
+        return;
+      }
+      for (const t of list){
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `
+          <div class="col-ref">${t.reference}</div>
+          <div class="col-amt">${currency(t.amount||0)}</div>
+          <div class="col-status"><span class="pill ${String(t.status).toLowerCase()}">${t.status}</span></div>
+          <div class="col-date">${new Date(t.dateISO||t.updatedAt||Date.now()).toLocaleString()}</div>
+          <div class="col-to">${t.to || ''}</div>
+        `;
+        host.appendChild(row);
+      }
+    }
+    async function markCompleted(){
+      const ref = prompt('Enter reference to mark Completed:');
+      if (!ref) return;
+      const token = getToken();
+      await fetch(API(`/api/transfers/${encodeURIComponent(ref)}`), {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'Completed' })
+      });
+      fetchTransfers();
+    }
+    function startSSE(){
+      const token = getToken();
+      const src = new EventSource(API('/api/stream') + `?token=${encodeURIComponent(token)}`, { withCredentials: false });
+      src.addEventListener('transfer.created', () => fetchTransfers());
+      src.addEventListener('transfer.updated', () => fetchTransfers());
+      src.addEventListener('error', () => {/* no-op for demo */});
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchTransfers();
+      document.getElementById('refresh').addEventListener('click', fetchTransfers);
+      document.getElementById('markCompleted').addEventListener('click', markCompleted);
+      const tokenInput = document.getElementById('token');
+      tokenInput.value = getToken();
+      tokenInput.addEventListener('change', () => { localStorage.setItem('api_token', tokenInput.value.trim()); fetchTransfers(); startSSE(); });
+      startSSE();
+    });
+  </script>
+  </head>
+<body>
+  <header><h1>Other Bank — Incoming Transfers</h1></header>
+  <main>
+    <div class="card">
+      <div class="controls">
+        <input id="token" type="text" placeholder="API token" style="min-width:240px" />
+        <input id="email" type="email" placeholder="Filter by email (optional)" />
+        <input id="ref" type="text" placeholder="Filter by reference (optional)" />
+        <button id="refresh" class="primary">Refresh</button>
+        <button id="markCompleted">Mark Completed</button>
+      </div>
+      <div class="row header">
+        <div>Reference</div>
+        <div>Amount</div>
+        <div>Status</div>
+        <div class="col-date">Updated</div>
+        <div class="col-to">To</div>
+      </div>
+      <div id="rows"></div>
+  <div class="footer">Live updates enabled via SSE. You can still use Refresh to re-sync filters.</div>
+    </div>
+  </main>
+</body>
+</html>

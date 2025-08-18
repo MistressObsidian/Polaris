@@ -98,10 +98,6 @@
         <div class="details-grid">
           <div class="detail">
             <div class="label">Status</div>
-            <!-- Added note -->
-        <div class="note">Payment required of $2267</div>
-        
-
             <div class="value"><span class="status-pill" id="statusPill">Pending</span></div>
           </div>
           <div class="detail">
@@ -164,7 +160,7 @@
       const params = new URLSearchParams(location.search);
       const ref = params.get('ref') || params.get('id') || params.get('reference');
 
-      let tx = null;
+  let tx = null;
       if (ref) {
         tx = list.find(t => (t.reference || t.ref || t.id) === ref) || null;
       }
@@ -204,7 +200,7 @@
         }catch{ return '—'; }
       }
 
-      // Populate UI
+  // Populate UI from local data first
       const status = tx.status || 'Pending';
       document.getElementById('bannerText').textContent = (status.toLowerCase()==='pending') ? 'Processing' : 'Completed';
       document.getElementById('amountValue').textContent = fmtAmount(tx.amount, tx.delta);
@@ -224,6 +220,42 @@
       document.getElementById('networkValue').textContent = tx.network || tx.type || 'Transfer';
       document.getElementById('feesValue').textContent = tx.fees || tx.fee || '—';
       document.getElementById('postedByValue').textContent = tx.postedBy || 'Shenzhenswift Processing';
+
+      // Fetch from API for true source of truth
+      const token = localStorage.getItem('api_token') || '';
+      if (token && (tx.reference || ref)) {
+        fetch(`http://localhost:3001/api/transfers?ref=${encodeURIComponent(tx.reference || ref)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(r => r.ok ? r.json() : []).then(arr => {
+          if (Array.isArray(arr) && arr[0]) {
+            const t = arr[0];
+            // Update UI with DB values
+            const s = t.status || 'Pending';
+            document.getElementById('statusPill').textContent = s;
+            document.getElementById('bannerText').textContent = (s.toLowerCase()==='pending') ? 'Processing' : 'Completed';
+            document.getElementById('dateTimeValue').textContent = nowISOToLocal(t.updatedAt || t.dateISO);
+            document.getElementById('fromValue').textContent = t.from || tx.from || '—';
+            document.getElementById('toValue').textContent = t.to || tx.to || '—';
+          }
+        }).catch(()=>{});
+        // Subscribe to SSE for live changes
+        try {
+          const src = new EventSource(`http://localhost:3001/api/stream?token=${encodeURIComponent(token)}`);
+          const onUpdate = (ev) => {
+            try{
+              const data = JSON.parse(ev.data||'{}');
+              if (data.reference === (tx.reference || ref)) {
+                const s = data.status || 'Pending';
+                document.getElementById('statusPill').textContent = s;
+                document.getElementById('bannerText').textContent = (s.toLowerCase()==='pending') ? 'Processing' : 'Completed';
+                if (data.updatedAt) document.getElementById('dateTimeValue').textContent = nowISOToLocal(data.updatedAt);
+              }
+            }catch{}
+          };
+          src.addEventListener('transfer.updated', onUpdate);
+          window.addEventListener('beforeunload', () => { try{ src.close(); }catch{} });
+        } catch {}
+      }
     })();
   </script>
 </body>

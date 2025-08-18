@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Webhook Receiver Simulator</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f5f6fa; color: #222; }
+    main { max-width: 720px; margin: 24px auto; background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+    .row { display: grid; grid-template-columns: 160px 1fr; gap: 10px; margin-bottom: 10px; }
+    input, button { padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; }
+    button.primary { background: #4c6ef5; color: #fff; border: none; }
+    .log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #0f172a; color: #e2e8f0; padding: 10px; border-radius: 8px; max-height: 280px; overflow: auto; }
+  </style>
+  <script>
+    async function sendWebhook(){
+      const ref = document.getElementById('ref').value.trim();
+      const status = document.getElementById('status').value.trim() || 'Completed';
+      if (!ref) return alert('Reference required');
+      // For demo: call our own API's webhook receiver with a pre-computed HMAC using the shared secret
+      const secret = document.getElementById('secret').value.trim() || 'change-me';
+      const payload = JSON.stringify({ event: 'transfer.updated', data: { reference: ref, status }, sentAt: new Date().toISOString() });
+      const sig = await window.crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']).then(k => window.crypto.subtle.sign('HMAC', k, new TextEncoder().encode(payload))).then(buf => Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''));
+      const res = await fetch('http://localhost:3001/api/webhooks/transfer-updated', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature': sig }, body: payload
+      });
+      document.getElementById('log').textContent = JSON.stringify(await res.json(), null, 2);
+    }
+  </script>
+</head>
+<body>
+  <main>
+    <h2>Webhook Receiver Simulator</h2>
+    <div class="row">
+      <label for="ref">Reference</label>
+      <input id="ref" placeholder="e.g., TXN12345678" />
+    </div>
+    <div class="row">
+      <label for="status">Status</label>
+      <input id="status" placeholder="Completed or Pending" />
+    </div>
+    <div class="row">
+      <label for="secret">Shared Secret</label>
+      <input id="secret" placeholder="WEBHOOK_SECRET (default change-me)" />
+    </div>
+    <button class="primary" onclick="sendWebhook()">Send Webhook</button>
+    <h3>Response</h3>
+    <pre id="log" class="log"></pre>
+  </main>
+</body>
+</html>

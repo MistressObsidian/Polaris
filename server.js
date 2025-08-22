@@ -270,6 +270,31 @@ app.get('/api/stream', (req, res) => {
   });
 });
 
+// Dynamic per-user dashboard route (generates a personalized dashboard HTML without creating a physical file per user)
+// Access pattern: /dashboard/<email>?token=API_TOKEN
+// NOTE: This is a convenience layer; real multi-tenant security should enforce auth (e.g., Bearer headers) and not trust path params.
+app.get('/dashboard/:email', (req, res) => {
+  const rawEmail = req.params.email || '';
+  // Basic sanitization (allow typical email characters only)
+  if (!/^[A-Za-z0-9._@+-]+$/.test(rawEmail)) return res.status(400).send('Invalid email');
+  const dashboardPath = path.join(__dirname, 'dashboard.html');
+  if (!fs.existsSync(dashboardPath)) return res.status(500).send('Dashboard template missing');
+  try {
+    let html = fs.readFileSync(dashboardPath, 'utf8');
+    // Inject a script before </head> setting a forced user email variable consumed by common.js
+    const injectTag = `<script>window.__FORCED_USER_EMAIL__ = ${JSON.stringify(rawEmail)};</script>`;
+    if (html.includes('</head>')) {
+      html = html.replace('</head>', `${injectTag}\n</head>`);
+    } else {
+      html = injectTag + html;
+    }
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (e) {
+    res.status(500).send('Error rendering dashboard');
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
 });

@@ -4,7 +4,15 @@
   const API_BASE = 'http://localhost:3001';
   const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/3g36t35kn6po0';
   function getApiToken(){ return localStorage.getItem('api_token') || ''; }
-  function getUser(){ try { return JSON.parse(sessionStorage.getItem('loggedInUser')||''); } catch { return null; } }
+  function getUser(){
+    let u = null;
+    try { u = JSON.parse(sessionStorage.getItem('loggedInUser')||''); } catch { u = null; }
+    // If no stored session but a forced user email was injected by dynamic dashboard route, synthesize a lightweight user object
+    if(!u && typeof window !== 'undefined' && window.__FORCED_USER_EMAIL__){
+      u = { email: window.__FORCED_USER_EMAIL__ };
+    }
+    return u;
+  }
 
   // --- Sheet helpers ---
   async function sheetSearch(params){

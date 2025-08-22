@@ -85,8 +85,9 @@
     function startSSE(){
       const token = getToken();
       const src = new EventSource(API('/api/stream') + `?token=${encodeURIComponent(token)}`, { withCredentials: false });
-      src.addEventListener('transfer.created', () => fetchTransfers());
-      src.addEventListener('transfer.updated', () => fetchTransfers());
+  const handler = (ev) => { try { const data = JSON.parse(ev.data||'{}'); if(window.Platform && Platform.applyTransferEvent) Platform.applyTransferEvent(data); } catch{}; fetchTransfers(); };
+  src.addEventListener('transfer.created', handler);
+  src.addEventListener('transfer.updated', handler);
       src.addEventListener('error', () => {/* no-op for demo */});
     }
     window.addEventListener('DOMContentLoaded', () => {

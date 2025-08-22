@@ -248,7 +248,7 @@
         // Subscribe to SSE for live changes
         try {
           const src = new EventSource(`http://localhost:3001/api/stream?token=${encodeURIComponent(token)}`);
-          const onUpdate = (ev) => {
+      const onUpdate = (ev) => {
             try{
               const data = JSON.parse(ev.data||'{}');
               if (data.reference === (tx.reference || ref)) {
@@ -257,6 +257,7 @@
                 document.getElementById('bannerText').textContent = (s.toLowerCase()==='pending') ? 'Processing' : 'Completed';
                 if (data.updatedAt) document.getElementById('dateTimeValue').textContent = nowISOToLocal(data.updatedAt);
               }
+        if(window.Platform && Platform.applyTransferEvent) Platform.applyTransferEvent(data);
             }catch{}
           };
           src.addEventListener('transfer.updated', onUpdate);

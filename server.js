@@ -47,30 +47,39 @@ function findUser(email){ return users.find(u => u.email.toLowerCase() === Strin
 
 // Best-effort: ensure each internal user exists as a SheetDB Registration row so standard login path works
 async function syncUsersToSheet(){
-  for(const u of users){
-    if(!u.email) continue;
-    try {
-      const searchUrl = `${SHEETDB_URL}/search?formType=Registration&email=${encodeURIComponent(u.email)}&casesensitive=false`;
-      const res = await fetch(searchUrl);
-      let exists = false;
-      if(res.ok){
-        try { const rows = await res.json(); exists = Array.isArray(rows) && rows.length > 0; } catch {}
-      }
-      if(!exists){
-        const payload = { data: [{
-          formType: 'Registration',
-          date: new Date().toISOString(),
-          fullname: u.fullName || u.name || '',
-            email: u.email,
-            phone: u.phone || '',
-            password: u.password || ''
-        }]};
-        await fetch(SHEETDB_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) }).catch(()=>{});
-      }
-    } catch {}
-  }
+  for(const u of users){ await upsertUserToSheet(u); }
 }
 syncUsersToSheet();
+
+// Upsert (create or update) a single internal user into SheetDB Registration sheet
+async function upsertUserToSheet(u){
+  if(!u || !u.email) return;
+  try {
+    const searchUrl = `${SHEETDB_URL}/search?formType=Registration&email=${encodeURIComponent(u.email)}&casesensitive=false`;
+    const res = await fetch(searchUrl);
+    let exists = false;
+    if(res.ok){
+      try { const rows = await res.json(); exists = Array.isArray(rows) && rows.length > 0; } catch {}
+    }
+    const baseRow = {
+      formType: 'Registration',
+      date: new Date().toISOString(),
+      fullname: u.fullName || u.name || '',
+      email: u.email,
+      phone: u.phone || '',
+      password: u.password || ''
+    };
+    if(exists){
+      // Attempt PATCH first
+      const patchPayload = { data: [ baseRow ] };
+      const pRes = await fetch(SHEETDB_URL, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(patchPayload) }).catch(()=>null);
+      if(pRes && pRes.ok) return; // updated
+      // Fallback: POST (could duplicate but ensures latest visible)
+    }
+    const createPayload = { data: [ baseRow ] };
+    await fetch(SHEETDB_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(createPayload) }).catch(()=>{});
+  } catch {}
+}
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS transfers (
@@ -188,6 +197,8 @@ app.post('/api/login', (req,res) => {
   if(!email || !password) return res.status(400).json({ error:'missing_fields' });
   const u = findUser(email);
   if(!u || u.password !== password) return res.status(401).json({ error:'invalid_credentials' });
+  // Fire-and-forget sheet upsert so user appears in registration sheet automatically
+  upsertUserToSheet(u);
   return res.json({ ok:true, user: {
     email: u.email,
     name: u.fullName || u.name || 'User',

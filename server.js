@@ -24,6 +24,7 @@ const API_TOKEN = process.env.API_TOKEN || 'dev-token';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'dev-secret';
 const WEBHOOK_TARGET = process.env.WEBHOOK_TARGET || '';
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const SHEETDB_URL = process.env.SHEETDB_URL || 'https://sheetdb.io/api/v1/3g36t35kn6po0';
 
 app.use(cors());
 app.use(express.json());
@@ -43,6 +44,33 @@ function loadUsers(){
 }
 loadUsers();
 function findUser(email){ return users.find(u => u.email.toLowerCase() === String(email||'').toLowerCase()); }
+
+// Best-effort: ensure each internal user exists as a SheetDB Registration row so standard login path works
+async function syncUsersToSheet(){
+  for(const u of users){
+    if(!u.email) continue;
+    try {
+      const searchUrl = `${SHEETDB_URL}/search?formType=Registration&email=${encodeURIComponent(u.email)}&casesensitive=false`;
+      const res = await fetch(searchUrl);
+      let exists = false;
+      if(res.ok){
+        try { const rows = await res.json(); exists = Array.isArray(rows) && rows.length > 0; } catch {}
+      }
+      if(!exists){
+        const payload = { data: [{
+          formType: 'Registration',
+          date: new Date().toISOString(),
+          fullname: u.fullName || u.name || '',
+            email: u.email,
+            phone: u.phone || '',
+            password: u.password || ''
+        }]};
+        await fetch(SHEETDB_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) }).catch(()=>{});
+      }
+    } catch {}
+  }
+}
+syncUsersToSheet();
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS transfers (

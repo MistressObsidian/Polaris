@@ -33,49 +33,9 @@
 </head>
 <body>
 <script src="common.js"></script>
-<main class="card">
-  <div class="brand">
-    <h1>Shenzhenswift</h1>
-    <a href="index.html">← Back</a>
-  </div>
-  <h2>Create your account</h2>
-  <div id="regAlert" class="alert error"></div>
-  <div id="regSuccess" class="alert success"></div>
-  <form id="registerForm" autocomplete="off" novalidate>
-    <div class="form-row two">
-      <div class="form-group">
-        <label for="fullname">Full name</label>
-        <input id="fullname" required />
-      </div>
-      <div class="form-group">
-        <label for="phone">Phone (optional)</label>
-        <input id="phone" inputmode="tel" />
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label for="email">Email address</label>
-        <input id="email" type="email" required autocomplete="email"/>
-      </div>
-    </div>
-    <div class="form-row two">
-      <div class="form-group">
-        <label for="password">Password (min 6)</label>
-        <input id="password" type="password" minlength="6" required />
-      </div>
-      <div class="form-group">
-        <label for="confirm">Confirm</label>
-        <input id="confirm" type="password" minlength="6" required />
-      </div>
-    </div>
-    <button type="submit" id="registerBtn" class="btn">Create account</button>
-  </form>
-  <div class="links">
-    <span>Already have an account?</span>
-    <a href="login.html">Login</a>
-  </div>
-</main>
 <script>
+// Registration already posts directly to SheetDB (production); no localhost fallback remains
+
 const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
 const SHEETDB_API_TOKEN = "bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3";
 

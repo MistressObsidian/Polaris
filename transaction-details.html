@@ -293,5 +293,22 @@
       }
     })();
   </script>
+  <script src="common.js"></script>
+  <script>
+  // ...existing code (fill, load) ...
+  try {
+    if (ref) {
+      // Production SSE stream; ensure server supports CORS + EventSource at this URL
+      const src = new EventSource(`${API_BASE}/api/stream?ref=${encodeURIComponent(ref)}`);
+      src.addEventListener('transfer.updated', ev => {
+        try {
+          const d = JSON.parse(ev.data || '{}');
+          if (d.reference === ref) fill(d);
+        } catch {}
+      });
+      window.addEventListener('beforeunload', () => { try { src.close(); } catch {} });
+    }
+  } catch {}
+  </script>
 </body>
 </html>

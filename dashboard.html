@@ -1,145 +1,299 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Dashboard • Shenzhenswift</title>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',Tahoma,Verdana,sans-serif;background:#f6f7fb;color:#222;min-height:100vh;padding:0 0 60px}
-  header{position:fixed;top:0;left:0;right:0;background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;z-index:1000}
-  header .inner{max-width:1150px;margin:0 auto;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
-  .logo{font-size:1.5rem;font-weight:800;background:linear-gradient(45deg,#fff,#e0e7ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .nav-links{list-style:none;display:flex;gap:1.5rem}
-  .nav-links a{color:#fff;text-decoration:none;font-weight:600;position:relative;transition:.3s}
-  .nav-links a:hover{color:#e0e7ff;transform:translateY(-2px)}
-  main{padding-top:96px;max-width:1150px;margin:0 auto;padding-left:20px;padding-right:20px}
-  h1{font-size:1.9rem;margin-bottom:4px}
-  .subtitle{color:#666;font-size:.9rem;margin-bottom:20px}
-  .kpis{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:22px}
-  .kpi{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;box-shadow:0 4px 14px rgba(0,0,0,.05)}
-  .kpi .value{font-size:1.15rem;font-weight:700;margin-bottom:4px}
-  .kpi .muted{color:#666;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-  .accounts,.recent{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:18px 18px 10px;margin-bottom:26px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
-  .section-title{font-size:1.15rem;font-weight:700;margin-bottom:12px;color:#1e3c72;display:flex;justify-content:space-between;align-items:center}
-  .account-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f3f5;font-size:.9rem}
-  .account-row:last-child{border-bottom:none}
-  .pill{display:inline-block;padding:4px 10px;font-size:.65rem;font-weight:800;border-radius:999px;background:#eef2ff;color:#667eea;margin-right:6px}
-  .tx{display:grid;grid-template-columns:1fr auto;gap:4px;padding:10px 0;border-bottom:1px solid #f1f3f5;font-size:.85rem}
-  .tx:last-child{border-bottom:none}
-  .tx .delta{font-weight:700}
-  .delta.pos{color:#047857}
-  .delta.neg{color:#b91c1c}
-  .actions a.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:10px;font-size:.85rem;font-weight:600;text-decoration:none;color:#fff;background:linear-gradient(45deg,#667eea,#764ba2);transition:.3s}
-  .actions a.btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(102,126,234,.32)}
-  .back-btn{position:fixed;top:110px;left:18px;background:#fff;border:1px solid #e5e7eb;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:#667eea;box-shadow:0 4px 14px rgba(0,0,0,.08);transition:.25s}
-  .back-btn:hover{transform:translateX(-2px)}
-  @media(max-width:720px){
-    .kpis{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
-    .tx{grid-template-columns:1fr 60px}
-    .back-btn{top:80px}
-  }
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard • Shenzhenswift</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --brand:#1e3c72; --brand2:#2a5298; --accent1:#667eea; --accent2:#764ba2;
+      --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666; --border:#e5e7eb;
+      --shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+    body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:var(--text);background:var(--bg);overflow-x:hidden}
+    .container{max-width:1200px;margin:0 auto;padding:0 20px}
+    header{background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%);color:#fff;padding:1rem 0;position:fixed;width:100%;top:0;z-index:1000;backdrop-filter:blur(10px)}
+    nav{display:flex;justify-content:space-between;align-items:center}
+    .logo{font-size:1.6rem;font-weight:800;background:linear-gradient(45deg,#fff,#e0e7ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.3px}
+    .nav-links{display:flex;list-style:none;gap:1.5rem}
+    .nav-links a{color:#fff;text-decoration:none;transition:.3s;font-weight:600;position:relative}
+    .nav-links a:hover{color:#e0e7ff;transform:translateY(-2px)}
+    .btn{padding:10px 18px;border-radius:12px;text-decoration:none;font-weight:700;transition:.3s;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:.95rem}
+    .btn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);transition:left .5s}
+    .btn:hover::before{left:100%}
+    .btn-primary{background:linear-gradient(45deg,var(--accent1),var(--accent2));color:#fff;box-shadow:0 6px 20px rgba(118,75,162,.25)}
+    .btn-action{background:linear-gradient(45deg,var(--accent1),var(--accent2));color:#fff;border:none;box-shadow:0 6px 18px rgba(102,126,234,.28);font-weight:800}
+    main{padding-top:96px}
+    .page-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 14px}
+    .page-title{font-size:1.6rem;font-weight:800;color:var(--brand);letter-spacing:.2px}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+    .toolbar .search{width:320px;max-width:60vw;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff}
+    .grid{display:grid;gap:18px}
+    @media (min-width:700px){.grid.cols-3{grid-template-columns:repeat(3,1fr)} .grid.cols-2{grid-template-columns:2fr 1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+    .card h3{margin-bottom:8px;color:var(--brand);font-size:1.05rem}
+    .kpi{display:flex;align-items:baseline;gap:10px}
+    .kpi .value{font-size:1.8rem;font-weight:800}
+    .kpi .muted{color:var(--muted);font-size:.9rem}
+    .accounts{display:grid;gap:10px}
+    .account-row{padding:12px;border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:space-between;background:#fff}
+    .account-row .left{display:flex;align-items:center;gap:12px}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;color:var(--accent1);background:#eef2ff}
+    .amount{font-weight:800}
+    .tx-list{display:grid;gap:10px}
+    .tx{display:grid;grid-template-columns:1fr auto;gap:6px 10px;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer}
+    .tx .name{font-weight:700}
+    .tx .meta{color:var(--muted);font-size:.9rem}
+    .tx .delta.pos{color:#047857;font-weight:800}
+    .tx .delta.neg{color:#b91c1c;font-weight:800}
+    .footer-space{height:24px}
+  </style>
 </head>
 <body>
-<script src="common.js"></script>
-<header>
-  <div class="inner">
-    <div class="logo">Shenzhenswift</div>
-    <ul class="nav-links">
-      <li><a href="index.html">Home</a></li>
-      <li><a href="transfer.html">Transfer</a></li>
-      <li><a href="#">Cards</a></li>
-      <li><a href="#">Support</a></li>
-    </ul>
-  </div>
-</header>
-<main>
-  <button class="back-btn" onclick="window.location.href='index.html'" title="Home">←</button>
-  <h1>Dashboard</h1>
-  <div id="userWelcome" class="subtitle"></div>
-
-  <section class="kpis" id="kpiSection"></section>
-
-  <section class="accounts" id="accountSection">
-    <div class="section-title">
-      <span>Accounts</span>
+  <script src="common.js"></script>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">Shenzhenswift</div>
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="transfer.html">Transfer</a></li>
+          <li><a href="#">Cards</a></li>
+          <li><a href="#">Support</a></li>
+        </ul>
+      </nav>
     </div>
-    <div id="accountsBody"></div>
-  </section>
+  </header>
 
-  <section class="recent" id="recentSection">
-    <div class="section-title">
-      <span>Recent Transfers</span>
-      <div class="actions">
-        <a class="btn" href="transfer.html">New transfer</a>
+  <main>
+    <div class="container">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div id="userNameLine" class="subtitle" style="margin-top:4px;"></div>
+          <div style="color:var(--muted); margin-top:4px;">Overview of your accounts and recent activity</div>
+        </div>
+        <div class="toolbar">
+          <input class="search" placeholder="Search transactions, accounts…">
+          <a class="btn btn-primary" href="transfer.html">New transfer</a>
+        </div>
       </div>
+
+      <section class="grid cols-3" style="margin: 10px 0 8px;" id="kpiSection"></section>
+
+      <section class="grid cols-2" style="margin-top: 8px;" id="accountSection"></section>
+
+      <div class="footer-space"></div>
     </div>
-    <div id="txList"></div>
-  </section>
-</main>
-<script>
-function currency(n){try{return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'})}catch{return `$${n}`}}
-let BASE_AVAILABLE = 0;
-let TOTAL_BALANCE = 0;
-async function loadBalances(user){
-  try{
-    const url=`${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(user.email)}&casesensitive=false`;
-    const res=await fetch(url,{headers:{Authorization:`Bearer ${SHEETDB_API_TOKEN}`}});
-    if(res.ok){
-      const rows=await res.json();
-      if(Array.isArray(rows)&&rows.length){
-        const r=rows[0];
-        if(r.baseAvailable) BASE_AVAILABLE=Number(r.baseAvailable);
-        if(r.totalBalance) TOTAL_BALANCE=Number(r.totalBalance);
+  </main>
+
+  <script>
+  let BASE_AVAILABLE = 221540.20; // default base Available KPI before deductions
+  let TOTAL_BALANCE = 256780.00; // default total balance
+
+    // Gate: only logged-in, authenticated users (set by login/register after SheetDB confirm)
+    const session = sessionStorage.getItem('loggedInUser');
+    let user = null;
+    try {
+      user = JSON.parse(session || '{}');
+      if (!user || user.isAuthenticated !== true) {
+        window.location.href = 'index.html';
       }
+    } catch {
+      window.location.href = 'index.html';
     }
-  }catch{}
-}
-function renderKPIs(){
-  const spent = getTransfers().filter(t=>String(t.status||'').toLowerCase()==='completed').reduce((s,t)=>s+(Number(t.amount)||0),0);
-  const available = Math.max(0, BASE_AVAILABLE - spent);
-  const el=document.getElementById('kpiSection');
-  el.innerHTML = `
-    <div class="kpi"><div class="value">${currency(TOTAL_BALANCE)}</div><div class="muted">Total Balance</div></div>
-    <div class="kpi"><div class="value">${currency(BASE_AVAILABLE)}</div><div class="muted">Base</div></div>
-    <div class="kpi"><div class="value">${currency(spent)}</div><div class="muted">Spent</div></div>
-    <div class="kpi"><div class="value">${currency(available)}</div><div class="muted">Available</div></div>`;
-}
-function getTransfers(){
-  try{const arr=JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');return Array.isArray(arr)?arr:[];}catch{return [];}
-}
-function renderAccounts(){
-  const html = `
-    <div class="account-row"><div><span class="pill">Checking</span>Everyday Checking</div><div>${currency(TOTAL_BALANCE)}</div></div>
-    <div class="account-row"><div><span class="pill" style="background:#d1fae5;color:#047857;">Reserve</span>Savings Reserve</div><div>${currency(BASE_AVAILABLE)}</div></div>
-  `;
-  document.getElementById('accountsBody').innerHTML=html;
-}
-function renderTransfers(){
-  const txs = getTransfers().slice().sort((a,b)=> (b.dateISO||'').localeCompare(a.dateISO||''));
-  document.getElementById('txList').innerHTML = txs.length ? txs.map(t=>{
-    const amt = Number(t.amount)||0;
-    const delta = (amt>=0?'+':'')+currency(amt);
-    const cls = amt>=0?'delta pos':'delta neg';
-    return `<div class="tx" data-ref="${t.reference}">
-      <div><strong>${t.reference}</strong><br><span style="color:#666;font-size:.7rem">${t.status||'Pending'}</span></div>
-      <div class="${cls}">${delta}</div>
-    </div>`;
-  }).join('') : `<div style="text-align:center;color:#666;padding:16px 0">No transfers yet.</div>`;
-}
-(function init(){
-  const uJSON=sessionStorage.getItem('loggedInUser');
-  let user=null;
-  try{user=JSON.parse(uJSON||'');}catch{}
-  if(!user||user.isAuthenticated!==true){window.location.href='login.html';return;}
-  document.getElementById('userWelcome').textContent=`Welcome, ${(user.name||user.fullname||user.email.split('@')[0])}`;
-  loadBalances(user).then(()=>{renderKPIs();});
-  renderAccounts();
-  renderTransfers();
-  // periodic refresh to recompute available
-  setInterval(()=>{renderKPIs();renderTransfers();},15000);
-})();
-</script>
+
+    function currency(n){ try{ return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) }catch{ return `$${n}` } }
+    async function loadTransfers(){
+      if(window.Platform && Platform.fetchTransfersUnified){
+        return Platform.fetchTransfersUnified({ email: (user && user.email)||'' });
+      }
+      // fallback to session only
+      try { const arr = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]'); return Array.isArray(arr)?arr:[]; } catch { return []; }
+    }
+
+  async function loadUserBalances(){
+    try {
+      if(!user || !user.email) return;
+      const res = await fetch(`http://localhost:3001/api/users/${encodeURIComponent(user.email)}`);
+      if(!res.ok) return;
+      const data = await res.json();
+      if(data.baseAvailable) BASE_AVAILABLE = Number(data.baseAvailable);
+      if(data.totalBalance) TOTAL_BALANCE = Number(data.totalBalance);
+    } catch {}
+  }
+
+  window.addEventListener('DOMContentLoaded', async () => {
+      // Welcome line
+      const nameEl = document.getElementById('userNameLine');
+      if (nameEl) {
+        const displayName = (user && (user.name || user.fullname)) || (user && user.email ? user.email.split('@')[0] : 'User');
+        nameEl.textContent = `Welcome, ${displayName}`;
+      }
+
+      await loadUserBalances();
+      
+  let txs = await loadTransfers();
+      // Merge any locally initiated (session) that might not yet be in API/Sheet
+      try {
+        const local = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');
+        if(Array.isArray(local)){
+          const existingRefs = new Set(txs.map(t=>t.reference));
+          for(const l of local){ if(l && l.reference && !existingRefs.has(l.reference)) txs.unshift(l); }
+        }
+      } catch {}
+
+      // Available balance = base - sum of COMPLETED transfer amounts
+  const spent = txs.filter(t => String(t.status||'').toLowerCase()==='completed').reduce((s,t)=> s + (Number(t.amount)||0),0);
+      const availableNow = Math.max(0, BASE_AVAILABLE - spent);
+
+      // KPIs
+      const kpiSection = document.getElementById('kpiSection');
+      kpiSection.innerHTML = `
+        <div class="card">
+          <h3>Total balance</h3>
+          <div class="kpi"><div class="value">${currency(TOTAL_BALANCE)}</div><div class="muted">All accounts</div></div>
+        </div>
+        <div class="card">
+          <h3>Available</h3>
+          <div class="kpi"><div class="value">${currency(availableNow)}</div><div class="muted">After holds</div></div>
+        </div>
+        <div class="card">
+          <h3>Month-to-date</h3>
+          <div class="kpi"><div class="value">+$4,920.11</div><div class="muted">Net cash flow</div></div>
+        </div>
+      `;
+
+      // Recent transactions (only from transfer page)
+  const txListHtml = txs.length
+        ? txs.map(t => {
+            const date = t.date ? t.date : (t.dateISO ? new Date(t.dateISO).toLocaleDateString() : new Date().toLocaleDateString());
+            const delta = t.delta || (t.amount ? '- ' + currency(t.amount) : '');
+            const signClass = delta.trim().startsWith('+') ? 'pos' : 'neg';
+            const name = t.name || t.type || 'Transfer';
+            const meta = [
+              date,
+              t.network || 'Transfer',
+              t.from ? t.from : null,
+              t.to ? `→ ${t.to}` : null,
+              t.status ? t.status : null
+            ].filter(Boolean).join(' • ');
+            const ref = encodeURIComponent(t.reference || t.ref || t.id || '');
+            return `
+              <div class="tx" data-ref="${ref}">
+                <div class="name">${name}</div>
+                <div class="delta ${signClass}">${delta}</div>
+                <div class="meta">${meta}</div>
+              </div>
+            `;
+          }).join('')
+        : `<div style="color:var(--muted);text-align:center;padding:24px 0;">No recent transactions yet.</div>`;
+
+      // Accounts + Recent transactions
+      const accountSection = document.getElementById('accountSection');
+      accountSection.innerHTML = `
+        <div class="card">
+          <h3>Your accounts</h3>
+          <div class="accounts" style="margin-top:10px;">
+            <div class="account-row">
+              <div class="left">
+                <span class="pill">Checking</span>
+                <div>
+                  <div style="font-weight:800;">Everyday Checking</div>
+                  <div class="muted" style="font-size:.9rem;">••• 3482</div>
+                </div>
+              </div>
+              <div class="amount">$24,380.22</div>
+            </div>
+            <div class="account-row">
+              <div class="left">
+                <span class="pill">Savings</span>
+                <div>
+                  <div style="font-weight:800;">High-Yield Savings</div>
+                  <div class="muted" style="font-size:.9rem;">••• 9015</div>
+                </div>
+              </div>
+              <div class="amount">$198,440.98</div>
+            </div>
+            <div class="account-row">
+              <div class="left">
+                <span class="pill">Brokerage</span>
+                <div>
+                  <div style="font-weight:800;">Invest Portfolio</div>
+                  <div class="muted" style="font-size:.9rem;">••• 1170</div>
+                </div>
+              </div>
+              <div class="amount">$33,958.80</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+            <a class="btn btn-primary" href="transfer.html">Transfer money</a>
+            <button class="btn btn-action" type="button">Deposit funds</button>
+            <button class="btn btn-action" type="button">Statements</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Recent transactions</h3>
+          <div class="tx-list" style="margin-top:10px;" id="txList">${txListHtml}</div>
+          <div style="margin-top:12px;">
+            <a class="btn btn-primary" id="viewDetailsBtn" href="transaction-details.html">View details</a>
+          </div>
+        </div>
+      `;
+
+      // Click a transaction row to open its details
+      const listEl = document.getElementById('txList');
+      if (listEl) {
+        listEl.addEventListener('click', (e) => {
+          const row = e.target.closest('.tx');
+          if (!row) return;
+          const ref = row.getAttribute('data-ref');
+          if (ref) {
+            window.location.href = `transaction-details.html?ref=${ref}`;
+          }
+        });
+      }
+
+      // “View details” opens most recent tx if present
+      const btn = document.getElementById('viewDetailsBtn');
+      if (btn && txs.length > 0) {
+        const latestRef = encodeURIComponent(txs[0].reference || txs[0].ref || txs[0].id || '');
+        btn.href = latestRef ? `transaction-details.html?ref=${latestRef}` : 'transaction-details.html';
+      }
+
+      // Real-time updates via SSE -> re-render recent transactions & KPIs
+      const token = localStorage.getItem('api_token')||'';
+      if(token){
+        try {
+          const src = new EventSource(`http://localhost:3001/api/stream?token=${encodeURIComponent(token)}`);
+          const rebuilder = async () => {
+            let fresh = await loadTransfers();
+            try{ const local2 = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]'); if(Array.isArray(local2)){ const existingRefs = new Set(fresh.map(t=>t.reference)); for(const l of local2){ if(l && l.reference && !existingRefs.has(l.reference)) fresh.unshift(l); } } }catch{}
+            txs = fresh;
+            // Recompute spent & available
+            const spent2 = txs.filter(t => String(t.status||'').toLowerCase()==='completed').reduce((s,t)=> s + (Number(t.amount)||0),0);
+            const availableNow2 = Math.max(0, BASE_AVAILABLE - spent2);
+            document.getElementById('kpiSection').children[1].querySelector('.value').textContent = currency(availableNow2);
+            // Update tx-list only (simple approach)
+            const listEl2 = document.getElementById('txList');
+            if(listEl2){
+              listEl2.innerHTML = txs.length ? txs.slice(0, listEl2.children.length || 50).map(t => {
+                const date = t.date ? t.date : (t.dateISO ? new Date(t.dateISO).toLocaleDateString() : new Date().toLocaleDateString());
+                const delta = t.delta || (t.amount ? '- ' + currency(t.amount) : '');
+                const signClass = delta.trim().startsWith('+') ? 'pos' : 'neg';
+                const name = t.name || t.type || 'Transfer';
+                const meta = [date, t.network || 'Transfer', t.from ? t.from : null, t.to ? `→ ${t.to}` : null, t.status ? t.status : null].filter(Boolean).join(' • ');
+                const ref = encodeURIComponent(t.reference || t.ref || t.id || '');
+                return `<div class="tx" data-ref="${ref}"><div class="name">${name}</div><div class="delta ${signClass}">${delta}</div><div class="meta">${meta}</div></div>`;
+              }).join('') : `<div style="color:var(--muted);text-align:center;padding:24px 0;">No recent transactions yet.</div>`;
+            }
+          };
+          src.addEventListener('transfer.created', rebuilder);
+          src.addEventListener('transfer.updated', rebuilder);
+        } catch {}
+      }
+    });
+  </script>
 </body>
 </html>

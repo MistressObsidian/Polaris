@@ -472,58 +472,58 @@
         <div class="loading-spinner"></div>
     </div>
     <script>
-        const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
-        const SHEETDB_API_TOKEN = "bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3";
+// Remove page-level redefinitions; rely on common.js
+if(!sessionStorage.getItem('loggedInUser')){ window.location.href='login.html'; }
+let USER_BASE_AVAILABLE=null;
+async function loadUserFinancials(){
+  const user = JSON.parse(sessionStorage.getItem('loggedInUser')||'null');
+  if(!user) return;
+  try{
+    const res = await fetch(`http://localhost:3001/api/users/${encodeURIComponent(user.email)}`);
+    if(res.ok){
+      const data=await res.json();
+      USER_BASE_AVAILABLE=Number(data.baseAvailable||0);
+    }
+  }catch{}
+  recalcAvailable();
+}
+function recalcAvailable(){
+  if(USER_BASE_AVAILABLE==null) return;
+  try{
+    const list=JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');
+    const spent=list.filter(t=>String(t.status||'').toLowerCase()==='completed')
+      .reduce((s,t)=>s+(Number(t.amount)||0),0);
+    const avail=Math.max(0,USER_BASE_AVAILABLE - spent);
+    const el=document.getElementById('availableBalanceLine');
+    if(el) el.textContent=`Available: ${avail.toLocaleString(undefined,{style:'currency',currency:'USD'})}`;
+  }catch{}
+}
 
-        let activeForm = null;
-        let USER_BASE_AVAILABLE = null;
-        const userSession = (function(){ try { return JSON.parse(sessionStorage.getItem('loggedInUser')||''); } catch { return null; } })();
-        if(!userSession || userSession.isAuthenticated !== true){ window.location.href = 'login.html'; }
+// + helper for currency
+function currency(n){ try{ return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) }catch{ return `$${n}` } }
 
-        async function loadUserFinancials(){
-            if(!userSession || !userSession.email) return;
-            try {
-                const res = await fetch(`http://localhost:3001/api/users/${encodeURIComponent(userSession.email)}`);
-                if(res.ok){ const data = await res.json(); USER_BASE_AVAILABLE = Number(data.baseAvailable||0); }
-            }catch{}
-            recalcAvailable();
-        }
-        function recalcAvailable(){
-            if(USER_BASE_AVAILABLE == null) return;
-            try {
-                const list = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');
-                const spent = list.filter(t => t && t.status && String(t.status).toLowerCase()==='completed').reduce((s,t)=> s + (Number(t.amount)||0),0);
-                const avail = Math.max(0, USER_BASE_AVAILABLE - spent);
-                const el = document.getElementById('availableBalanceLine');
-                if(el) el.textContent = `Available: ${currency(avail)}`;
-            }catch{}
-        }
-
-        // + helper for currency
-        function currency(n){ try{ return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) }catch{ return `$${n}` } }
-
-        function toggleForm(formId) {
-            const form = document.getElementById(formId);
-            const btn = document.getElementById(formId.replace('Form', 'Btn'));
-            if (activeForm && activeForm !== form) {
-                activeForm.style.display = "none";
-                const activeBtn = document.querySelector('.transfer-method-btn.active');
-                if (activeBtn) activeBtn.classList.remove('active');
-            }
-            if (form.style.display === "none" || form.style.display === "") {
-                form.style.display = "block";
-                btn.classList.add('active');
-                activeForm = form;
-                setTimeout(() => {
-                    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }, 100);
-            } else {
-                form.style.display = "none";
-                btn.classList.remove('active');
-                activeForm = null;
-            }
-        }
-    function submitTransfer(formId) {
+function toggleForm(formId) {
+    const form = document.getElementById(formId);
+    const btn = document.getElementById(formId.replace('Form', 'Btn'));
+    if (activeForm && activeForm !== form) {
+        activeForm.style.display = "none";
+        const activeBtn = document.querySelector('.transfer-method-btn.active');
+        if (activeBtn) activeBtn.classList.remove('active');
+    }
+    if (form.style.display === "none" || form.style.display === "") {
+        form.style.display = "block";
+        btn.classList.add('active');
+        activeForm = form;
+        setTimeout(() => {
+            form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+    } else {
+        form.style.display = "none";
+        btn.classList.remove('active');
+        activeForm = null;
+    }
+}
+function submitTransfer(formId) {
             const form = document.getElementById(formId);
             const submitBtn = form.querySelector('.submit-btn');
             const messageElement = form.querySelector('.message');

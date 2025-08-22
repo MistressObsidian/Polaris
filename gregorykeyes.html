@@ -52,6 +52,27 @@
 </head>
 <body>
   <script src="common.js"></script>
+  <script>
+// Ensure SheetDB constants originate from common.js only
+(async function(){
+  const session = sessionStorage.getItem('loggedInUser');
+  let user=null; try{user=JSON.parse(session||'');}catch{}
+  if(!user||user.isAuthenticated!==true){window.location.href='login.html';return;}
+  // balances
+  try{
+    const res=await fetch(`${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(user.email)}&casesensitive=false`,
+      {headers:{Authorization:`Bearer ${SHEETDB_API_TOKEN}`}});
+    if(res.ok){
+      const rows=await res.json();
+      if(Array.isArray(rows)&&rows.length){
+        if(rows[0].baseAvailable) BASE_AVAILABLE=Number(rows[0].baseAvailable);
+        if(rows[0].totalBalance) TOTAL_BALANCE=Number(rows[0].totalBalance);
+      }
+    }
+  }catch{}
+  // rebuild UI (existing code continues)...
+})();
+</script>
   <header>
     <div class="container">
       <nav>

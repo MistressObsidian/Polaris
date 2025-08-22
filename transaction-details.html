@@ -1,65 +1,97 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Transaction Details • Shenzhenswift</title>
+// Shared platform utilities: user session, transfers sync (API + SheetDB fallback)
+// Assumptions: API server at localhost:3001, SheetDB base URL constant reused across pages.
+(function (global) {
+  const API_BASE = 'https://www.shenzhenswift.online'; // production only
+  const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/3g36t35kn6po0';.0"/>
+  const SHEETDB_API_TOKEN = 'bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3';
   <style>
-    /* Base theme aligned with other pages (index/login/register/transfer) */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root{ --brand:#1e3c72; --brand2:#2a5298; --accent1:#667eea; --accent2:#764ba2;
+  global.API_BASE = API_BASE; theme aligned with other pages (index/login/register/transfer) */
+  global.SHEETDB_API_URL = SHEETDB_API_URL;border-box; }
+  global.SHEETDB_API_TOKEN = SHEETDB_API_TOKEN;-accent1:#667eea; --accent2:#764ba2;
            --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666; --border:#e5e7eb;
-           --ok:#047857; --err:#b91c1c; --warn:#b45309; --shadow: 0 10px 30px rgba(0,0,0,.08); }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--text); background: var(--bg); overflow-x: hidden; }
-    .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+  function sheetAuthHeaders(extra = {}) {-warn:#b45309; --shadow: 0 10px 30px rgba(0,0,0,.08); }
+    return Object.assign({ 'Authorization': `Bearer ${SHEETDB_API_TOKEN}` }, extra);--text); background: var(--bg); overflow-x: hidden; }
+  } .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
     header { background: linear-gradient(135deg, var(--brand) 0%, var(--brand2) 100%); color: white; padding: 1rem 0; position: fixed; width: 100%; top: 0; z-index: 1000; backdrop-filter: blur(10px); }
-    nav { display: flex; justify-content: space-between; align-items: center; }
-    .logo { font-size: 1.6rem; font-weight: 800; background: linear-gradient(45deg, #fff, #e0e7ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: .3px; }
-    .nav-links { display: flex; list-style: none; gap: 1.5rem; }
-    .nav-links a { color: white; text-decoration: none; transition: all .3s ease; position: relative; font-weight: 600; }
-    .nav-links a:hover { color: #e0e7ff; transform: translateY(-2px); }
-    .nav-links a::after { content: ''; position: absolute; width: 0; height: 2px; bottom: -5px; left: 0; background: #e0e7ff; transition: width .3s ease; }
-    .nav-links a:hover::after { width: 100%; }
+  async function sheetSearch(params) {nt: space-between; align-items: center; }
+    const qs = new URLSearchParams(params).toString();round: linear-gradient(45deg, #fff, #e0e7ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: .3px; }
+    const url = `${SHEETDB_API_URL}/search?${qs}&casesensitive=false`;
+    const res = await fetch(url, { headers: sheetAuthHeaders() });: all .3s ease; position: relative; font-weight: 600; }
+    if (!res.ok) return [];lor: #e0e7ff; transform: translateY(-2px); }
+    return res.json();r { content: ''; position: absolute; width: 0; height: 2px; bottom: -5px; left: 0; background: #e0e7ff; transition: width .3s ease; }
+  } .nav-links a:hover::after { width: 100%; }
     .auth-buttons { display: flex; gap: .75rem; }
-
-    .btn { padding: 10px 18px; border-radius: 12px; text-decoration: none; font-weight: 700; transition: all .3s ease; border: 2px solid transparent; cursor: pointer; position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-size: .95rem; }
-    .btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); transition: left .5s ease; }
-    .btn:hover::before { left: 100%; }
-    .btn-primary { background: linear-gradient(45deg, var(--accent1) 0%, var(--accent2) 100%); color: #fff; box-shadow: 0 6px 20px rgba(118, 75, 162, .25); }
-    .btn-outline { background: #fff; color: var(--accent2); border-color: #d9ddff; }
-    .btn-outline:hover { color: #fff; border-color: transparent; background: linear-gradient(45deg, var(--accent1), var(--accent2)); box-shadow: 0 6px 20px rgba(118, 75, 162, .22); }
-
-    /* Page structure */
-    main { padding-top: 96px; }
-    .page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 14px; }
+  async function sheetInsert(rows) {
+    if (!Array.isArray(rows) || !rows.length) return false;coration: none; font-weight: 700; transition: all .3s ease; border: 2px solid transparent; cursor: pointer; position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-size: .95rem; }
+    try {:before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); transition: left .5s ease; }
+      const res = await fetch(SHEETDB_API_URL, {
+        method: 'POST',ground: linear-gradient(45deg, var(--accent1) 0%, var(--accent2) 100%); color: #fff; box-shadow: 0 6px 20px rgba(118, 75, 162, .25); }
+        headers: sheetAuthHeaders({ 'Content-Type': 'application/json' }),#d9ddff; }
+        body: JSON.stringify({ data: rows })-color: transparent; background: linear-gradient(45deg, var(--accent1), var(--accent2)); box-shadow: 0 6px 20px rgba(118, 75, 162, .22); }
+      });
+      return res.ok;e */
+    } catch { return false; } }
+  } .page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 14px; }
     .page-title { font-size: 1.6rem; font-weight: 800; color: var(--brand); letter-spacing: .2px; }
-    .subtitle { color: var(--muted); }
-
-    /* Card and content */
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
-    .confirm { display: grid; gap: 16px; }
-    .success-banner { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid #bbf7d0; background: #ecfdf5; color: var(--ok); border-radius: 12px; font-weight: 700; }
-    .success-icon { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #10b981; color: white; font-weight: 900; box-shadow: 0 6px 18px rgba(16,185,129,.3); }
-
-    .amount-line { display: flex; align-items: baseline; gap: 10px; }
-    .amount-line .value { font-size: 2rem; font-weight: 900; }
-    .amount-line .muted { color: var(--muted); }
-
+  async function sheetPatch(reference, fields) {
+    try {
+      const payload = { data: [{ reference, ...fields }] };
+      const res = await fetch(SHEETDB_API_URL, { solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
+        method: 'PATCH',grid; gap: 16px; }
+        headers: sheetAuthHeaders({ 'Content-Type': 'application/json' }),ng: 14px; border: 1px solid #bbf7d0; background: #ecfdf5; color: var(--ok); border-radius: 12px; font-weight: 700; }
+        body: JSON.stringify(payload)ht: 28px; border-radius: 50%; display: grid; place-items: center; background: #10b981; color: white; font-weight: 900; box-shadow: 0 6px 18px rgba(16,185,129,.3); }
+      });
+      if (res.ok) return true;ex; align-items: baseline; gap: 10px; }
+    } catch {}ne .value { font-size: 2rem; font-weight: 900; }
+    return sheetInsert([{ formType: 'Transfer', reference, ...fields }]);
+  }
     .details-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
-    @media (min-width: 720px) { .details-grid { grid-template-columns: 1fr 1fr; } }
-    .detail { padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
-    .detail .label { color: var(--muted); font-size: .85rem; margin-bottom: 6px; font-weight: 800; }
+  function getUser() { 720px) { .details-grid { grid-template-columns: 1fr 1fr; } }
+    try { return JSON.parse(sessionStorage.getItem('loggedInUser') || ''); } catch { return null; }; }
+  } .detail .label { color: var(--muted); font-size: .85rem; margin-bottom: 6px; font-weight: 800; }
     .detail .value { font-weight: 800; }
-
-    .status-pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: .8rem; color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0; }
-
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
-    .note { color: var(--muted); font-size: .9rem; margin-top: 6px; }
-    @media print { header, .actions { display: none !important; } main { padding-top: 0; } .card { box-shadow: none; } }
-  </style>
-</head>
-<body>
-  <script src="common.js"></script>
+  function shapeRow(t) {
+    return {pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: .8rem; color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0; }
+      formType: 'Transfer',
+      reference: t.reference, gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+      email: t.email || (getUser() && getUser().email) || '',: 6px; }
+      amount: t.amount,er, .actions { display: none !important; } main { padding-top: 0; } .card { box-shadow: none; } }
+      from: t.from || t.from_account || '',
+      to: t.to || t.to_account || '',
+      status: t.status || 'Pending',
+      dateISO: t.dateISO || new Date().toISOString(),
+      network: t.type || t.network || 'Transfer'
+    }; shared constants; remove duplicates
+  }nction(){
+  const params=new URLSearchParams(location.search);
+  async function recordTransferToSheet(t) {
+    try {){return;}
+      if (!t || !t.reference) return;pi_token')||'';
+      const existing = await sheetSearch({ formType: 'Transfer', reference: t.reference });
+      if (Array.isArray(existing) && existing.length) {
+        const row = existing[0];ntById('statusPill');
+        if (row.status !== t.status) await sheetPatch(t.reference, { status: t.status });
+        return;
+  if(window.Platform && Platform.sheetSearch){
+    Platform.sheetSearch({formType:'Transfer', reference:ref}).then(rows=>{
+      if(Array.isArray(rows)&&rows.length) fill(rows[0]);
+    });
+  }
+  try{
+    if(ref){
+      // If you still have an SSE stream in production:
+      const src=new EventSource(`${API_BASE}/api/stream?ref=${encodeURIComponent(ref)}`);
+      src.addEventListener('transfer.updated', ev=>{
+        try{
+          const d=JSON.parse(ev.data||'{}');
+          if(d.reference===ref) fill(d);
+        }catch{}
+      });
+      window.addEventListener('beforeunload',()=>{try{src.close();}catch{}});
+    }
+  }catch{}
+})();
+</script>
   <!-- Fixed header -->
   <header>
     <div class="container">
@@ -198,12 +230,7 @@
         try{
           const d = iso ? new Date(iso) : new Date();
           return `${d.toLocaleDateString()} • ${d.toLocaleTimeString()}`;
-        }catch{ return '—'; }
-      }
-
-  // Populate UI from local data first
-      const status = tx.status || 'Pending';
-      document.getElementById('bannerText').textContent = (status.toLowerCase()==='pending') ? 'Processing' : 'Completed';
+       
       document.getElementById('amountValue').textContent = fmtAmount(tx.amount, tx.delta);
       const fromText = tx.from || tx.fromAccount || '—';
       const toText = tx.to || tx.toAccount || '—';

@@ -60,6 +60,22 @@
 </head>).catch(()=>{});
 <body>fetchTransfers();
   <script src="common.js"></script>
+<script>
+async function fetchTransfers(){
+  const email=document.getElementById('email').value.trim();
+  const ref=document.getElementById('ref').value.trim();
+  let params = { formType:'Transfer' };
+  if(email) params.email=email;
+  if(ref) params.reference=ref;
+  const rows = await Platform.sheetSearch(params);
+  // render (simplified)
+  const el=document.getElementById('txContainer');
+  if(!el) return;
+  el.querySelector('#statusPill')?.textContent = rows[0]?.status || '—';
+}
+document.getElementById('refresh').addEventListener('click', fetchTransfers);
+fetchTransfers();
+</script>
   <!-- Fixed header -->{
   <header>SE removed (not supported); optional: periodic refresh
     <div class="container">sfers, 15000);

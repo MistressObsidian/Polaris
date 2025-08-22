@@ -24,6 +24,7 @@ const API_TOKEN = process.env.API_TOKEN || 'dev-token';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'dev-secret';
 const WEBHOOK_TARGET = process.env.WEBHOOK_TARGET || '';
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
+// Ensure single definition of SheetDB env fallbacks (already correct)
 const SHEETDB_URL = process.env.SHEETDB_URL || 'https://sheetdb.io/api/v1/3g36t35kn6po0';
 const SHEETDB_TOKEN = process.env.SHEETDB_TOKEN || 'bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3';
 

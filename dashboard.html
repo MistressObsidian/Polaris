@@ -1,282 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transfer Money - Shenzhenswift</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;4ba2;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);5e7eb;
-            min-height: 100vh;a(0,0,0,.08);
-            display: flex;
-            align-items: center;Tahoma,Geneva,Verdana,sans-serif;color:var(--text);background:var(--bg);overflow-x:hidden}
-            justify-content: center;in:0 auto;padding:0 20px}
-            padding: 20px;ar-gradient(135deg,var(--brand) 0%,var(--brand2) 100%);color:#fff;padding:1rem 0;position:fixed;width:100%;top:0;z-index:1000;backdrop-filter:blur(10px)}
-        }isplay:flex;justify-content:space-between;align-items:center}
-        .container {1.6rem;font-weight:800;background:linear-gradient(45deg,#fff,#e0e7ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.3px}
-            background: white;st-style:none;gap:1.5rem}
-            padding: 30px;f;text-decoration:none;transition:.3s;font-weight:600;position:relative}
-            border-radius: 15px;e7ff;transform:translateY(-2px)}
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);ration:none;font-weight:700;transition:.3s;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:.95rem}
-            width: 100%;:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);transition:left .5s}
-            max-width: 500px;00%}
-            position: relative;ear-gradient(45deg,var(--accent1),var(--accent2));color:#fff;box-shadow:0 6px 20px rgba(118,75,162,.25)}
-            animation: slideIn 0.5s ease;t(45deg,var(--accent1),var(--accent2));color:#fff;border:none;box-shadow:0 6px 18px rgba(102,126,234,.28);font-weight:800}
-        }padding-top:96px}
-        @keyframes slideIn {x;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 14px}
-            from { opacity: 0; transform: translateY(-30px);}brand);letter-spacing:.2px}
-            to { opacity: 1; transform: translateY(0);}
-        }bar .search{width:320px;max-width:60vw;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff}
-        .header { text-align: center; margin-bottom: 30px; }
-        .logo {-width:700px){.grid.cols-3{grid-template-columns:repeat(3,1fr)} .grid.cols-2{grid-template-columns:2fr 1fr}}
-            font-size: 1.8rem;d);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
-            font-weight: bold;;color:var(--brand);font-size:1.05rem}
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            -webkit-background-clip: text;ht:800}
-            -webkit-text-fill-color: transparent;m}
-            background-clip: text;x}
-            margin-bottom: 10px;rder:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:space-between;background:#fff}
-        }unt-row .left{display:flex;align-items:center;gap:12px}
-        h2 { color: #333; margin-bottom: 5px; font-size: 1.8rem; }x;font-size:12px;font-weight:700;color:var(--accent1);background:#eef2ff}
-        .subtitle { color: #666; font-size: 0.9rem; }
-        .transfer-method-btn {10px}
-            padding: 15px 20px;ate-columns:1fr auto;gap:6px 10px;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer}
-            margin: 8px 0;700}
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;#047857;font-weight:800}
-            border: none;#b91c1c;font-weight:800}
-            cursor: pointer;x}
-            border-radius: 10px;
-            font-size: 16px;
-            width: 100%;
-            text-align: left;cript>
-            display: flex;
-            align-items: center;
-            transition: all 0.3s ease;
-            position: relative;henswift</div>
-            overflow: hidden;>
-        } <li><a href="index.html">Home</a></li>
-        .transfer-method-btn::before {Transfer</a></li>
-            content: '';">Cards</a></li>
-            position: absolute;rt</a></li>
-            top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
-        }r>
-        .transfer-method-btn:hover::before { left: 100%; }
-        .transfer-method-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }div>
-        .transfer-method-btn:active { transform: translateY(0);}
-        .method-icon { font-size: 20px; margin-right: 12px; width: 30px; text-align: center;}
-        .method-text { flex: 1; }-muted); margin-top:4px;">Overview of your accounts and recent activity</div>
-        .method-arrow { font-size: 12px; transition: transform 0.3s ease;}
-        .transfer-method-btn.active .method-arrow { transform: rotate(90deg);}
-        .transfer-form {search" placeholder="Search transactions, accounts…">
-            display: none;n-primary" href="transfer.html">New transfer</a>
-            margin: 15px 0;
-            padding: 20px;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;3" style="margin: 10px 0 8px;" id="kpiSection"></section>
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            animation: slideDown 0.3s ease;argin-top: 8px;" id="accountSection"></section>
-        }
-        @keyframes slideDown {"></div>
-            from { opacity: 0; transform: translateY(-10px); max-height: 0;}
-            to { opacity: 1; transform: translateY(0); max-height: 500px;}
-        }
-        .transfer-form h3 {
-            color: #333;21540.20; // default base Available KPI before deductions
-            margin-bottom: 20px; // default total balance
-            font-size: 1.3rem;
-            text-align: center;thenticated users (set by login/register after SheetDB confirm)
-            padding-bottom: 10px;e.getItem('loggedInUser');
-            border-bottom: 2px solid #667eea;
-        }
-        .form-group { margin-bottom: 15px; }
-        label { || user.isAuthenticated !== true) {
-            font-weight: 600;= 'index.html';
-            display: block;
-            margin-bottom: 8px;
-            color: #333;ef = 'index.html';
-            font-size: 14px;
-        }
-        .transfer-input { try{ return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) }catch{ return `$${n}` } }
-            padding: 12px 15px;s(){
-            width: 100%; && Platform.fetchTransfersUnified){
-            font-size: 14px;hTransfersUnified({ email: (user && user.email)||'' });
-            border: 2px solid #e9ecef;
-            border-radius: 8px;ly
-            transition: all 0.3s ease;sionStorage.getItem('initiatedTransactions')||'[]'); return Array.isArray(arr)?arr:[]; } catch { return []; }
-            background: white;
-        }
-        .transfer-input:focus {es(){
-            border-color: #667eea;okup
-            outline: none;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
-            transform: translateY(-1px);heetdb.io/api/v1/3g36t35kn6po0/search?formType=Registration&email=${encodeURIComponent(user.email)}&casesensitive=false`);
-        }!res.ok) return;
-        .transfer-input::placeholder { color: #adb5bd; }
-        .message {rray(rows) && rows.length){
-            color: #dc3545;
-            font-size: 14px;BASE_AVAILABLE = Number(r.baseAvailable);
-            margin: 15px 0;TOTAL_BALANCE = Number(r.totalBalance);
-            padding: 12px;
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            border: 1px solid #f5c6cb;
-            border-radius: 8px;
-            display: none;'DOMContentLoaded', async () => {
-            text-align: center;
-            font-weight: 500;.getElementById('userNameLine');
-            animation: fadeIn 0.3s ease;
-        }onst displayName = (user && (user.name || user.fullname)) || (user && user.email ? user.email.split('@')[0] : 'User');
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .submit-btn {
-            background: linear-gradient(45deg, #28a745, #20c997);
-            color: white;ces();
-            padding: 15px 20px;
-            width: 100%;ansfers();
-            border: none;y initiated (session) that might not yet be in API/Sheet
-            font-size: 16px;
-            font-weight: 600;rse(sessionStorage.getItem('initiatedTransactions')||'[]');
-            cursor: pointer;al)){
-            border-radius: 10px;ew Set(txs.map(t=>t.reference));
-            margin-top: 20px;l){ if(l && l.reference && !existingRefs.has(l.reference)) txs.unshift(l); }
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }Available balance = base - sum of COMPLETED transfer amounts
-        .submit-btn::before {=> String(t.status||'').toLowerCase()==='completed').reduce((s,t)=> s + (Number(t.amount)||0),0);
-            content: ''; = Math.max(0, BASE_AVAILABLE - spent);
-            position: absolute;
-            top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
-        }div class="card">
-        .submit-btn:hover::before { left: 100%; }
-        .submit-btn:hover {<div class="value">${currency(TOTAL_BALANCE)}</div><div class="muted">All accounts</div></div>
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
-        } <h3>Available</h3>
-        .submit-btn.loading {iv class="value">${currency(availableNow)}</div><div class="muted">After holds</div></div>
-            background: linear-gradient(45deg, #6c757d, #5a6268);
-            cursor: not-allowed;
-            transform: none;/h3>
-        } <div class="kpi"><div class="value">+$4,920.11</div><div class="muted">Net cash flow</div></div>
-        .submit-btn.success {
-            background: linear-gradient(45deg, #28a745, #34ce57);
-            animation: successPulse 0.6s ease;
-        }Recent transactions (only from transfer page)
-        @keyframes successPulse {
-            0% { transform: scale(1);}
-            50% { transform: scale(1.05);} (t.dateISO ? new Date(t.dateISO).toLocaleDateString() : new Date().toLocaleDateString());
-            100% { transform: scale(1);}amount ? '- ' + currency(t.amount) : '');
-        }   const signClass = delta.trim().startsWith('+') ? 'pos' : 'neg';
-        .spinner {name = t.name || t.type || 'Transfer';
-            display: inline-block;
-            width: 16px; height: 16px;
-            border: 2px solid #fff;r',
-            border-top: 2px solid transparent;
-            border-radius: 50%;` : null,
-            margin-left: 10px;tus : null
-            animation: spin 0.8s linear infinite;
-            vertical-align: middle;mponent(t.reference || t.ref || t.id || '');
-        }   return `
-        @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
-        .back-btn {v class="name">${name}</div>
-            position: absolute;ta ${signClass}">${delta}</div>
-            top: 20px; left: 20px;${meta}</div>
-            background: rgba(255, 255, 255, 0.9);
-            border: none;
-            width: 40px; height: 40px;
-            border-radius: 50%;r(--muted);text-align:center;padding:24px 0;">No recent transactions yet.</div>`;
-            cursor: pointer;
-            display: flex; transactions
-            align-items: center;ument.getElementById('accountSection');
-            justify-content: center;
-            font-size: 18px;
-            color: #667eea;</h3>
-            transition: all 0.3s ease;"margin-top:10px;">
-            backdrop-filter: blur(10px);
-        }     <div class="left">
-        .back-btn:hover {ss="pill">Checking</span>
-            background: white;
-            transform: translateX(-2px);t:800;">Everyday Checking</div>
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);ze:.9rem;">••• 3482</div>
-        }       </div>
-    /* Token row */>
-    .token-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
-    .token-row label { font-size: 12px; color: #666; }
-    .token-row input { flex: 1; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 12px; }
-        .success-modal {="left">
-            display: none; /* will be set to flex via JS when shown */
-            position: fixed;
-            inset: 0;v style="font-weight:800;">High-Yield Savings</div>
-            background: rgba(0, 0, 0, 0.7);"font-size:.9rem;">••• 9015</div>
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-            animation: fadeIn 0.3s ease;40.98</div>
-            /* Center and allow scrolling on very small viewports */
-            align-items: center;row">
-            justify-content: center;
-            padding: 16px;s="pill">Brokerage</span>
-            overflow: auto;
-        }         <div style="font-weight:800;">Invest Portfolio</div>
-        .success-content {ss="muted" style="font-size:.9rem;">••• 1170</div>
-            position: relative;
-            background: white;
-            padding: 32px;amount">$33,958.80</div>
-            border-radius: 15px;
-            text-align: center;
-            width: min(92vw, 520px);gap:10px; margin-top:14px; flex-wrap:wrap;">
-            max-width: 520px;-primary" href="transfer.html">Transfer money</a>
-            /* Constrain height to viewport and allow internal scroll */button>
-            max-height: calc(100dvh - 48px);ype="button">Statements</button>
-            overflow: auto;
-            animation: successSlideIn 0.4s ease;
-        }div class="card">
-        @keyframes successSlideIn {h3>
-            from { opacity: 0; transform: translateY(-8px); }xList">${txListHtml}</div>
-            to { opacity: 1; transform: translateY(0); }
-        }   <a class="btn btn-primary" id="viewDetailsBtn" href="transaction-details.html">View details</a>
-        .success-icon {
-            font-size: 4rem;
-            color: #28a745;
-            margin-bottom: 20px;
-            animation: successBounce 0.6s ease;tails
-        }st listEl = document.getElementById('txList');
-        @keyframes successBounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0);}
-            40% { transform: translateY(-10px);}
-            60% { transform: translateY(-5px);}
-        } const ref = row.getAttribute('data-ref');
-        .success-details {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: left;
-        }“View details” opens most recent tx if present
-        .detail-row {ument.getElementById('viewDetailsBtn');
-            display: flex;h > 0) {
-            justify-content: space-between;t(txs[0].reference || txs[0].ref || txs[0].id || '');
-            align-items: flex-start;saction-details.html?ref=${latestRef}` : 'transaction-details.html';
-            gap: 12px;
-            margin: 8px 0;
-            padding: 5px 0;via SSE -> removed (SheetDB has no SSE); fallback to periodic refresh
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-            flex-wrap: wrap;adTransfers();
-        }ry{ const local2 = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]'); if(Array.isArray(local2)){ const existingRefs = new Set(fresh.map(t=>t.reference)); for(const l of local2){ if(l && l.reference && !existingRefs.has(l.reference)) fresh.unshift(l); } } }catch{}
-        .detail-row strong { flex: 1 1 45%; min-width: 120px; }
-        .detail-row span { flex: 1 1 50%; text-align: right; word-break: break-word; overflow-wrap: anywhere; }mber(t.amount)||0),0);
-        .detail-row:last-child { border-bottom: none; }E - spent2);
-        .close-btn {ElementById('kpiSection').children[1].querySelector('.value').textContent = currency(availableNow2);
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;            font-size: 16px;            font-weight: 600;            transition: all 0.3s ease;        }        .close-btn:hover {            transform: translateY(-2px);            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);        }        /* Top-right X close button */        .modal-close {            position: absolute;            top: 10px; right: 10px;            width: 32px; height: 32px;            display: inline-flex;            align-items: center; justify-content: center;            background: rgba(0,0,0,0.04);            border: none;            border-radius: 999px;            color: #6c757d;            font-size: 18px;            line-height: 1;            cursor: pointer;            transition: background 0.2s ease, transform 0.1s ease;        }        .modal-close:hover { background: rgba(0,0,0,0.08); transform: scale(1.05); }        .modal-close:focus { outline: 2px solid #667eea; outline-offset: 2px; }        @media (max-width: 768px) {            .container { margin: 10px; padding: 20px;}            .transfer-method-btn { padding: 12px 15px; font-size: 14px;}            .method-icon { font-size: 18px; margin-right: 8px;}            h2 { font-size: 1.5rem;}            .success-content { padding: 24px 16px; width: min(96vw, 520px); max-height: calc(100dvh - 32px); }        }        @media (max-width: 360px) {            .success-icon { font-size: 3rem; }            .close-btn { width: 100%; }            .modal-close { width: 28px; height: 28px; font-size: 16px; }        }        .loading-overlay {            position: fixed;            top: 0; left: 0; width: 100%; height: 100%;            background: rgba(102, 126, 234, 0.9);            display: none;            align-items: center;            justify-content: center;            z-index: 2000;            backdrop-filter: blur(5px);        }        .loading-spinner {            width: 60px; height: 60px;            border: 4px solid rgba(255, 255, 255, 0.3);            border-top: 4px solid white;            border-radius: 50%;            animation: bigSpin 1s linear infinite;        }        @keyframes bigSpin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }    </style></head><body>    <script src="common.js"></script>    <div class="container">        <button class="back-btn" onclick="goBack()" title="Go Back">←</button>        <div class="header">            <div class="logo">Shenzhenswift</div>            <h2>Transfer Money</h2>            <p class="subtitle">Choose your preferred transfer method</p>            <p id="availableBalanceLine" class="subtitle" style="margin-top:4px;font-weight:600;color:#222;"></p>        </div>        <div class="token-row">            <label for="apiTokenInput">API token</label>            <input id="apiTokenInput" type="text" placeholder="Set API token for authenticated calls" />        </div>        <!-- Wire Transfer -->        <button class="transfer-method-btn" onclick="toggleForm('wireForm')" id="wireBtn">            <span class="method-icon">🏦</span>            <span class="method-text">Wire Transfer</span>            <span class="method-arrow">▶</span>        </button>        <div id="wireForm" class="transfer-form">            <h3>Wire Transfer</h3>            <div class="form-group">                <label for="wireAccount">Account Number</label>                <input type="text" id="wireAccount" name="account" placeholder="Enter account number" class="transfer-input" required>            </div>            <div class="form-group">                <label for="wireRouting">Routing Number</label>                <input type="text" id="wireRouting" name="routing" placeholder="Enter routing number" class="transfer-input" required>            </div>            <div class="form-group">                <label for="wireAmount">Amount</label>                <input type="number" id="wireAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>            </div>            <div class="form-group">                <label for="wireRecipient">Recipient Name</label>                <input type="text" id="wireRecipient" placeholder="Enter recipient name" class="transfer-input" required>            </div>            <p class="message" id="wireMessage"></p>            <button class="submit-btn" onclick="submitTransfer('wireForm')" id="wireSubmit">Submit Wire Transfer</button>        </div>        <!-- EFT Transfer -->        <button class="transfer-method-btn" onclick="toggleForm('eftForm')" id="eftBtn">            <span class="method-icon">💳</span>            <span class="method-text">EFT Transfer</span>            <span class="method-arrow">▶</span>        </button>        <div id="eftForm" class="transfer-form">            <h3>EFT Transfer</h3>            <div class="form-group">                <label for="eftBank">Bank Name</label>                <input type="text" id="eftBank" placeholder="Enter bank name" class="transfer-input" required>            </div>            <div class="form-group">                <label for="eftAccount">Account Number</label>                <input type="text" id="eftAccount" name="account" placeholder="Enter account number" class="transfer-input" required>            </div>            <div class="form-group">                <label for="eftRouting">Routing Number</label>                <input type="text" id="eftRouting" name="routing" placeholder="Enter routing number" class="transfer-input" required>            </div>            <div class="form-group">                <label for="eftAmount">Amount</label>                <input type="number" id="eftAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>            </div>            <p class="message" id="eftMessage"></p>            <button class="submit-btn" onclick="submitTransfer('eftForm')" id="eftSubmit">Submit EFT Transfer</button>        </div>        <!-- ACH Transfer -->        <button class="transfer-method-btn" onclick="toggleForm('achForm')" id="achBtn">            <span class="method-icon">🔄</span>            <span class="method-text">ACH Transfer</span>            <span class="method-arrow">▶</span>        </button>        <div id="achForm" class="transfer-form">            <h3>ACH Transfer</h3>            <div class="form-group">                <label for="achAccount">Account Number</label>                <input type="text" id="achAccount" name="account" placeholder="Enter account number" class="transfer-input" required>            </div>            <div class="form-group">                <label for="achRouting">Routing Number</label>                <input type="text" id="achRouting" name="routing" placeholder="Enter routing number" class="transfer-input" required>            </div>            <div class="form-group">                <label for="achAmount">Amount</label>                <input type="number" id="achAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>            </div>            <div class="form-group">                <label for="achRecipient">Recipient Name</label>                <input type="text" id="achRecipient" placeholder="Enter recipient name" class="transfer-input" required>            </div>            <p class="message" id="achMessage"></p>            <button class="submit-btn" onclick="submitTransfer('achForm')" id="achSubmit">Submit ACH Transfer</button>        </div>        <!-- Convert & Send to BTC -->        <button class="transfer-method-btn" onclick="toggleForm('btcForm')" id="btcBtn">            <span class="method-icon">₿</span>            <span class="method-text">Convert & Send to BTC</span>            <span class="method-arrow">▶</span>        </button>        <div id="btcForm" class="transfer-form">            <h3>Convert & Send to BTC</h3>            <div class="form-group">                <label for="btcAddress">Bitcoin Address</label>                <input type="text" id="btcAddress" placeholder="Enter BTC address" class="transfer-input" required>            </div>            <div class="form-group">                <label for="btcAmount">Amount in USD</label>                <input type="number" id="btcAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>            </div>            <div class="form-group">                <label for="btcEmail">Email Address</label>                <input type="email" id="btcEmail" placeholder="Enter your email" class="transfer-input" required>            </div>            <p class="message" id="btcMessage"></p>            <button class="submit-btn" onclick="submitTransfer('btcForm')" id="btcSubmit">Submit BTC Conversion</button>        </div>    </div>    <!-- Success Modal -->    <div id="successModal" class="success-modal">        <div class="success-content">            <button class="modal-close" type="button" aria-label="Close" title="Close">×</button>            <div class="success-icon">✅</div>            <h2 style="color: #28a745; margin-bottom: 15px;">Transfer Processing!</h2>            <div id="successDetails" class="success-details"></div>            <button class="close-btn" onclick="closeSuccessModal()">Continue</button>        </div>    </div>    <!-- Loading Overlay -->    <div id="loadingOverlay" class="loading-overlay">        <div class="loading-spinner"></div>    </div>    <script>        let activeForm = null;        let USER_BASE_AVAILABLE = null;        const userSession = (function(){ try { return JSON.parse(sessionStorage.getItem('loggedInUser')||''); } catch { return null; } })();        if(!userSession || userSession.isAuthenticated !== true){ window.location.href = 'login.html'; }        async function loadUserFinancials(){            if(!userSession || !userSession.email) return;            try {                const res = await fetch(`http://localhost:3001/api/users/${encodeURIComponent(userSession.email)}`);                if(res.ok){ const data = await res.json(); USER_BASE_AVAILABLE = Number(data.baseAvailable||0); }            }catch{}            recalcAvailable();        }        function recalcAvailable(){            if(USER_BASE_AVAILABLE == null) return;            try {                const list = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');                const spent = list.filter(t => t && t.status && String(t.status).toLowerCase()==='completed').reduce((s,t)=> s + (Number(t.amount)||0),0);                const avail = Math.max(0, USER_BASE_AVAILABLE - spent);                const el = document.getElementById('availableBalanceLine');                if(el) el.textContent = `Available: ${currency(avail)}`;            }catch{}        }        // + helper for currency        function currency(n){ try{ return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) }catch{ return `$${n}` } }        function toggleForm(formId) {            const form = document.getElementById(formId);            const btn = document.getElementById(formId.replace('Form', 'Btn'));            if (activeForm && activeForm !== form) {                activeForm.style.display = "none";                const activeBtn = document.querySelector('.transfer-method-btn.active');                if (activeBtn) activeBtn.classList.remove('active');            }            if (form.style.display === "none" || form.style.display === "") {                form.style.display = "block";                btn.classList.add('active');                activeForm = form;                setTimeout(() => {                    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });                }, 100);            } else {                form.style.display = "none";                btn.classList.remove('active');                activeForm = null;            }        }    function submitTransfer(formId) {            const form = document.getElementById(formId);            const submitBtn = form.querySelector('.submit-btn');            const messageElement = form.querySelector('.message');            const formData = {                formType: formId.replace('Form', ' Transfer'),                timestamp: new Date().toISOString(),                userAgent: navigator.userAgent            };            let isValid = true;            let validationMessage = '';            if (formId === 'wireForm' || formId === 'eftForm' || formId === 'achForm') {                const accountNumber = form.querySelector("input[name='account']")?.value || "";                const routingNumber = form.querySelector("input[name='routing']")?.value || "";                const amount = form.querySelector("input[type='number']")?.value || "";                formData.accountNumber = accountNumber;                formData.routingNumber = routingNumber;                formData.amount = amount;                if (accountNumber.length < 4) {                    isValid = false;                    validationMessage = "Account number must be at least 4 digits.";                } else if (routingNumber.length < 4) {                    isValid = false;                    validationMessage = "Routing number must be at least 4 digits.";                } else if (!amount || parseFloat(amount) <= 0) {                    isValid = false;                    validationMessage = "Please enter a valid amount.";                }            } else if (formId === 'btcForm') {                const btcAddress = document.getElementById('btcAddress').value;                const amount = document.getElementById('btcAmount').value;                const email = document.getElementById('btcEmail').value;                formData.btcAddress = btcAddress;                formData.amount = amount;                formData.email = email;                if (!btcAddress || btcAddress.length < 10) {                    isValid = false;                    validationMessage = "Please enter a valid Bitcoin address.";                } else if (!amount || parseFloat(amount) <= 0) {                    isValid = false;                    validationMessage = "Please enter a valid amount.";                } else if (!email || !email.includes('@')) {                    isValid = false;                    validationMessage = "Please enter a valid email address.";                }            }            if (!isValid) {                showMessage(messageElement, validationMessage, 'error');                return;            }                        // Real-time flow: create transfer immediately and show modal; status will update via SSE                        messageElement.style.display = "none";                        submitBtn.disabled = true;                        submitBtn.classList.add("loading");                        submitBtn.innerHTML = `Submitting<span class="spinner"></span>`;                        const user = JSON.parse(sessionStorage.getItem('loggedInUser') || '{}');                        const typeMap = { wireForm:'Wire Transfer', eftForm:'EFT Transfer', achForm:'ACH Transfer', btcForm:'Bitcoin Conversion' };                        const network = typeMap[formId] || 'Transfer';                        const ref = 'TXN' + Date.now().toString().slice(-8);                        const amountNum = Number(formData.amount || 0);                        const from = 'Everyday Checking •••3482';                        let to = 'External Account';                        if (formId === 'btcForm' && formData.btcAddress) {                            to = formData.btcAddress;                        } else if (formData.accountNumber) {                            to = `Acct •••${String(formData.accountNumber).slice(-4)}`;                        }                        // Save to local list for details view (optional UX)                        const tx = {                            email: user.email,                            source: 'transfer',                            name: network,                            type: network,                            amount: amountNum,                            delta: amountNum ? `- ${currency(amountNum)}` : undefined,                            from, to,                            status: 'Pending',                            reference: ref,                            dateISO: new Date().toISOString(),                            network                        };                        const key = 'initiatedTransactions';                        const list = JSON.parse(sessionStorage.getItem(key) || '[]');                        list.unshift(tx);                        sessionStorage.setItem(key, JSON.stringify(list));                        recalcAvailable();                        // Send to API with auth + idempotency                        (async () => {                            const API_TOKEN = localStorage.getItem('api_token');                            if (!API_TOKEN) {                                alert('Missing API token. Please set localStorage.api_token before submitting.');                                submitBtn.disabled = false; submitBtn.classList.remove('loading'); submitBtn.innerHTML = 'Submit';                                return;                            }                            const payload = {                                reference: ref,                                email: user.email || null,                                amount: amountNum,                                type: network,                                from, to,                                status: 'Pending',                                dateISO: new Date().toISOString(),                                source: 'transfer'                            };                            const idKey = `transfer-${ref}`;                            let delay = 300;                            for (let i=0; i<3; i++) {                                try {                                    const res = await fetch('http://localhost:3001/api/transfers', {                                        method: 'POST',                                        headers: {                                            'Content-Type': 'application/json',                                            'Authorization': `Bearer ${API_TOKEN}`,                                            'Idempotency-Key': idKey                                        },                                        body: JSON.stringify(payload)                                    });                                    if (res.ok) break;                                } catch {}                                await new Promise(r => setTimeout(r, delay));                                delay *= 2;                            }                            // Send to SheetDB instead of local API                            (async () => {                                const payloadRow = {                                    formType: 'Transfer',                                    reference: ref,                                    email: user.email || '',                                    amount: amountNum,                                    from, to,                                    status: 'Pending',                                    dateISO: new Date().toISOString(),                                    network                                };                                try {                                    await fetch('https://sheetdb.io/api/v1/3g36t35kn6po0', {                                        method: 'POST',                                        headers: { 'Content-Type': 'application/json' },                                        body: JSON.stringify({ data: [ payloadRow ] })                                    });                                } catch {}                                if (window.Platform && Platform.recordTransferToSheet) {                                    Platform.recordTransferToSheet(payloadRow);                                }                            })();                        submitBtn.classList.remove("loading");                        submitBtn.classList.add("success");                        submitBtn.innerHTML = "Transfer Submitted";                        const successData = {                            type: network,                            account: formData.accountNumber ? formData.accountNumber.slice(-4) : 'N/A',                            routing: formData.routingNumber ? formData.routingNumber.slice(-4) : 'N/A',                            amount: formData.amount || 'N/A',                            reference: ref,                            date: new Date().toLocaleDateString(),                            time: new Date().toLocaleTimeString(),                            status: 'Pending',                            btcAddress: formData.btcAddress ? formData.btcAddress.substring(0, 10) + '...' : null                        };                        // Show modal immediately                        showSuccessModal(successData);                        // Enable clicking to go to the details for this ref                        submitBtn.disabled = false;                        submitBtn.style.cursor = 'pointer';                        submitBtn.addEventListener('click', () => {                            window.location.href = `transaction-details.html?ref=${encodeURIComponent(ref)}`;                        }, { once:true });                        // Subscribe to SSE updates for this reference                        try {                            const API_TOKEN = localStorage.getItem('api_token');                            const src = new EventSource(`http://localhost:3001/api/stream?token=${encodeURIComponent(API_TOKEN)}`);                            const updateHandler = (ev) => {                                try {                                    const data = JSON.parse(ev.data || '{}');                                    if (data.reference === ref && data.status) {                                        if(window.Platform && Platform.applyTransferEvent) Platform.applyTransferEvent(data);                                        recalcAvailable();                                        // Update modal status text                                        const details = document.getElementById('successDetails');                                        if (details) {                                            details.querySelectorAll('.detail-row').forEach(row => {                                                const label = row.querySelector('strong');                                                if (label && label.textContent.includes('Status')) {                                                    const span = row.querySelector('span');                                                    if (span) span.textContent = data.status;                                                }                                            });                                        }                                    }                                } catch {}                            };                            src.addEventListener('transfer.updated', updateHandler);                            // Optional: close stream when modal is closed                            const originalClose = window.closeSuccessModal;                            window.closeSuccessModal = function(){ try{ src.close(); }catch{}; originalClose(); };                        } catch {}        }        function showMessage(element, message, type) {            element.innerText = message;            element.style.display = "block";            if (type === 'error') {                element.style.background = 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)';                element.style.color = '#721c24';                element.style.borderColor = '#f5c6cb';            }        }        // prepareSuccessData merged into inline successData above    function showSuccessModal(data) {            const modal = document.getElementById('successModal');            const details = document.getElementById('successDetails');            const content = modal.querySelector('.success-content');            let detailsHTML = `                <div class="detail-row">                    <strong>Transfer Type:</strong>                    <span>${data.type}</span>                </div>                <div class="detail-row">                    <strong>Reference Number:</strong>                    <span>${data.reference}</span>                </div>                <div class="detail-row">                    <strong>Date:</strong>                    <span>${data.date}</span>                </div>                <div class="detail-row">                    <strong>Time:</strong>                    <span>${data.time}</span>                </div>                <div class="detail-row">                    <strong>Status:</strong>                    <span style="color: #28a745; font-weight: bold;">${data.status}</span>                </div>            `;            if (data.amount !== 'N/A') {                detailsHTML += `                    <div class="detail-row">                        <strong>Amount:</strong>                        <span>$${data.amount}</span>                    </div>                `;            }            if (data.account !== 'N/A') {                detailsHTML += `                    <div class="detail-row">                        <strong>Account:</strong>                        <span>****${data.account}</span>                    </div>                `;            }            if (data.routing !== 'N/A') {                detailsHTML += `                    <div class="detail-row">                        <strong>Routing:</strong>                        <span>****${data.routing}</span>                    </div>                `;            }            if (data.btcAddress) {                detailsHTML += `                    <div class="detail-row">                        <strong>BTC Address:</strong>                        <span>${data.btcAddress}</span>                    </div>                `;            }                        details.innerHTML = detailsHTML;                        modal.style.display = 'flex';                        // Redirect to details for this exact ref on Continue            const btn = document.querySelector('.close-btn');            if (btn) {              btn.onclick = () => {                window.location.href = `transaction-details.html?ref=${encodeURIComponent(data.reference)}`;              };            }                        // Allow closing by clicking on the dimmed backdrop                        modal.addEventListener('click', (e) => {                            if (e.target === modal) {                                closeSuccessModal();                            }                        }, { once: true });                        // X button closes without redirect                        const xBtn = modal.querySelector('.modal-close');                        if (xBtn) {                            xBtn.onclick = (e) => {                                e.stopPropagation();                                closeSuccessModal();                            };                        }                        // Esc key closes                        const onKey = (e) => {                            if (e.key === 'Escape') {                                closeSuccessModal();                                document.removeEventListener('keydown', onKey);                            }                        };                        document.addEventListener('keydown', onKey, { once: true });        }        function closeSuccessModal() {                        document.getElementById('successModal').style.display = 'none';            // Optionally reset forms or redirect        }        function goBack() {            window.history.length > 1 ? window.history.back() : window.location.href = 'dashboard.html';        }                // Initialize token input                (function(){                    const el = document.getElementById('apiTokenInput');                    if (!el) return;                    el.value = localStorage.getItem('api_token') || '';                    el.addEventListener('change', () => {                        localStorage.setItem('api_token', el.value.trim());                    });                                })();                                // Global SSE for balance + transaction sync                                (function(){                                    const token = localStorage.getItem('api_token');                                    if(!token) return; try {                                        const src = new EventSource(`http://localhost:3001/api/stream?token=${encodeURIComponent(token)}`);                                        const handler = ev => { try { const d = JSON.parse(ev.data||'{}'); if(window.Platform && Platform.applyTransferEvent) Platform.applyTransferEvent(d); recalcAvailable(); } catch{} };                                        src.addEventListener('transfer.created', handler);                                        src.addEventListener('transfer.updated', handler);                                    } catch {}                                })();                                loadUserFinancials();    </script></body>
+<meta charset="UTF-8">
+<title>Dashboard • Shenzhenswift</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Tahoma,Verdana,sans-serif;background:#f6f7fb;color:#222;min-height:100vh;padding:0 0 60px}
+  header{position:fixed;top:0;left:0;right:0;background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;z-index:1000}
+  header .inner{max-width:1150px;margin:0 auto;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+  .logo{font-size:1.5rem;font-weight:800;background:linear-gradient(45deg,#fff,#e0e7ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .nav-links{list-style:none;display:flex;gap:1.5rem}
+  .nav-links a{color:#fff;text-decoration:none;font-weight:600;position:relative;transition:.3s}
+  .nav-links a:hover{color:#e0e7ff;transform:translateY(-2px)}
+  main{padding-top:96px;max-width:1150px;margin:0 auto;padding-left:20px;padding-right:20px}
+  h1{font-size:1.9rem;margin-bottom:4px}
+  .subtitle{color:#666;font-size:.9rem;margin-bottom:20px}
+  .kpis{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:22px}
+  .kpi{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;box-shadow:0 4px 14px rgba(0,0,0,.05)}
+  .kpi .value{font-size:1.15rem;font-weight:700;margin-bottom:4px}
+  .kpi .muted{color:#666;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .accounts,.recent{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:18px 18px 10px;margin-bottom:26px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+  .section-title{font-size:1.15rem;font-weight:700;margin-bottom:12px;color:#1e3c72;display:flex;justify-content:space-between;align-items:center}
+  .account-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f3f5;font-size:.9rem}
+  .account-row:last-child{border-bottom:none}
+  .pill{display:inline-block;padding:4px 10px;font-size:.65rem;font-weight:800;border-radius:999px;background:#eef2ff;color:#667eea;margin-right:6px}
+  .tx{display:grid;grid-template-columns:1fr auto;gap:4px;padding:10px 0;border-bottom:1px solid #f1f3f5;font-size:.85rem}
+  .tx:last-child{border-bottom:none}
+  .tx .delta{font-weight:700}
+  .delta.pos{color:#047857}
+  .delta.neg{color:#b91c1c}
+  .actions a.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:10px;font-size:.85rem;font-weight:600;text-decoration:none;color:#fff;background:linear-gradient(45deg,#667eea,#764ba2);transition:.3s}
+  .actions a.btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(102,126,234,.32)}
+  .back-btn{position:fixed;top:110px;left:18px;background:#fff;border:1px solid #e5e7eb;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:#667eea;box-shadow:0 4px 14px rgba(0,0,0,.08);transition:.25s}
+  .back-btn:hover{transform:translateX(-2px)}
+  @media(max-width:720px){
+    .kpis{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+    .tx{grid-template-columns:1fr 60px}
+    .back-btn{top:80px}
+  }
+</style>
+</head>
+<body>
+<script src="common.js"></script>
+<header>
+  <div class="inner">
+    <div class="logo">Shenzhenswift</div>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="transfer.html">Transfer</a></li>
+      <li><a href="#">Cards</a></li>
+      <li><a href="#">Support</a></li>
+    </ul>
+  </div>
+</header>
+<main>
+  <button class="back-btn" onclick="window.location.href='index.html'" title="Home">←</button>
+  <h1>Dashboard</h1>
+  <div id="userWelcome" class="subtitle"></div>
+
+  <section class="kpis" id="kpiSection"></section>
+
+  <section class="accounts" id="accountSection">
+    <div class="section-title">
+      <span>Accounts</span>
+    </div>
+    <div id="accountsBody"></div>
+  </section>
+
+  <section class="recent" id="recentSection">
+    <div class="section-title">
+      <span>Recent Transfers</span>
+      <div class="actions">
+        <a class="btn" href="transfer.html">New transfer</a>
+      </div>
+    </div>
+    <div id="txList"></div>
+  </section>
+</main>
+<script>
+function currency(n){try{return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'})}catch{return `$${n}`}}
+let BASE_AVAILABLE = 0;
+let TOTAL_BALANCE = 0;
+async function loadBalances(user){
+  try{
+    const url=`${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(user.email)}&casesensitive=false`;
+    const res=await fetch(url,{headers:{Authorization:`Bearer ${SHEETDB_API_TOKEN}`}});
+    if(res.ok){
+      const rows=await res.json();
+      if(Array.isArray(rows)&&rows.length){
+        const r=rows[0];
+        if(r.baseAvailable) BASE_AVAILABLE=Number(r.baseAvailable);
+        if(r.totalBalance) TOTAL_BALANCE=Number(r.totalBalance);
+      }
+    }
+  }catch{}
+}
+function renderKPIs(){
+  const spent = getTransfers().filter(t=>String(t.status||'').toLowerCase()==='completed').reduce((s,t)=>s+(Number(t.amount)||0),0);
+  const available = Math.max(0, BASE_AVAILABLE - spent);
+  const el=document.getElementById('kpiSection');
+  el.innerHTML = `
+    <div class="kpi"><div class="value">${currency(TOTAL_BALANCE)}</div><div class="muted">Total Balance</div></div>
+    <div class="kpi"><div class="value">${currency(BASE_AVAILABLE)}</div><div class="muted">Base</div></div>
+    <div class="kpi"><div class="value">${currency(spent)}</div><div class="muted">Spent</div></div>
+    <div class="kpi"><div class="value">${currency(available)}</div><div class="muted">Available</div></div>`;
+}
+function getTransfers(){
+  try{const arr=JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');return Array.isArray(arr)?arr:[];}catch{return [];}
+}
+function renderAccounts(){
+  const html = `
+    <div class="account-row"><div><span class="pill">Checking</span>Everyday Checking</div><div>${currency(TOTAL_BALANCE)}</div></div>
+    <div class="account-row"><div><span class="pill" style="background:#d1fae5;color:#047857;">Reserve</span>Savings Reserve</div><div>${currency(BASE_AVAILABLE)}</div></div>
+  `;
+  document.getElementById('accountsBody').innerHTML=html;
+}
+function renderTransfers(){
+  const txs = getTransfers().slice().sort((a,b)=> (b.dateISO||'').localeCompare(a.dateISO||''));
+  document.getElementById('txList').innerHTML = txs.length ? txs.map(t=>{
+    const amt = Number(t.amount)||0;
+    const delta = (amt>=0?'+':'')+currency(amt);
+    const cls = amt>=0?'delta pos':'delta neg';
+    return `<div class="tx" data-ref="${t.reference}">
+      <div><strong>${t.reference}</strong><br><span style="color:#666;font-size:.7rem">${t.status||'Pending'}</span></div>
+      <div class="${cls}">${delta}</div>
+    </div>`;
+  }).join('') : `<div style="text-align:center;color:#666;padding:16px 0">No transfers yet.</div>`;
+}
+(function init(){
+  const uJSON=sessionStorage.getItem('loggedInUser');
+  let user=null;
+  try{user=JSON.parse(uJSON||'');}catch{}
+  if(!user||user.isAuthenticated!==true){window.location.href='login.html';return;}
+  document.getElementById('userWelcome').textContent=`Welcome, ${(user.name||user.fullname||user.email.split('@')[0])}`;
+  loadBalances(user).then(()=>{renderKPIs();});
+  renderAccounts();
+  renderTransfers();
+  // periodic refresh to recompute available
+  setInterval(()=>{renderKPIs();renderTransfers();},15000);
+})();
+</script>
+</body>
+</html>

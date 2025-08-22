@@ -23,12 +23,26 @@ const DB_FILE = path.join(DATA_DIR, 'banking.db');
 const API_TOKEN = process.env.API_TOKEN || 'dev-token';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'dev-secret';
 const WEBHOOK_TARGET = process.env.WEBHOOK_TARGET || '';
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
 app.use(cors());
 app.use(express.json());
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 const db = new sqlite3.Database(DB_FILE);
+
+// Load users (simple JSON store for demo credentials / balances)
+let users = [];
+function loadUsers(){
+  try {
+    if(fs.existsSync(USERS_FILE)){
+      const raw = fs.readFileSync(USERS_FILE, 'utf8');
+      users = JSON.parse(raw);
+    }
+  } catch { users = []; }
+}
+loadUsers();
+function findUser(email){ return users.find(u => u.email.toLowerCase() === String(email||'').toLowerCase()); }
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS transfers (
@@ -125,6 +139,34 @@ async function emitWebhook(event, data) {
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'banking-sim', time: new Date().toISOString() });
+});
+
+// Public (demo) endpoint: get user public balances (would normally require auth)
+app.get('/api/users/:email', (req,res) => {
+  const u = findUser(req.params.email);
+  if(!u) return res.status(404).json({ error: 'not_found' });
+  res.json({
+    email: u.email,
+    fullName: u.fullName || u.name || '',
+    totalBalance: u.totalBalance || 0,
+    baseAvailable: u.baseAvailable || 0,
+    createdAt: u.createdAt
+  });
+});
+
+// Minimal demo login endpoint (fallback when SheetDB record not present). Returns public profile only.
+app.post('/api/login', (req,res) => {
+  const { email, password } = req.body || {};
+  if(!email || !password) return res.status(400).json({ error:'missing_fields' });
+  const u = findUser(email);
+  if(!u || u.password !== password) return res.status(401).json({ error:'invalid_credentials' });
+  return res.json({ ok:true, user: {
+    email: u.email,
+    name: u.fullName || u.name || 'User',
+    totalBalance: u.totalBalance || 0,
+    baseAvailable: u.baseAvailable || 0,
+    createdAt: u.createdAt
+  }});
 });
 
 app.get('/api/transfers', (req, res) => {

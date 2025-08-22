@@ -104,34 +104,55 @@
     const password = document.getElementById('loginPassword').value;
 
     try {
-      // Confirm registration record exists in SheetDB
-      const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('network');
+      let authenticated = false;
+      // 1. Try SheetDB first (existing behavior)
+      try {
+        const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const rows = await res.json();
+            if (Array.isArray(rows) && rows.length) {
+              const rowUser = rows[0];
+              if ((rowUser.password || '') === password) {
+                sessionStorage.setItem('loggedInUser', JSON.stringify({
+                  name: rowUser.fullname || rowUser.name || 'User',
+                  email: rowUser.email,
+                  phone: rowUser.phone || '',
+                  registrationDate: rowUser.date || new Date().toISOString(),
+                  isAuthenticated: true,
+                  loginTime: new Date().toISOString()
+                }));
+                authenticated = true;
+              }
+            }
+        }
+      } catch {}
 
-      const rows = await res.json();
-      if (!Array.isArray(rows) || rows.length === 0) {
-        showAlert('Only registered users can sign in. Please register first.');
-        return;
+      // 2. Fallback: internal user store (e.g., Gregory Keyes) if not authenticated yet
+      if(!authenticated){
+        try {
+          const res2 = await fetch('http://localhost:3001/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
+          if(res2.ok){
+            const data = await res2.json();
+            if(data && data.ok){
+              sessionStorage.setItem('loggedInUser', JSON.stringify({
+                name: data.user.name,
+                email: data.user.email,
+                isAuthenticated: true,
+                registrationDate: data.user.createdAt || new Date().toISOString(),
+                loginTime: new Date().toISOString()
+              }));
+              authenticated = true;
+            }
+          }
+        } catch {}
       }
 
-      const user = rows[0];
-      if ((user.password || '') !== password) {
+      if(!authenticated){
         showAlert('Invalid email or password.');
-        return;
+      } else {
+        window.location.href = 'dashboard.html';
       }
-
-      // Only after SheetDB confirms, create session and allow dashboard access
-      sessionStorage.setItem('loggedInUser', JSON.stringify({
-        name: user.fullname || user.name || 'User',
-        email: user.email,
-        phone: user.phone || '',
-        registrationDate: user.date || new Date().toISOString(),
-        isAuthenticated: true,
-        loginTime: new Date().toISOString()
-      }));
-
-      window.location.href = 'dashboard.html';
     } catch (err) {
       console.error(err);
       showAlert('Login failed. Check your connection and try again.');

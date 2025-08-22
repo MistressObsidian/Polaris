@@ -89,7 +89,8 @@
   </main>
 
   <script>
-    const BASE_AVAILABLE = 221540.20; // base Available KPI before deductions
+  let BASE_AVAILABLE = 221540.20; // default base Available KPI before deductions
+  let TOTAL_BALANCE = 256780.00; // default total balance
 
     // Gate: only logged-in, authenticated users (set by login/register after SheetDB confirm)
     const session = sessionStorage.getItem('loggedInUser');
@@ -112,6 +113,17 @@
       try { const arr = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]'); return Array.isArray(arr)?arr:[]; } catch { return []; }
     }
 
+  async function loadUserBalances(){
+    try {
+      if(!user || !user.email) return;
+      const res = await fetch(`http://localhost:3001/api/users/${encodeURIComponent(user.email)}`);
+      if(!res.ok) return;
+      const data = await res.json();
+      if(data.baseAvailable) BASE_AVAILABLE = Number(data.baseAvailable);
+      if(data.totalBalance) TOTAL_BALANCE = Number(data.totalBalance);
+    } catch {}
+  }
+
   window.addEventListener('DOMContentLoaded', async () => {
       // Welcome line
       const nameEl = document.getElementById('userNameLine');
@@ -120,6 +132,8 @@
         nameEl.textContent = `Welcome, ${displayName}`;
       }
 
+      await loadUserBalances();
+      
   let txs = await loadTransfers();
       // Merge any locally initiated (session) that might not yet be in API/Sheet
       try {
@@ -139,7 +153,7 @@
       kpiSection.innerHTML = `
         <div class="card">
           <h3>Total balance</h3>
-          <div class="kpi"><div class="value">$256,780.00</div><div class="muted">All accounts</div></div>
+          <div class="kpi"><div class="value">${currency(TOTAL_BALANCE)}</div><div class="muted">All accounts</div></div>
         </div>
         <div class="card">
           <h3>Available</h3>

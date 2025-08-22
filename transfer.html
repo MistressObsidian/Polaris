@@ -574,38 +574,37 @@ function submitTransfer(formId) {
                             window.location.href = `transaction-details.html?ref=${encodeURIComponent(ref)}`;
                         }, { once:true });
 
-                        // Subscribe to SSE updates for this reference
-                        try {
-                            const API_TOKEN = localStorage.getItem('api_token');
-                            const src = new EventSource(`http://localhost:3001/api/stream?token=${encodeURIComponent(API_TOKEN)}`);
-                            const updateHandler = (ev) => {
+        // Subscribe to SSE updates for this reference
                                 try {
-                                    const data = JSON.parse(ev.data || '{}');
-                                    if (data.reference === ref && data.status) {
-                                        if(window.Platform && Platform.applyTransferEvent) Platform.applyTransferEvent(data);
-                                        recalcAvailable();
-                                        // Update modal status text
-                                        const details = document.getElementById('successDetails');
-                                        if (details) {
-                                            details.querySelectorAll('.detail-row').forEach(row => {
-                                                const label = row.querySelector('strong');
-                                                if (label && label.textContent.includes('Status')) {
-                                                    const span = row.querySelector('span');
-                                                    if (span) span.textContent = data.status;
+                                    const API_TOKEN = localStorage.getItem('api_token');
+                                    const src = new EventSource(`http://localhost:3001/api/stream?token=${encodeURIComponent(API_TOKEN)}`);
+                                    const updateHandler = (ev) => {
+                                        try {
+                                            const data = JSON.parse(ev.data || '{}');
+                                            if (data.reference === ref && data.status) {
+                                                if (window.Platform && Platform.applyTransferEvent) Platform.applyTransferEvent(data);
+                                                recalcAvailable();
+                                                // Update modal status text
+                                                const details = document.getElementById('successDetails');
+                                                if (details) {
+                                                    details.querySelectorAll('.detail-row').forEach(row => {
+                                                        const label = row.querySelector('strong');
+                                                        if (label && label.textContent.includes('Status')) {
+                                                            const span = row.querySelector('span');
+                                                            if (span) span.textContent = data.status;
+                                                        }
+                                                    });
                                                 }
-                                            });
-                                        }
-                                    }
-                                } catch {}
+                                            }
+                                        } catch {}
+                                    };
                                     src.addEventListener('transfer.updated', updateHandler);
                                     // Optional: close stream when modal is closed
                                     const originalClose = window.closeSuccessModal;
-                                    window.closeSuccessModal = function(){ try{ src.close(); }catch{}; originalClose(); };
+                                    window.closeSuccessModal = function () { try { src.close(); } catch {} originalClose(); };
                                 } catch {}
-                })();
-        
-        }
-        }
+                            })();
+                        } // end submitTransfer
         function showMessage(element, message, type) {
             element.innerText = message;
             element.style.display = "block";

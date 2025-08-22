@@ -962,18 +962,361 @@
 </head>
 <body>
     <script src="common.js"></script>
+    <header>
+        <nav class="container">
+            <div class="logo">Shenzhenswift</div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#transfer">Transfer</a></li>
+                <li><a href="#banking">Banking</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <div class="auth-buttons">
+                <a href="login.html" class="btn btn-secondary">Login</a>
+                <a href="register.html" class="btn btn-primary">Register</a>
+            </div>
+
+            <!-- Dashboard (embedded but redirects to dashboard.html after login) -->
+            <div id="dashboard" class="dashboard">
+                <div class="dashboard-container">
+                    <div class="dashboard-sidebar">
+                        <button class="dashboard-close-btn" onclick="closeDashboard()" title="Logout">&times;</button>
+                        <h2>All Accounts</h2>
+                        <div class="dashboard-balance">$2,972,569.21</div>
+                        <h3>Account Owner:</h3>
+                        <div id="dashboardUserName">User</div>
+                        <h3>Investment</h3>
+                        <div class="dashboard-account-list">
+                            <div>Individual - TOD: <strong>$6,835.77</strong></div>
+                        </div>
+                        <h3>Professionally Managed</h3>
+                        <div class="dashboard-account-list">
+                            <div>User's Investment Account: <strong>$256,456.56</strong></div>
+                        </div>
+                        <br>
+                        <button class="dashboard-transfer-btn" onclick="openModal('transferModal')">Transfer Money</button>
+                    </div>
+                    <div class="dashboard-main-content">
+                        <div class="welcome-banner">
+                            <h3>Welcome back, <span id="dashboardUserNameHeader">User</span>!</h3>
+                            <p>Manage your accounts and transactions from your Shenzhenswift dashboard</p>
+                        </div>
+                        <div class="dashboard-header">
+                            <h2>All Accounts</h2>
+                            <input type="text" class="dashboard-search-bar" placeholder="Search Activity & Orders">
+                        </div>
+                        <div class="dashboard-filters">
+                            <button onclick="filterTransactions('30days', event)" class="filter-active">Past 30 Days</button>
+                            <button onclick="filterTransactions('orders', event)">Orders</button>
+                            <button onclick="filterTransactions('transfers', event)">Transfers</button>
+                        </div>
+                        <div class="dashboard-transaction-history">
+                            <h3>Past 30 Days</h3>
+                            <table id="transactionTable">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Account</th>
+                                        <th>Description</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionTableBody">
+                                    <tr>
+                                        <td>Jan-5-2025</td>
+                                        <td>Investment Account</td>
+                                        <td>Initial Deposit</td>
+                                        <td>Deposit</td>
+                                        <td style="color: green;">+ $10,000.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Jan-4-2025</td>
+                                        <td>Individual - TOD</td>
+                                        <td>Account Opening</td>
+                                        <td>Setup</td>
+                                        <td style="color: blue;">$0.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+            <div class="mobile-menu" id="mobileMenu">
+                <ul>
+                    <li><a href="#home" onclick="toggleMobileMenu()">Home</a></li>
+                    <li><a href="#services" onclick="toggleMobileMenu()">Services</a></li>
+                    <li><a href="#transfer" onclick="toggleMobileMenu()">Transfer</a></li>
+                    <li><a href="#banking" onclick="toggleMobileMenu()">Banking</a></li>
+                    <li><a href="#contact" onclick="toggleMobileMenu()">Contact</a></li>
+                    <li><a href="login.html" onclick="toggleMobileMenu()">Login</a></li>
+                    <li><a href="register.html" onclick="toggleMobileMenu()">Register</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <section class="hero" id="home">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Send Money From The US To 130+ Countries Within Minutes</h1>
+                <p>Transfer money cheaper and faster to anyone anywhere in the world with no hidden charges. Experience the best banking and money transfer services.</p>
+                <div class="hero-buttons">
+                    <a href="#" class="btn btn-primary" onclick="openModal('transferModal')">Send Money Now</a>
+                    <a href="#services" class="btn btn-secondary">Learn More</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="services">
+        <div class="container">
+            <div class="section-header">
+                <h2>Why Choose Shenzhenswift?</h2>
+                <p>We provide comprehensive financial services designed to meet your personal and business banking needs</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🏦</div>
+                    <h3>Complete Banking Solutions</h3>
+                    <p>Walk into any of our nationwide office locations and create a bank account for personal or business needs and start enjoying the best banking experience.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>Fast Money Transfers</h3>
+                    <p>Transferring money has never been so easy. We have many options to transfer to both local and international accounts within minutes.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Advanced Security</h3>
+                    <p>We have many options to detect fraud and account hacking activities. We provide the best bank safety experience anytime, anywhere.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌍</div>
+                    <h3>Global Reach</h3>
+                    <p>Receive payments from different countries with different currencies. Hold over 54 currencies in one account and be at the center of the world.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💼</div>
+                    <h3>Business Solutions</h3>
+                    <p>Tell us about your business. We're interested in helping growing local businesses, whether private or public. We've got you covered.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤝</div>
+                    <h3>Customer Partnership</h3>
+                    <p>Our culture enables extraordinary people to perform in outstanding ways. We believe in forming life-long partnerships with our customers.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="services">
+        <div class="container">
+            <div class="section-header">
+                <h2>Our Services</h2>
+                <p>Everything you need for modern banking and money transfers</p>
+            </div>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">💸</div>
+                    <h3>Send Money</h3>
+                    <p>Quick transfers worldwide</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">💰</div>
+                    <h3>Receive Money</h3>
+                    <p>Get payments globally</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">💳</div>
+                    <h3>Banking Cards</h3>
+                    <p>Debit and credit solutions</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">📱</div>
+                    <h3>Mobile Banking</h3>
+                    <p>Bank on the go</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="currency">
+        <div class="container">
+            <div class="section-header">
+                <h2>Supported Currencies</h2>
+                <p>We support major global currencies for seamless international transactions</p>
+            </div>
+            <div class="currency-grid">
+                <div class="currency-card">
+                    <div class="currency-code">GBP</div>
+                    <div class="currency-name">British Pound</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">EUR</div>
+                    <div class="currency-name">Euro</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">USD</div>
+                    <div class="currency-name">US Dollar</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">KWD</div>
+                    <div class="currency-name">Kuwaiti Dinar</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">AUD</div>
+                    <div class="currency-name">Australian Dollar</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">HUF</div>
+                    <div class="currency-name">Hungarian Forint</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">CAD</div>
+                    <div class="currency-name">Canadian Dollar</div>
+                </div>
+                <div class="currency-card">
+                    <div class="currency-code">SGD</div>
+                    <div class="currency-name">Singapore Dollar</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Shenzhenswift</h3>
+                    <p>Your trusted partner for money transfers and banking services worldwide. We make financial transactions simple, secure, and fast.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Services</h3>
+                    <ul>
+                        <li><a href="#">Money Transfer</a></li>
+                        <li><a href="#">Banking</a></li>
+                        <li><a href="#">Currency Exchange</a></li>
+                        <li><a href="#">Business Solutions</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Support</h3>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">Track Transfer</a></li>
+                        <li><a href="#">Security</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Legal</h3>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Compliance</a></li>
+                        <li><a href="#">Licensing</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Shenzhenswift. All rights reserved. | Licensed Money Transfer & Banking Services</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Transfer Modal -->
+    <div id="transferModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('transferModal')">&times;</span>
+            <h2>Send Money</h2>
+            <div id="transferAlert" class="alert"></div>
+            <form id="transferForm">
+                <div class="form-group">
+                    <label for="sendAmount">Amount to Send</label>
+                    <input type="number" id="sendAmount" name="amount" min="1" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="fromCurrency">From Currency</label>
+                    <select id="fromCurrency" name="fromCurrency" required>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="toCurrency">To Currency</label>
+                    <select id="toCurrency" name="toCurrency" required>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="KWD">KWD - Kuwaiti Dinar</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
+                        <option value="HUF">HUF - Hungarian Forint</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="SGD">SGD - Singapore Dollar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="recipientName">Recipient Name</label>
+                    <input type="text" id="recipientName" name="recipientName" required>
+                </div>
+                <div class="form-group">
+                    <label for="recipientEmail">Recipient Email</label>
+                    <input type="email" id="recipientEmail" name="recipientEmail" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Continue Transfer</button>
+            </form>
+            <div class="form-footer">
+                <p>Need help? <a href="#contact">Contact Support</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('forgotPasswordModal')">&times;</span>
+            <h2>Reset Password</h2>
+            <div id="forgotAlert" class="alert"></div>
+            <form id="forgotPasswordForm">
+                <div class="form-group">
+                    <label for="forgotEmail">Email Address</label>
+                    <input type="email" id="forgotEmail" name="email" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Send Reset Link</button>
+            </form>
+            <div class="form-footer">
+                <p>Remember your password? <a href="login.html">Login here</a></p>
+            </div>
+        </div>
+    </div>
+
     <script>
-// Remove per-page constant duplicates; reuse from common.js
-async function submitToSheetDB(data){
-  try{
-    const res = await fetch(SHEETDB_API_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SHEETDB_API_TOKEN}`},
-      body: JSON.stringify({ data:[data] })
-    });
-    return res.ok;
-  }catch{return false;}
-}
+        // SheetDB API Configuration
+        const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
+
+        // Helper function to submit data to SheetDB
+        async function submitToSheetDB(data) {
+            try {
+                const response = await fetch(SHEETDB_API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ data })
+                });
+                return response.ok;
+            } catch (error) {
+                console.error("SheetDB submission error:", error);
+                return false;
+            }
+        }
 
         // Modal functionality
         function openModal(modalId) {

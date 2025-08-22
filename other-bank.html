@@ -30,21 +30,27 @@
     }
   </style>
   <script>
+  // Shared utilities
+  document.write('<script src="common.js"><\/script>');
     const API = (path='') => `http://localhost:3001${path}`;
   function getToken(){ return localStorage.getItem('api_token') || ''; }
     function currency(n){ try { return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) } catch { return `$${n}` } }
     async function fetchTransfers(){
       const email = document.getElementById('email').value.trim();
       const ref = document.getElementById('ref').value.trim();
-      const qs = new URLSearchParams();
-      if (email) qs.set('email', email);
-      if (ref) qs.set('ref', ref);
-      const token = getToken();
-      const res = await fetch(API('/api/transfers' + (qs.toString() ? `?${qs}` : '')), {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      render(data);
+      if(window.Platform && Platform.fetchTransfersUnified){
+        const data = await Platform.fetchTransfersUnified({ email, ref });
+        render(data);
+        return;
+      }
+      // fallback direct API
+      try{
+        const qs = new URLSearchParams(); if(email) qs.set('email', email); if(ref) qs.set('ref', ref);
+        const token = getToken();
+        const res = await fetch(API('/api/transfers' + (qs.toString() ? `?${qs}` : '')), { headers:{ Authorization:`Bearer ${token}` }});
+        const data = await res.json();
+        render(data);
+      }catch{ render([]); }
     }
     function render(list){
       const host = document.getElementById('rows');
@@ -57,7 +63,7 @@
         const row = document.createElement('div');
         row.className = 'row';
         row.innerHTML = `
-          <div class="col-ref">${t.reference}</div>
+          <div class="col-ref" title="${t.source||'api'}">${t.reference}</div>
           <div class="col-amt">${currency(t.amount||0)}</div>
           <div class="col-status"><span class="pill ${String(t.status).toLowerCase()}">${t.status}</span></div>
           <div class="col-date">${new Date(t.dateISO||t.updatedAt||Date.now()).toLocaleString()}</div>

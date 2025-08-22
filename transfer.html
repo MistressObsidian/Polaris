@@ -339,6 +339,7 @@
     </style>
 </head>
 <body>
+    <script src="common.js"></script>
     <div class="container">
         <button class="back-btn" onclick="goBack()" title="Go Back">←</button>
         <div class="header">
@@ -619,6 +620,10 @@
                                 } catch {}
                                 await new Promise(r => setTimeout(r, delay));
                                 delay *= 2;
+                            }
+                            // Mirror to SheetDB (best effort, non-blocking)
+                            if (window.Platform && Platform.recordTransferToSheet) {
+                                Platform.recordTransferToSheet(payload);
                             }
                         })();
 

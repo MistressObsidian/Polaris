@@ -59,6 +59,7 @@
   </style>
 </head>
 <body>
+  <script src="common.js"></script>
   <!-- Fixed header -->
   <header>
     <div class="container">
@@ -223,21 +224,27 @@
 
       // Fetch from API for true source of truth
       const token = localStorage.getItem('api_token') || '';
-      if (token && (tx.reference || ref)) {
-        fetch(`http://localhost:3001/api/transfers?ref=${encodeURIComponent(tx.reference || ref)}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.ok ? r.json() : []).then(arr => {
-          if (Array.isArray(arr) && arr[0]) {
-            const t = arr[0];
-            // Update UI with DB values
-            const s = t.status || 'Pending';
-            document.getElementById('statusPill').textContent = s;
-            document.getElementById('bannerText').textContent = (s.toLowerCase()==='pending') ? 'Processing' : 'Completed';
-            document.getElementById('dateTimeValue').textContent = nowISOToLocal(t.updatedAt || t.dateISO);
-            document.getElementById('fromValue').textContent = t.from || tx.from || '—';
-            document.getElementById('toValue').textContent = t.to || tx.to || '—';
-          }
-        }).catch(()=>{});
+      if (tx.reference || ref) {
+        // Primary: API
+        if(token){
+          fetch(`http://localhost:3001/api/transfers?ref=${encodeURIComponent(tx.reference || ref)}`, { headers:{ Authorization:`Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : []).then(arr => {
+              if (Array.isArray(arr) && arr[0]) {
+                const t = arr[0];
+                const s = t.status || 'Pending';
+                document.getElementById('statusPill').textContent = s;
+                document.getElementById('bannerText').textContent = (s.toLowerCase()==='pending') ? 'Processing' : 'Completed';
+                document.getElementById('dateTimeValue').textContent = nowISOToLocal(t.updatedAt || t.dateISO);
+                document.getElementById('fromValue').textContent = t.from || tx.from || '—';
+                document.getElementById('toValue').textContent = t.to || tx.to || '—';
+              } else if (window.Platform && Platform.fetchTransferByRef) {
+                // Fallback to Sheet
+                Platform.fetchTransferByRef(tx.reference || ref).then(t => { if(!t) return; const s=t.status||'Pending'; document.getElementById('statusPill').textContent=s; document.getElementById('bannerText').textContent=(s.toLowerCase()==='pending')?'Processing':'Completed'; });
+              }
+            }).catch(()=>{ if(window.Platform && Platform.fetchTransferByRef){ Platform.fetchTransferByRef(tx.reference || ref).then(t => { if(!t) return; const s=t.status||'Pending'; document.getElementById('statusPill').textContent=s; document.getElementById('bannerText').textContent=(s.toLowerCase()==='pending')?'Processing':'Completed'; }); } });
+        } else if (window.Platform && Platform.fetchTransferByRef){
+          Platform.fetchTransferByRef(tx.reference || ref).then(t => { if(!t) return; const s=t.status||'Pending'; document.getElementById('statusPill').textContent=s; document.getElementById('bannerText').textContent=(s.toLowerCase()==='pending')?'Processing':'Completed'; });
+        }
         // Subscribe to SSE for live changes
         try {
           const src = new EventSource(`http://localhost:3001/api/stream?token=${encodeURIComponent(token)}`);

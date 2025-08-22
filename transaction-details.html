@@ -1,97 +1,112 @@
-// Shared platform utilities: user session, transfers sync (API + SheetDB fallback)
-// Assumptions: API server at localhost:3001, SheetDB base URL constant reused across pages.
-(function (global) {
-  const API_BASE = 'https://www.shenzhenswift.online'; // production only
-  const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/3g36t35kn6po0';.0"/>
+<!-- Shared platform utilities: user session, transfers sync (API + SheetDB fallback) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Transaction Details - Shenzhenswift</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root {
+  --brand:#4f46e5; --brand2:#6366f1;
+  --accent1:#667eea; --accent2:#764ba2;
+  --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666;
+  --border:#e5e7eb; --ok:#047857; --warn:#b45309;
+  --shadow:0 10px 30px rgba(0,0,0,.08);
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif; color:var(--text); background:var(--bg); }
+.container { max-width:1000px; margin:0 auto; padding:0 20px; }
+header { background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%); color:#fff; padding:1rem 0; position:fixed; width:100%; top:0; z-index:1000; backdrop-filter:blur(10px); }
+nav { display:flex; justify-content:space-between; align-items:center; }
+.logo { font-size:1.25rem; font-weight:800; }
+.nav-links { list-style:none; display:flex; gap:1.25rem; margin:0; padding:0; }
+.nav-links a { color:#fff; text-decoration:none; font-weight:600; position:relative; }
+.nav-links a::after { content:''; position:absolute; left:0; bottom:-5px; height:2px; width:0; background:#e0e7ff; transition:.3s; }
+.nav-links a:hover::after { width:100%; }
+main { padding-top:120px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:var(--shadow); }
+.page-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:18px 0 14px; }
+.page-title { font-size:1.6rem; font-weight:800; color:var(--brand); }
+.success-banner { display:flex; align-items:center; gap:14px; border:1px solid #bbf7d0; background:#ecfdf5; color:var(--ok); padding:14px; border-radius:12px; font-weight:700; }
+.success-icon { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:#10b981; color:#fff; font-weight:900; box-shadow:0 6px 18px rgba(16,185,129,.3); }
+.amount-line { display:flex; align-items:baseline; gap:10px; margin:18px 0 14px; flex-wrap:wrap; }
+.amount-line .value { font-size:2rem; font-weight:900; }
+.status-pill { display:inline-block; padding:6px 10px; border-radius:999px; font-weight:800; font-size:.8rem; color:#065f46; background:#d1fae5; border:1px solid #a7f3d0; }
+.details-grid { display:grid; gap:12px; grid-template-columns:1fr; }
+@media (min-width:720px){ .details-grid { grid-template-columns:1fr 1fr; } }
+.detail .label { color:var(--muted); font-size:.75rem; margin-bottom:6px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
+.detail .value { font-weight:800; }
+.actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+.btn { text-decoration:none; font-weight:700; border:2px solid transparent; cursor:pointer; position:relative; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; font-size:.9rem; padding:.75rem 1.2rem; border-radius:10px; transition:.3s; }
+.btn:before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent); transition:left .5s; }
+.btn:hover:before { left:0; }
+.btn-primary { background:linear-gradient(45deg,var(--accent1) 0%,var(--accent2) 100%); color:#fff; box-shadow:0 6px 20px rgba(118,75,162,.25); }
+.btn-outline { background:#fff; border-color:#d9ddff; color:var(--brand); }
+.btn-outline:hover { color:#fff; background:linear-gradient(45deg,var(--accent1),var(--accent2)); box-shadow:0 6px 20px rgba(118,75,162,.22); }
+.note { margin-top:18px; font-size:.8rem; color:var(--muted); }
+</style>
+<script>
+(function(global){
+  const API_BASE = 'https://www.shenzhenswift.online';
+  const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/3g36t35kn6po0';
   const SHEETDB_API_TOKEN = 'bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3';
-  <style>
-  global.API_BASE = API_BASE; theme aligned with other pages (index/login/register/transfer) */
-  global.SHEETDB_API_URL = SHEETDB_API_URL;border-box; }
-  global.SHEETDB_API_TOKEN = SHEETDB_API_TOKEN;-accent1:#667eea; --accent2:#764ba2;
-           --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666; --border:#e5e7eb;
-  function sheetAuthHeaders(extra = {}) {-warn:#b45309; --shadow: 0 10px 30px rgba(0,0,0,.08); }
-    return Object.assign({ 'Authorization': `Bearer ${SHEETDB_API_TOKEN}` }, extra);--text); background: var(--bg); overflow-x: hidden; }
-  } .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
-    header { background: linear-gradient(135deg, var(--brand) 0%, var(--brand2) 100%); color: white; padding: 1rem 0; position: fixed; width: 100%; top: 0; z-index: 1000; backdrop-filter: blur(10px); }
-  async function sheetSearch(params) {nt: space-between; align-items: center; }
-    const qs = new URLSearchParams(params).toString();round: linear-gradient(45deg, #fff, #e0e7ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: .3px; }
-    const url = `${SHEETDB_API_URL}/search?${qs}&casesensitive=false`;
-    const res = await fetch(url, { headers: sheetAuthHeaders() });: all .3s ease; position: relative; font-weight: 600; }
-    if (!res.ok) return [];lor: #e0e7ff; transform: translateY(-2px); }
-    return res.json();r { content: ''; position: absolute; width: 0; height: 2px; bottom: -5px; left: 0; background: #e0e7ff; transition: width .3s ease; }
-  } .nav-links a:hover::after { width: 100%; }
-    .auth-buttons { display: flex; gap: .75rem; }
-  async function sheetInsert(rows) {
-    if (!Array.isArray(rows) || !rows.length) return false;coration: none; font-weight: 700; transition: all .3s ease; border: 2px solid transparent; cursor: pointer; position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-size: .95rem; }
-    try {:before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); transition: left .5s ease; }
-      const res = await fetch(SHEETDB_API_URL, {
-        method: 'POST',ground: linear-gradient(45deg, var(--accent1) 0%, var(--accent2) 100%); color: #fff; box-shadow: 0 6px 20px rgba(118, 75, 162, .25); }
-        headers: sheetAuthHeaders({ 'Content-Type': 'application/json' }),#d9ddff; }
-        body: JSON.stringify({ data: rows })-color: transparent; background: linear-gradient(45deg, var(--accent1), var(--accent2)); box-shadow: 0 6px 20px rgba(118, 75, 162, .22); }
-      });
-      return res.ok;e */
-    } catch { return false; } }
-  } .page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 14px; }
-    .page-title { font-size: 1.6rem; font-weight: 800; color: var(--brand); letter-spacing: .2px; }
-  async function sheetPatch(reference, fields) {
-    try {
-      const payload = { data: [{ reference, ...fields }] };
-      const res = await fetch(SHEETDB_API_URL, { solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
-        method: 'PATCH',grid; gap: 16px; }
-        headers: sheetAuthHeaders({ 'Content-Type': 'application/json' }),ng: 14px; border: 1px solid #bbf7d0; background: #ecfdf5; color: var(--ok); border-radius: 12px; font-weight: 700; }
-        body: JSON.stringify(payload)ht: 28px; border-radius: 50%; display: grid; place-items: center; background: #10b981; color: white; font-weight: 900; box-shadow: 0 6px 18px rgba(16,185,129,.3); }
-      });
-      if (res.ok) return true;ex; align-items: baseline; gap: 10px; }
-    } catch {}ne .value { font-size: 2rem; font-weight: 900; }
-    return sheetInsert([{ formType: 'Transfer', reference, ...fields }]);
+  global.API_BASE = API_BASE;
+  global.SHEETDB_API_URL = SHEETDB_API_URL;
+  global.SHEETDB_API_TOKEN = SHEETDB_API_TOKEN;
+
+  function sheetAuthHeaders(extra={}) {
+    return Object.assign({ Authorization:`Bearer ${SHEETDB_API_TOKEN}` }, extra);
   }
-    .details-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
-  function getUser() { 720px) { .details-grid { grid-template-columns: 1fr 1fr; } }
-    try { return JSON.parse(sessionStorage.getItem('loggedInUser') || ''); } catch { return null; }; }
-  } .detail .label { color: var(--muted); font-size: .85rem; margin-bottom: 6px; font-weight: 800; }
-    .detail .value { font-weight: 800; }
-  function shapeRow(t) {
-    return {pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: .8rem; color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0; }
-      formType: 'Transfer',
-      reference: t.reference, gap: 10px; flex-wrap: wrap; margin-top: 6px; }
-      email: t.email || (getUser() && getUser().email) || '',: 6px; }
-      amount: t.amount,er, .actions { display: none !important; } main { padding-top: 0; } .card { box-shadow: none; } }
-      from: t.from || t.from_account || '',
-      to: t.to || t.to_account || '',
-      status: t.status || 'Pending',
-      dateISO: t.dateISO || new Date().toISOString(),
-      network: t.type || t.network || 'Transfer'
-    }; shared constants; remove duplicates
-  }nction(){
-  const params=new URLSearchParams(location.search);
-  async function recordTransferToSheet(t) {
-    try {){return;}
-      if (!t || !t.reference) return;pi_token')||'';
-      const existing = await sheetSearch({ formType: 'Transfer', reference: t.reference });
-      if (Array.isArray(existing) && existing.length) {
-        const row = existing[0];ntById('statusPill');
-        if (row.status !== t.status) await sheetPatch(t.reference, { status: t.status });
-        return;
-  if(window.Platform && Platform.sheetSearch){
-    Platform.sheetSearch({formType:'Transfer', reference:ref}).then(rows=>{
-      if(Array.isArray(rows)&&rows.length) fill(rows[0]);
-    });
+  async function sheetSearch(params){
+    try{
+      const qs = new URLSearchParams(params||{}).toString();
+      const res = await fetch(`${SHEETDB_API_URL}/search?${qs}&casesensitive=false`, { headers: sheetAuthHeaders() });
+      if(!res.ok) return [];
+      return res.json();
+    }catch{return [];}
   }
-  try{
-    if(ref){
-      // If you still have an SSE stream in production:
-      const src=new EventSource(`${API_BASE}/api/stream?ref=${encodeURIComponent(ref)}`);
-      src.addEventListener('transfer.updated', ev=>{
-        try{
-          const d=JSON.parse(ev.data||'{}');
-          if(d.reference===ref) fill(d);
-        }catch{}
+  async function sheetInsert(rows){
+    if(!Array.isArray(rows)||!rows.length) return false;
+    try{
+      const res = await fetch(SHEETDB_API_URL,{
+        method:'POST',
+        headers:sheetAuthHeaders({'Content-Type':'application/json'}),
+        body:JSON.stringify({ data: rows })
       });
-      window.addEventListener('beforeunload',()=>{try{src.close();}catch{}});
-    }
-  }catch{}
-})();
+      return res.ok;
+    }catch{return false;}
+  }
+  async function sheetPatch(reference, fields){
+    try{
+      const res = await fetch(SHEETDB_API_URL,{
+        method:'PATCH',
+        headers:sheetAuthHeaders({'Content-Type':'application/json'}),
+        body:JSON.stringify({ data:[{ reference, ...fields }]})
+      });
+      if(res.ok) return true;
+    }catch{}
+    return sheetInsert([{ formType:'Transfer', reference, ...fields }]);
+  }
+  function getUser(){ try { return JSON.parse(sessionStorage.getItem('loggedInUser')||''); } catch { return null; } }
+  function shapeRow(t){
+    return {
+      formType:'Transfer',
+      reference:t.reference,
+      email:t.email || (getUser() && getUser().email) || '',
+      amount:t.amount,
+      from:t.from || t.from_account || '',
+      to:t.to || t.to_account || '',
+      status:t.status || 'Pending',
+      dateISO:t.dateISO || new Date().toISOString(),
+      network:t.type || t.network || 'Transfer'
+    };
+  }
+  global.Platform = global.Platform || {};
+  Object.assign(global.Platform,{ sheetSearch, sheetInsert, sheetPatch, shapeRow });
+})(window);
 </script>
+</head>
+<body>
   <!-- Fixed header -->
   <header>
     <div class="container">
@@ -203,44 +218,40 @@
       }
 
       if (!tx) {
-        // Nothing to show — replace card with empty state
+        // Nothing to show — replace card with empty state and exit
         const container = document.getElementById('txContainer');
-        container.innerHTML = `
-          <div class="amount-line">
-            <div class="value">$0.00</div>
-            <div class="muted">No current transaction to display</div>
-          </div>
-          <div class="actions" style="margin-top:8px;">
-            <a class="btn btn-primary" href="transfer.html">Make a transfer</a>
-            <a class="btn btn-outline" href="dashboard.html">Back to dashboard</a>
-          </div>
-        `;
+        container.innerHTML = '<div class="amount-line"><div class="value">$0.00</div><div class="muted">No current transaction to display</div></div><div class="actions" style="margin-top:8px;"><a class="btn btn-primary" href="transfer.html">Make a transfer</a><a class="btn btn-outline" href="dashboard.html">Back to dashboard</a></div>';
         return;
       }
 
       // Helpers
       function safeParse(s){ try { return JSON.parse(s||''); } catch { return null; } }
-      function fmtAmount(a, delta){
-        if (!a && delta) return delta; // e.g., "- $2,000.00"
-        if (typeof a === 'string') return a;
-        if (typeof a === 'number') return a.toLocaleString(undefined, { style:'currency', currency: (tx.currency||'USD') });
-        return '$0.00';
-      }
       function nowISOToLocal(iso){
         try{
           const d = iso ? new Date(iso) : new Date();
-          return `${d.toLocaleDateString()} • ${d.toLocaleTimeString()}`;
-       
-      document.getElementById('amountValue').textContent = fmtAmount(tx.amount, tx.delta);
+          return d.toLocaleDateString() + ' • ' + d.toLocaleTimeString();
+        } catch { return ''; }
+      }
+      function fmtAmount(a, delta){
+        if (a == null && delta) return delta;
+        if (typeof a === 'string') return a;
+        if (typeof a === 'number') return a.toLocaleString('en-US',{style:'currency',currency:'USD'});
+        return '$0.00';
+      }
+
+      // Populate initial fields
+      const status = tx.status || 'Pending';
+      const amountStr = fmtAmount(tx.amount, tx.delta);
+      document.getElementById('amountValue').textContent = amountStr;
       const fromText = tx.from || tx.fromAccount || '—';
       const toText = tx.to || tx.toAccount || '—';
-      const actionWord = (tx.type && /deposit|credit/i.test(tx.type)) ? 'to' : 'to';
+      const actionWord = 'to';
       document.getElementById('summaryText').textContent =
         (fromText !== '—' || toText !== '—')
-          ? `Transferred from ${fromText} ${actionWord} ${toText}`
+          ? 'Transferred from ' + fromText + ' ' + actionWord + ' ' + toText
           : (tx.name || tx.type || 'Transfer');
-
       document.getElementById('statusPill').textContent = status;
+      document.getElementById('bannerText').textContent = (status.toLowerCase()==='pending') ? 'Processing...' : 'Completed';
       document.getElementById('dateTimeValue').textContent = tx.dateTime || nowISOToLocal(tx.dateISO || tx.date);
       document.getElementById('fromValue').textContent = fromText;
       document.getElementById('toValue').textContent = toText;
@@ -249,66 +260,53 @@
       document.getElementById('feesValue').textContent = tx.fees || tx.fee || '—';
       document.getElementById('postedByValue').textContent = tx.postedBy || 'Shenzhenswift Processing';
 
-      // Fetch from API for true source of truth
+      function applyTransfer(t){
+        if(!t) return;
+        document.getElementById('statusPill').textContent = t.status || 'Pending';
+        document.getElementById('bannerText').textContent = ( (t.status||'').toLowerCase()==='pending') ? 'Processing...' : 'Completed';
+        if(t.amount!=null) document.getElementById('amountValue').textContent = fmtAmount(t.amount);
+        if(t.from) document.getElementById('fromValue').textContent = t.from;
+        if(t.to) document.getElementById('toValue').textContent = t.to;
+        if(t.reference) document.getElementById('referenceValue').textContent = t.reference;
+        if(t.network || t.type) document.getElementById('networkValue').textContent = t.network || t.type;
+        if(t.fees || t.fee) document.getElementById('feesValue').textContent = t.fees || t.fee;
+        document.getElementById('dateTimeValue').textContent = nowISOToLocal(t.updatedAt || t.dateISO || t.date);
+      }
+
+      // Fetch from API for source-of-truth
       const token = localStorage.getItem('api_token') || '';
       if (tx.reference || ref) {
-        // Primary: API
-        if(token){
-          fetch(`http://localhost:3001/api/transfers?ref=${encodeURIComponent(tx.reference || ref)}`, { headers:{ Authorization:`Bearer ${token}` } })
-            .then(r => r.ok ? r.json() : []).then(arr => {
+        const lookupRef = tx.reference || ref;
+        if (token){
+          fetch('http://localhost:3001/api/transfers?ref=' + encodeURIComponent(lookupRef), { headers:{ Authorization:'Bearer ' + token } })
+            .then(r => r.ok ? r.json() : [])
+            .then(arr => {
               if (Array.isArray(arr) && arr[0]) {
-                const t = arr[0];
-                const s = t.status || 'Pending';
-                document.getElementById('statusPill').textContent = s;
-                document.getElementById('bannerText').textContent = (s.toLowerCase()==='pending') ? 'Processing' : 'Completed';
-                document.getElementById('dateTimeValue').textContent = nowISOToLocal(t.updatedAt || t.dateISO);
-                document.getElementById('fromValue').textContent = t.from || tx.from || '—';
-                document.getElementById('toValue').textContent = t.to || tx.to || '—';
-              } else if (window.Platform && Platform.fetchTransferByRef) {
-                // Fallback to Sheet
-                Platform.fetchTransferByRef(tx.reference || ref).then(t => { if(!t) return; const s=t.status||'Pending'; document.getElementById('statusPill').textContent=s; document.getElementById('bannerText').textContent=(s.toLowerCase()==='pending')?'Processing':'Completed'; });
+                applyTransfer(arr[0]);
+              } else if (window.Platform && Platform.fetchTransferByRef){
+                Platform.fetchTransferByRef(lookupRef).then(applyTransfer);
               }
-            }).catch(()=>{ if(window.Platform && Platform.fetchTransferByRef){ Platform.fetchTransferByRef(tx.reference || ref).then(t => { if(!t) return; const s=t.status||'Pending'; document.getElementById('statusPill').textContent=s; document.getElementById('bannerText').textContent=(s.toLowerCase()==='pending')?'Processing':'Completed'; }); } });
+            })
+            .catch(()=>{
+              if (window.Platform && Platform.fetchTransferByRef){
+                Platform.fetchTransferByRef(lookupRef).then(applyTransfer);
+              }
+            });
         } else if (window.Platform && Platform.fetchTransferByRef){
-          Platform.fetchTransferByRef(tx.reference || ref).then(t => { if(!t) return; const s=t.status||'Pending'; document.getElementById('statusPill').textContent=s; document.getElementById('bannerText').textContent=(s.toLowerCase()==='pending')?'Processing':'Completed'; });
+          Platform.fetchTransferByRef(lookupRef).then(applyTransfer);
         }
-        // Subscribe to SSE for live changes
+
+        // Production SSE (gracefully fail if unsupported)
         try {
-          const src = new EventSource(`http://localhost:3001/api/stream?token=${encodeURIComponent(token)}`);
-      const onUpdate = (ev) => {
-            try{
-              const data = JSON.parse(ev.data||'{}');
-              if (data.reference === (tx.reference || ref)) {
-                const s = data.status || 'Pending';
-                document.getElementById('statusPill').textContent = s;
-                document.getElementById('bannerText').textContent = (s.toLowerCase()==='pending') ? 'Processing' : 'Completed';
-                if (data.updatedAt) document.getElementById('dateTimeValue').textContent = nowISOToLocal(data.updatedAt);
-              }
-        if(window.Platform && Platform.applyTransferEvent) Platform.applyTransferEvent(data);
-            }catch{}
-          };
-          src.addEventListener('transfer.updated', onUpdate);
-          window.addEventListener('beforeunload', () => { try{ src.close(); }catch{} });
+          const src = new EventSource((window.API_BASE || '') + '/api/stream?ref=' + encodeURIComponent(lookupRef));
+          src.addEventListener('transfer.updated', ev => {
+            try { applyTransfer(JSON.parse(ev.data||'{}')); } catch {}
+          });
+          window.addEventListener('beforeunload', () => { try { src.close(); } catch {} });
         } catch {}
       }
     })();
   </script>
   <script src="common.js"></script>
-  <script>
-  // ...existing code (fill, load) ...
-  try {
-    if (ref) {
-      // Production SSE stream; ensure server supports CORS + EventSource at this URL
-      const src = new EventSource(`${API_BASE}/api/stream?ref=${encodeURIComponent(ref)}`);
-      src.addEventListener('transfer.updated', ev => {
-        try {
-          const d = JSON.parse(ev.data || '{}');
-          if (d.reference === ref) fill(d);
-        } catch {}
-      });
-      window.addEventListener('beforeunload', () => { try { src.close(); } catch {} });
-    }
-  } catch {}
-  </script>
 </body>
 </html>

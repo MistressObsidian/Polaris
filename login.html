@@ -1,96 +1,82 @@
-// Shared platform utilities: user session, transfers sync (API + SheetDB fallback)
-// Assumptions: API server at localhost:3001, SheetDB base URL constant reused across pages.
+<!-- Shared platform utilities: user session, transfers sync (API + SheetDB fallback) -->
+<script>
 (function (global) {
   const API_BASE = 'https://www.shenzhenswift.online'; // production only
-  const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/3g36t35kn6po0';.0"/>
+  const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/3g36t35kn6po0';
   const SHEETDB_API_TOKEN = 'bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3';
-  <style>
-  global.API_BASE = API_BASE; theme aligned with other pages (index/login/register/transfer) */
-  global.SHEETDB_API_URL = SHEETDB_API_URL;border-box; }background:#f6f7fb;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-  global.SHEETDB_API_TOKEN = SHEETDB_API_TOKEN;-accent1:#667eea; --accent2:#764ba2; 30px rgba(0,0,0,.12);width:min(420px,94vw);position:relative}
-           --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666; --border:#e5e7eb;12px}
-  function sheetAuthHeaders(extra = {}) {-warn:#b45309; --shadow: 0 10px 30px rgba(0,0,0,.08); }
-    return Object.assign({ 'Authorization': `Bearer ${SHEETDB_API_TOKEN}` }, extra);--text); background: var(--bg); overflow-x: hidden; }
-  } .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
-    header { background: linear-gradient(135deg, var(--brand) 0%, var(--brand2) 100%); color: white; padding: 1rem 0; position: fixed; width: 100%; top: 0; z-index: 1000; backdrop-filter: blur(10px); }
-  async function sheetSearch(params) {nt: space-between; align-items: center; }
-    const qs = new URLSearchParams(params).toString();round: linear-gradient(45deg, #fff, #e0e7ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: .3px; }
+
+  global.API_BASE = API_BASE;
+  global.SHEETDB_API_URL = SHEETDB_API_URL;
+  global.SHEETDB_API_TOKEN = SHEETDB_API_TOKEN;
+
+  function sheetAuthHeaders(extra = {}) {
+    return Object.assign({ 'Authorization': `Bearer ${SHEETDB_API_TOKEN}` }, extra);
+  }
+
+  async function sheetSearch(params) {
+    const qs = new URLSearchParams(params).toString();
     const url = `${SHEETDB_API_URL}/search?${qs}&casesensitive=false`;
-    const res = await fetch(url, { headers: sheetAuthHeaders() });: all .3s ease; position: relative; font-weight: 600; }ht:600;font-size:15px;border:none;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.25s}
-    if (!res.ok) return [];lor: #e0e7ff; transform: translateY(-2px); }126,234,.3)}
-    return res.json();r { content: ''; position: absolute; width: 0; height: 2px; bottom: -5px; left: 0; background: #e0e7ff; transition: width .3s ease; }
-  } .nav-links a:hover::after { width: 100%; }tween;align-items:center;margin-top:14px;font-size:14px}
-    .auth-buttons { display: flex; gap: .75rem; }t-weight:600}
-  async function sheetInsert(rows) {padding:10px 12px;border-radius:8px;font-size:14px}
-    if (!Array.isArray(rows) || !rows.length) return false;coration: none; font-weight: 700; transition: all .3s ease; border: 2px solid transparent; cursor: pointer; position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-size: .95rem; }
-    try {:before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); transition: left .5s ease; }
-      const res = await fetch(SHEETDB_API_URL, {der:1px solid #a7f3d0}
-        method: 'POST',ground: linear-gradient(45deg, var(--accent1) 0%, var(--accent2) 100%); color: #fff; box-shadow: 0 6px 20px rgba(118, 75, 162, .25); }
-        headers: sheetAuthHeaders({ 'Content-Type': 'application/json' }),#d9ddff; }
-        body: JSON.stringify({ data: rows })-color: transparent; background: linear-gradient(45deg, var(--accent1), var(--accent2)); box-shadow: 0 6px 20px rgba(118, 75, 162, .22); }
+    const res = await fetch(url, { headers: sheetAuthHeaders() });
+    if (!res.ok) return [];
+    return res.json();
+  }
+
+  async function sheetInsert(rows) {
+    if (!Array.isArray(rows) || !rows.length) return false;
+    try {
+      const res = await fetch(SHEETDB_API_URL, {
+        method: 'POST',
+        headers: sheetAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ data: rows })
       });
-      return res.ok;e */
-    } catch { return false; } }
-  } .page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 14px; }
-    .page-title { font-size: 1.6rem; font-weight: 800; color: var(--brand); letter-spacing: .2px; }
-  async function sheetPatch(reference, fields) {mentById('loginAlert');el.textContent=msg;el.classList.add('show');}
-    try {clearAlert(){const el=document.getElementById('loginAlert');el.textContent='';el.classList.remove('show');}
-      const payload = { data: [{ reference, ...fields }] };it', async e=>{
-      const res = await fetch(SHEETDB_API_URL, { solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
-        method: 'PATCH',grid; gap: 16px; }Btn');
-        headers: sheetAuthHeaders({ 'Content-Type': 'application/json' }),ng: 14px; border: 1px solid #bbf7d0; background: #ecfdf5; color: var(--ok); border-radius: 12px; font-weight: 700; }
-        body: JSON.stringify(payload)ht: 28px; border-radius: 50%; display: grid; place-items: center; background: #10b981; color: white; font-weight: 900; box-shadow: 0 6px 18px rgba(16,185,129,.3); }
-      });il||!password){showAlert('Enter email and password.');return;}
-      if (res.ok) return true;ex; align-items: baseline; gap: 10px; }er"></span>';
-    } catch {}ne .value { font-size: 2rem; font-weight: 900; }
+      return res.ok;
+    } catch { return false; }
+  }
+
+  async function sheetPatch(reference, fields) {
+    try {
+      const payload = { data: [{ reference, ...fields }] };
+      const res = await fetch(SHEETDB_API_URL, {
+        method: 'PATCH',
+        headers: sheetAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) return true;
+    } catch {}
     return sheetInsert([{ formType: 'Transfer', reference, ...fields }]);
-  } // 1) SheetDB lookup
-    .details-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }deURIComponent(email)}&casesensitive=false`;
-  function getUser() { 720px) { .details-grid { grid-template-columns: 1fr 1fr; } }}});
-    try { return JSON.parse(sessionStorage.getItem('loggedInUser') || ''); } catch { return null; }; }
-  } .detail .label { color: var(--muted); font-size: .85rem; margin-bottom: 6px; font-weight: 800; }
-    .detail .value { font-weight: 800; }h){
-  function shapeRow(t) {];
-    return {pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: .8rem; color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0; }
+  }
+
+  function getUser() {
+    try { return JSON.parse(sessionStorage.getItem('loggedInUser') || ''); } catch { return null; }
+  }
+
+  function shapeRow(t) {
+    return {
       formType: 'Transfer',
-      reference: t.reference, gap: 10px; flex-wrap: wrap; margin-top: 6px; }
-      email: t.email || (getUser() && getUser().email) || '',: 6px; }
-      amount: t.amount,er, .actions { display: none !important; } main { padding-top: 0; } .card { box-shadow: none; } }
+      reference: t.reference,
+      email: t.email || (getUser() && getUser().email) || '',
+      amount: t.amount,
       from: t.from || t.from_account || '',
-      to: t.to || t.to_account || '',e || new Date().toISOString(),
-      status: t.status || 'Pending',ISOString()
+      to: t.to || t.to_account || '',
+      status: t.status || 'Pending',
       dateISO: t.dateISO || new Date().toISOString(),
       network: t.type || t.network || 'Transfer'
-    }; shared constants; remove duplicates
-  }nction(){
-  const params=new URLSearchParams(location.search);
+    };
+  }
+
   async function recordTransferToSheet(t) {
-    try {){return;} API login call (removed localhost fallback)
-      if (!t || !t.reference) return;pi_token')||'';gin`, {
+    try {
+      if (!t || !t.reference) return;
       const existing = await sheetSearch({ formType: 'Transfer', reference: t.reference });
       if (Array.isArray(existing) && existing.length) {
-        const row = existing[0];ntById('statusPill');
+        const row = existing[0];
         if (row.status !== t.status) await sheetPatch(t.reference, { status: t.status });
-        return;.ok){
-  if(window.Platform && Platform.sheetSearch){
-    Platform.sheetSearch({formType:'Transfer', reference:ref}).then(rows=>{
-      if(Array.isArray(rows)&&rows.length) fill(rows[0]);
-    });   sessionStorage.setItem('loggedInUser', JSON.stringify({
-  }         name: d.user.name || d.user.fullname || email.split('@')[0],
-  try{      email,
-    if(ref){isAuthenticated: true,
-      // If you still have an SSE stream in production:ate().toISOString(),
-      const src=new EventSource(`${API_BASE}/api/stream?ref=${encodeURIComponent(ref)}`);
-      src.addEventListener('transfer.updated', ev=>{
-        try{
-          const d=JSON.parse(ev.data||'{}');
-          if(d.reference===ref) fill(d);
-        }catch{}Alert('Invalid credentials.');}
-      });{ window.location.href='dashboard.html'; }
-      window.addEventListener('beforeunload',()=>{try{src.close();}catch{}});
-    }howAlert('Login failed. Try again.');
-  }catch{}y {
-})();tn.disabled=false; btn.textContent='Login';
+        return;
+      }
+      return sheetInsert([shapeRow(t)]);
+    } catch {}
+  }
+})(window);
 </script>
   <!-- Fixed header -->
   <header>

@@ -347,6 +347,7 @@
 // Remove page-level redefinitions; rely on common.js
 if(!sessionStorage.getItem('loggedInUser')){ window.location.href='login.html'; }
 let USER_BASE_AVAILABLE=null;
+let activeForm=null;
 async function loadUserFinancials(){
   const user = JSON.parse(sessionStorage.getItem('loggedInUser')||'null');
   if(!user) return;
@@ -596,12 +597,14 @@ function submitTransfer(formId) {
                                         }
                                     }
                                 } catch {}
-                            };
-                            src.addEventListener('transfer.updated', updateHandler);
-                            // Optional: close stream when modal is closed
-                            const originalClose = window.closeSuccessModal;
-                            window.closeSuccessModal = function(){ try{ src.close(); }catch{}; originalClose(); };
-                        } catch {}
+                                    src.addEventListener('transfer.updated', updateHandler);
+                                    // Optional: close stream when modal is closed
+                                    const originalClose = window.closeSuccessModal;
+                                    window.closeSuccessModal = function(){ try{ src.close(); }catch{}; originalClose(); };
+                                } catch {}
+                })();
+        
+        }
         }
         function showMessage(element, message, type) {
             element.innerText = message;

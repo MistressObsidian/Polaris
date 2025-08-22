@@ -52,6 +52,125 @@
 </head>
 <body>
   <script src="common.js"></script>
+  <script>
+// --- Added sync-enabled dashboard logic ---
+
+let BASE_AVAILABLE=228503.55;
+let TOTAL_BALANCE=228503.55;
+let currentUser=null;
+let syncIntervalId=null;
+
+function currency(n){
+  try{return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'});}catch{return '$'+n;}
+}
+
+function getLocalTransfers(){
+  return Platform.getLocalTransfers ? Platform.getLocalTransfers() : [];
+}
+
+function saveLocalTransfers(list){
+  if(Platform.saveLocalTransfers) Platform.saveLocalTransfers(list);
+  else sessionStorage.setItem('initiatedTransactions', JSON.stringify(list));
+}
+
+async function loadUserFinancials(){
+  if(!currentUser) return;
+  try{
+    const rows = await Platform.sheetSearch({formType:'Registration', email:currentUser.email});
+    if(Array.isArray(rows)&&rows.length){
+      const r=rows[0];
+      BASE_AVAILABLE = Number(r.baseAvailable||0);
+      TOTAL_BALANCE = Number(r.totalBalance||0);
+    }
+  }catch{}
+}
+
+function renderKPIs(){
+  const spent = getLocalTransfers()
+    .filter(t=>(t.status||'').toLowerCase()==='completed')
+    .reduce((s,t)=>s+(Number(t.amount)||0),0);
+  const available = Math.max(0, BASE_AVAILABLE - spent);
+  kpiWrap.innerHTML = `
+    <div class="card kpi"><div class="value">${currency(TOTAL_BALANCE)}</div><div class="label">Total</div></div>
+    <div class="card kpi"><div class="value">${currency(BASE_AVAILABLE)}</div><div class="label">Base</div></div>
+    <div class="card kpi"><div class="value">${currency(spent)}</div><div class="label">Spent</div></div>
+    <div class="card kpi"><div class="value">${currency(available)}</div><div class="label">Available</div></div>`;
+}
+
+function renderAccounts(){
+  accountsBody.innerHTML = `
+    <div class="account-row"><div><span class="pill">CHK</span>Everyday Checking</div><div>${currency(TOTAL_BALANCE)}</div></div>
+    <div class="account-row"><div><span class="pill" style="background:#d1fae5;color:#047857;">SAV</span>Savings Reserve</div><div>${currency(BASE_AVAILABLE)}</div></div>`;
+}
+
+function renderTransfers(){
+  const list = getLocalTransfers().slice().sort((a,b)=>(b.dateISO||'').localeCompare(a.dateISO||''));
+  txList.innerHTML = list.length ? list.slice(0,20).map(t=>{
+    const amt=Number(t.amount)||0;
+    const cls=amt>=0?'delta pos':'delta neg';
+    return `<div class="tx" data-ref="${t.reference}">
+      <div><strong>${t.reference}</strong><br><span style="color:#64748b">${t.status||'Pending'}</span></div>
+      <div class="${cls}">${currency(amt)}</div>
+    </div>`;
+  }).join('') : `<div class="empty">No transfers yet.</div>`;
+}
+
+function mergeTransfers(remote){
+  const local = getLocalTransfers();
+  const map = new Map(local.map(t=>[t.reference,t]));
+  remote.forEach(r=>{
+    if(!r.reference) return;
+    if(map.has(r.reference)){
+      map.set(r.reference, {...map.get(r.reference), ...r});
+    } else {
+      map.set(r.reference, r);
+    }
+  });
+  saveLocalTransfers(Array.from(map.values()));
+}
+
+async function syncTransfers(){
+  if(!currentUser) return;
+  try{
+    const rows = await Platform.sheetSearch({formType:'Transfer', email: currentUser.email});
+    if(Array.isArray(rows)){
+      mergeTransfers(rows);
+      renderTransfers();
+      renderKPIs();
+    }
+  }catch{}
+}
+
+async function fullRefresh(){
+  await loadUserFinancials();
+  await syncTransfers();
+  renderAccounts();
+  renderKPIs();
+}
+
+function startAutoSync(){
+  if(syncIntervalId) clearInterval(syncIntervalId);
+  syncIntervalId = setInterval(syncTransfers, 30000); // 30s
+}
+
+(function init(){
+  try{currentUser = JSON.parse(sessionStorage.getItem('loggedInUser')||'null');}catch{}
+  if(!currentUser || currentUser.isAuthenticated!==true){location.href='login.html';return;}
+  welcomeLine.textContent=`Welcome, ${(currentUser.name||currentUser.fullname||currentUser.email.split('@')[0])}`;
+  fullRefresh();
+  startAutoSync();
+  // UI refresh button (optional): press R key to force refresh
+  document.addEventListener('keydown',e=>{
+    if(e.key==='r' && (e.metaKey||e.ctrlKey)){
+      e.preventDefault();
+      fullRefresh();
+    }
+  });
+  document.getElementById('logoutLink')?.addEventListener('click',()=>{
+    sessionStorage.removeItem('loggedInUser');
+  });
+})();
+  </script>
   <header>
     <div class="container">
       <nav>
@@ -89,8 +208,8 @@
   </main>
 
   <script>
-  let BASE_AVAILABLE = 221540.20; // default base Available KPI before deductions
-  let TOTAL_BALANCE = 256780.00; // default total balance
+  BASE_AVAILABLE = 221540.20; // default base Available KPI before deductions
+  TOTAL_BALANCE = 256780.00; // default total balance
 
     // Gate: only logged-in, authenticated users (set by login/register after SheetDB confirm)
     const session = sessionStorage.getItem('loggedInUser');

@@ -472,6 +472,9 @@
         <div class="loading-spinner"></div>
     </div>
     <script>
+        const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
+        const SHEETDB_API_TOKEN = "bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3";
+
         let activeForm = null;
         let USER_BASE_AVAILABLE = null;
         const userSession = (function(){ try { return JSON.parse(sessionStorage.getItem('loggedInUser')||''); } catch { return null; } })();
@@ -645,11 +648,32 @@
                                 await new Promise(r => setTimeout(r, delay));
                                 delay *= 2;
                             }
-                            // Mirror to SheetDB (best effort, non-blocking)
-                            if (window.Platform && Platform.recordTransferToSheet) {
-                                Platform.recordTransferToSheet(payload);
-                            }
-                        })();
+                            // Send to SheetDB instead of local API
+                            (async () => {
+                                const payloadRow = {
+                                    formType: 'Transfer',
+                                    reference: ref,
+                                    email: user.email || '',
+                                    amount: amountNum,
+                                    from, to,
+                                    status: 'Pending',
+                                    dateISO: new Date().toISOString(),
+                                    network
+                                };
+                                try {
+                                    await fetch('https://sheetdb.io/api/v1/3g36t35kn6po0', {
+                                        method: 'POST',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${SHEETDB_API_TOKEN}`
+                                        },
+                                        body: JSON.stringify({ data: [ payloadRow ] })
+                                    });
+                                } catch {}
+                                if (window.Platform && Platform.recordTransferToSheet) {
+                                    Platform.recordTransferToSheet(payloadRow);
+                                }
+                            })();
 
                         submitBtn.classList.remove("loading");
                         submitBtn.classList.add("success");

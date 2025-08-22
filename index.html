@@ -1298,8 +1298,8 @@
     </div>
 
     <script>
-        // SheetDB API Configuration
         const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
+        const SHEETDB_API_TOKEN = "bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3";
 
         // Helper function to submit data to SheetDB
         async function submitToSheetDB(data) {
@@ -1307,7 +1307,8 @@
                 const response = await fetch(SHEETDB_API_URL, {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${SHEETDB_API_TOKEN}`
                     },
                     body: JSON.stringify({ data })
                 });

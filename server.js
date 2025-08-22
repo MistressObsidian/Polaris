@@ -25,6 +25,7 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'dev-secret';
 const WEBHOOK_TARGET = process.env.WEBHOOK_TARGET || '';
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SHEETDB_URL = process.env.SHEETDB_URL || 'https://sheetdb.io/api/v1/3g36t35kn6po0';
+const SHEETDB_TOKEN = process.env.SHEETDB_TOKEN || 'bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3';
 
 app.use(cors());
 app.use(express.json());
@@ -56,7 +57,7 @@ async function upsertUserToSheet(u){
   if(!u || !u.email) return;
   try {
     const searchUrl = `${SHEETDB_URL}/search?formType=Registration&email=${encodeURIComponent(u.email)}&casesensitive=false`;
-    const res = await fetch(searchUrl);
+    const res = await fetch(searchUrl, { headers:{ 'Authorization':`Bearer ${SHEETDB_TOKEN}` } });
     let exists = false;
     if(res.ok){
       try { const rows = await res.json(); exists = Array.isArray(rows) && rows.length > 0; } catch {}
@@ -70,14 +71,20 @@ async function upsertUserToSheet(u){
       password: u.password || ''
     };
     if(exists){
-      // Attempt PATCH first
       const patchPayload = { data: [ baseRow ] };
-      const pRes = await fetch(SHEETDB_URL, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(patchPayload) }).catch(()=>null);
-      if(pRes && pRes.ok) return; // updated
-      // Fallback: POST (could duplicate but ensures latest visible)
+      const pRes = await fetch(SHEETDB_URL, {
+        method:'PATCH',
+        headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${SHEETDB_TOKEN}` },
+        body: JSON.stringify(patchPayload)
+      }).catch(()=>null);
+      if(pRes && pRes.ok) return;
     }
     const createPayload = { data: [ baseRow ] };
-    await fetch(SHEETDB_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(createPayload) }).catch(()=>{});
+    await fetch(SHEETDB_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${SHEETDB_TOKEN}` },
+      body: JSON.stringify(createPayload)
+    }).catch(()=>{});
   } catch {}
 }
 
@@ -362,7 +369,7 @@ app.get('/dashboard/:email', (req, res) => {
   if (!fs.existsSync(dashboardPath)) return res.status(500).send('Dashboard template missing');
   try {
     let html = fs.readFileSync(dashboardPath, 'utf8');
-    // Inject a script before </head> setting a forced user email variable consumed by common.js
+    // Inject a script before </head> setting a forced user variable consumed by common.js
     const injectTag = `<script>window.__FORCED_USER_EMAIL__ = ${JSON.stringify(rawEmail)};</script>`;
     if (html.includes('</head>')) {
       html = html.replace('</head>', `${injectTag}\n</head>`);

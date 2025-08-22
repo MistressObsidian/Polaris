@@ -1,127 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Other Bank - Incoming Transfers</title>
+  <meta charset="UTF-8"/>>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>>
+  <title>Transaction Details • Shenzhenswift</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f5f6fa; color: #222; }
-    header { background: linear-gradient(135deg, #4c6ef5, #9775fa); color: #fff; padding: 18px 16px; }
-    header h1 { margin: 0; font-size: 1.25rem; }
-    main { padding: 16px; max-width: 900px; margin: 0 auto; }
-    .card { background: #fff; border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 16px; }
-    .row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 8px; padding: 10px 0; border-bottom: 1px solid #eee; }
-    .row.header { font-weight: 700; color: #555; }
-    .row:last-child { border-bottom: none; }
-    .pill { padding: 4px 8px; border-radius: 999px; font-size: 12px; display: inline-block; }
-    .pill.pending { background: #fff3cd; color: #7a5d00; }
-    .pill.completed { background: #d4edda; color: #155724; }
-    .controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-    input, select, button { padding: 8px 10px; border-radius: 8px; border: 1px solid #ddd; }
-    button.primary { background: #4c6ef5; border: none; color: #fff; }
-  .footer { margin-top: 10px; color: #666; font-size: 12px; }
-    @media (max-width: 720px) {
+    /* Base theme aligned with other pages (index/login/register/transfer) */ns-serif; margin: 0; background: #f5f6fa; color: #222; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }, #9775fa); color: #fff; padding: 18px 16px; }
+    :root{ --brand:#1e3c72; --brand2:#2a5298; --accent1:#667eea; --accent2:#764ba2;
+           --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666; --border:#e5e7eb;
+           --ok:#047857; --err:#b91c1c; --warn:#b45309; --shadow: 0 10px 30px rgba(0,0,0,.08); }ing: 16px; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--text); background: var(--bg); overflow-x: hidden; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+    header { background: linear-gradient(135deg, var(--brand) 0%, var(--brand2) 100%); color: white; padding: 1rem 0; position: fixed; width: 100%; top: 0; z-index: 1000; backdrop-filter: blur(10px); }
+    nav { display: flex; justify-content: space-between; align-items: center; }nline-block; }
+    .logo { font-size: 1.6rem; font-weight: 800; background: linear-gradient(45deg, #fff, #e0e7ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: .3px; }
+    .nav-links { display: flex; list-style: none; gap: 1.5rem; }
+    .nav-links a { color: white; text-decoration: none; transition: all .3s ease; position: relative; font-weight: 600; }
+    .nav-links a:hover { color: #e0e7ff; transform: translateY(-2px); }er: 1px solid #ddd; }
+    .nav-links a::after { content: ''; position: absolute; width: 0; height: 2px; bottom: -5px; left: 0; background: #e0e7ff; transition: width .3s ease; }
+    .nav-links a:hover::after { width: 100%; }t-size: 12px; }
+    .auth-buttons { display: flex; gap: .75rem; }
       .row { grid-template-columns: 1.2fr 1fr 1fr 1fr; }
-      .col-to { display: none; }
-    }
-    @media (max-width: 460px) {
-      .row { grid-template-columns: 1fr 1fr 1fr; }
-      .col-date, .col-to { display: none; }
-    }
+    .btn { padding: 10px 18px; border-radius: 12px; text-decoration: none; font-weight: 700; transition: all .3s ease; border: 2px solid transparent; cursor: pointer; position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-size: .95rem; }
+    .btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); transition: left .5s ease; }
+    .btn:hover::before { left: 100%; }
+    .btn-primary { background: linear-gradient(45deg, var(--accent1) 0%, var(--accent2) 100%); color: #fff; box-shadow: 0 6px 20px rgba(118, 75, 162, .25); }
+    .btn-outline { background: #fff; color: var(--accent2); border-color: #d9ddff; }
+    .btn-outline:hover { color: #fff; border-color: transparent; background: linear-gradient(45deg, var(--accent1), var(--accent2)); box-shadow: 0 6px 20px rgba(118, 75, 162, .22); }
   </style>
-  <script>
-  // Shared utilities
-  document.write('<script src="common.js"><\/script>');
-    const API = (path='') => `http://localhost:3001${path}`;
-  function getToken(){ return localStorage.getItem('api_token') || ''; }
-    function currency(n){ try { return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) } catch { return `$${n}` } }
-    async function fetchTransfers(){
+    /* Page structure */
+    main { padding-top: 96px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 14px; }
+    .page-title { font-size: 1.6rem; font-weight: 800; color: var(--brand); letter-spacing: .2px; }
+    .subtitle { color: var(--muted); }
       const email = document.getElementById('email').value.trim();
-      const ref = document.getElementById('ref').value.trim();
-      if(window.Platform && Platform.fetchTransfersUnified){
-        const data = await Platform.fetchTransfersUnified({ email, ref });
-        render(data);
-        return;
+    /* Card and content */.getElementById('ref').value.trim();
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
+    .confirm { display: grid; gap: 16px; }ransfersUnified({ email, ref });
+    .success-banner { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid #bbf7d0; background: #ecfdf5; color: var(--ok); border-radius: 12px; font-weight: 700; }
+    .success-icon { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #10b981; color: white; font-weight: 900; box-shadow: 0 6px 18px rgba(16,185,129,.3); }
       }
-      // fallback direct API
-      try{
-        const qs = new URLSearchParams(); if(email) qs.set('email', email); if(ref) qs.set('ref', ref);
-        const token = getToken();
-        const res = await fetch(API('/api/transfers' + (qs.toString() ? `?${qs}` : '')), { headers:{ Authorization:`Bearer ${token}` }});
-        const data = await res.json();
-        render(data);
-      }catch{ render([]); }
-    }
-    function render(list){
-      const host = document.getElementById('rows');
-      host.innerHTML = '';
-      if (!list || !list.length){
-        host.innerHTML = '<div style="padding:10px;color:#777;">No transfers found.</div>';
-        return;
-      }
-      for (const t of list){
-        const row = document.createElement('div');
-        row.className = 'row';
-        row.innerHTML = `
-          <div class="col-ref" title="${t.source||'api'}">${t.reference}</div>
-          <div class="col-amt">${currency(t.amount||0)}</div>
-          <div class="col-status"><span class="pill ${String(t.status).toLowerCase()}">${t.status}</span></div>
-          <div class="col-date">${new Date(t.dateISO||t.updatedAt||Date.now()).toLocaleString()}</div>
-          <div class="col-to">${t.to || ''}</div>
-        `;
-        host.appendChild(row);
-      }
-    }
+    .amount-line { display: flex; align-items: baseline; gap: 10px; }
+    .amount-line .value { font-size: 2rem; font-weight: 900; }r' });
+    .amount-line .muted { color: var(--muted); }
+        if(ref) params.set('reference', ref);
+    .details-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }asesensitive=false`);
+    @media (min-width: 720px) { .details-grid { grid-template-columns: 1fr 1fr; } }
+    .detail { padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }eISO, to:r.to })));
+    .detail .label { color: var(--muted); font-size: .85rem; margin-bottom: 6px; font-weight: 800; }
+    .detail .value { font-weight: 800; }
     async function markCompleted(){
-      const ref = prompt('Enter reference to mark Completed:');
-      if (!ref) return;
-      const token = getToken();
-      await fetch(API(`/api/transfers/${encodeURIComponent(ref)}`), {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: 'Completed' })
-      });
-      fetchTransfers();
-    }
-    function startSSE(){
-      const token = getToken();
-      const src = new EventSource(API('/api/stream') + `?token=${encodeURIComponent(token)}`, { withCredentials: false });
-  const handler = (ev) => { try { const data = JSON.parse(ev.data||'{}'); if(window.Platform && Platform.applyTransferEvent) Platform.applyTransferEvent(data); } catch{}; fetchTransfers(); };
-  src.addEventListener('transfer.created', handler);
-  src.addEventListener('transfer.updated', handler);
-      src.addEventListener('error', () => {/* no-op for demo */});
-    }
-    window.addEventListener('DOMContentLoaded', () => {
-      fetchTransfers();
-      document.getElementById('refresh').addEventListener('click', fetchTransfers);
-      document.getElementById('markCompleted').addEventListener('click', markCompleted);
-      const tokenInput = document.getElementById('token');
-      tokenInput.value = getToken();
-      tokenInput.addEventListener('change', () => { localStorage.setItem('api_token', tokenInput.value.trim()); fetchTransfers(); startSSE(); });
-      startSSE();
-    });
-  </script>
-  </head>
-<body>
-  <header><h1>Other Bank — Incoming Transfers</h1></header>
-  <main>
-    <div class="card">
-      <div class="controls">
-        <input id="token" type="text" placeholder="API token" style="min-width:240px" />
-        <input id="email" type="email" placeholder="Filter by email (optional)" />
-        <input id="ref" type="text" placeholder="Filter by reference (optional)" />
-        <button id="refresh" class="primary">Refresh</button>
-        <button id="markCompleted">Mark Completed</button>
-      </div>
-      <div class="row header">
-        <div>Reference</div>
-        <div>Amount</div>
-        <div>Status</div>
-        <div class="col-date">Updated</div>
-        <div class="col-to">To</div>
-      </div>
-      <div id="rows"></div>
-  <div class="footer">Live updates enabled via SSE. You can still use Refresh to re-sync filters.</div>
+    .status-pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: .8rem; color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0; }
+      if(!ref) return;
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+    .note { color: var(--muted); font-size: .9rem; margin-top: 6px; }
+    @media print { header, .actions { display: none !important; } main { padding-top: 0; } .card { box-shadow: none; } }
+  </style>dy: JSON.stringify({ data:[{ formType:'Transfer', reference: ref, status:'Completed' }] })
+</head>).catch(()=>{});
+<body>fetchTransfers();
+  <script src="common.js"></script>
+  <!-- Fixed header -->{
+  <header>SE removed (not supported); optional: periodic refresh
+    <div class="container">sfers, 15000);
+      <nav>
+        <div class="logo">Shenzhenswift</div>', () => {
+        <ul class="nav-links">
+          <li><a href="dashboard.html">Home</a></li>tener('click', fetchTransfers);
+          <li><a href="transfer.html">Transfer</a></li>Listener('click', markCompleted);
+          <li><a href="#">Cards</a></li>mentById('token');
+          <li><a href="#">Support</a></li>
+        </ul>put.addEventListener('change', () => { localStorage.setItem('api_token', tokenInput.value.trim()); fetchTransfers(); startSSE(); });
+      </nav>SE();
     </div>
-  </main>
-</body>
-</html>
+  </header>
+  </head>
+  <!-- Main content -->
+  <main>r><h1>Other Bank — Incoming Transfers</h1></header>
+    <div class="container">
+      <div class="page-header">
+        <div>ass="controls">
+          <div class="page-title">Transaction details</div>n" style="min-width:240px" />
+          <div class="subtitle">Confirmation and breakdown of your recent transaction</div>
+        </div> id="ref" type="text" placeholder="Filter by reference (optional)" />
+      </div>ton id="refresh" class="primary">Refresh</button>
+        <button id="markCompleted">Mark Completed</button>
+      <section class="card confirm" id="txContainer">
+        <div class="success-banner">
+          <div class="success-icon">✓</div>
+          <div id="bannerText">Processing...</div>
+        </div>tatus</div>
+        <div class="col-date">Updated</div>
+        <div class="amount-line">iv>
+          <div class="value" id="amountValue">$0.00</div>
+          <div class="muted" id="summaryText">—</div>
+        </div>footer">Live updates enabled via SSE. You can still use Refresh to re-sync filters.</div>
+    </div>
+        <div class="details-grid">
+          <div class="detail">
+            <div class="label">Status</div>
+            <div class="value"><span class="status-pill" id="statusPill">Pending</span></div>          </div>          <div class="detail">            <div class="label">Date & time</div>            <div class="value" id="dateTimeValue">—</div>          </div>          <div class="detail">            <div class="label">From account</div>            <div class="value" id="fromValue">—</div>          </div>          <div class="detail">            <div class="label">To account</div>            <div class="value" id="toValue">—</div>          </div>          <div class="detail">            <div class="label">Reference / ID</div>            <div class="value" id="referenceValue">—</div>          </div>          <div class="detail">            <div class="label">Network / Type</div>            <div class="value" id="networkValue">—</div>          </div>          <div class="detail">            <div class="label">Fees</div>            <div class="value" id="feesValue">—</div>          </div>          <div class="detail">            <div class="label">Posted by</div>            <div class="value" id="postedByValue">Shenzhenswift Processing</div>          </div>        </div>        <div class="actions">          <button class="btn btn-outline" onclick="window.print()">Download receipt</button>          <a class="btn btn-primary" href="transfer.html">Make another transfer</a>          <a class="btn btn-outline" href="dashboard.html">Back to dashboard</a>        </div>        <div class="note">Transfers between your Shenzhenswift accounts usually post instantly. External transfers may take 1–3 business days.</div>      </section>      <div style="height:24px;"></div>    </div>  </main>  <script>    // Build the page from only the current transaction:    // - If ?ref=<id> present, show that tx    // - Else show the most recent initiated transaction for the logged-in user    (function(){      const user = safeParse(sessionStorage.getItem('loggedInUser')) || {};      let list = safeParse(sessionStorage.getItem('initiatedTransactions')) || [];      // Keep only this user's transactions if email is stored      if (user.email) {        list = list.filter(t => !t.email || t.email === user.email);      }      const params = new URLSearchParams(location.search);      const ref = params.get('ref') || params.get('id') || params.get('reference');  let tx = null;      if (ref) {        tx = list.find(t => (t.reference || t.ref || t.id) === ref) || null;      }      if (!tx) {        // Use the most recent one (assuming you unshift on creation)        tx = list[0] || null;      }      if (!tx) {        // Nothing to show — replace card with empty state        const container = document.getElementById('txContainer');        container.innerHTML = `          <div class="amount-line">            <div class="value">$0.00</div>            <div class="muted">No current transaction to display</div>          </div>          <div class="actions" style="margin-top:8px;">            <a class="btn btn-primary" href="transfer.html">Make a transfer</a>            <a class="btn btn-outline" href="dashboard.html">Back to dashboard</a>          </div>        `;        return;      }      // Helpers      function safeParse(s){ try { return JSON.parse(s||''); } catch { return null; } }      function fmtAmount(a, delta){        if (!a && delta) return delta; // e.g., "- $2,000.00"        if (typeof a === 'string') return a;        if (typeof a === 'number') return a.toLocaleString(undefined, { style:'currency', currency: (tx.currency||'USD') });        return '$0.00';      }      function nowISOToLocal(iso){        try{          const d = iso ? new Date(iso) : new Date();          return `${d.toLocaleDateString()} • ${d.toLocaleTimeString()}`;        }catch{ return '—'; }      }  // Populate UI from local data first      const status = tx.status || 'Pending';      document.getElementById('bannerText').textContent = (status.toLowerCase()==='pending') ? 'Processing' : 'Completed';      document.getElementById('amountValue').textContent = fmtAmount(tx.amount, tx.delta);      const fromText = tx.from || tx.fromAccount || '—';      const toText = tx.to || tx.toAccount || '—';      const actionWord = (tx.type && /deposit|credit/i.test(tx.type)) ? 'to' : 'to';      document.getElementById('summaryText').textContent =        (fromText !== '—' || toText !== '—')          ? `Transferred from ${fromText} ${actionWord} ${toText}`          : (tx.name || tx.type || 'Transfer');      document.getElementById('statusPill').textContent = status;      document.getElementById('dateTimeValue').textContent = tx.dateTime || nowISOToLocal(tx.dateISO || tx.date);      document.getElementById('fromValue').textContent = fromText;      document.getElementById('toValue').textContent = toText;      document.getElementById('referenceValue').textContent = tx.reference || tx.ref || tx.id || '—';      document.getElementById('networkValue').textContent = tx.network || tx.type || 'Transfer';      document.getElementById('feesValue').textContent = tx.fees || tx.fee || '—';      document.getElementById('postedByValue').textContent = tx.postedBy || 'Shenzhenswift Processing';      // Fetch from API for true source of truth      const token = ''; // token unused with SheetDB      if (tx.reference || ref) {        const theRef = tx.reference || ref;        fetch(`https://sheetdb.io/api/v1/3g36t35kn6po0/search?formType=Transfer&reference=${encodeURIComponent(theRef)}&casesensitive=false`)          .then(r=>r.ok?r.json():[])          .then(arr=>{            if(Array.isArray(arr)&&arr[0]){              const t = arr[0];              const s = t.status || 'Pending';              document.getElementById('statusPill').textContent = s;              document.getElementById('bannerText').textContent = (s.toLowerCase()==='pending') ? 'Processing' : 'Completed';              document.getElementById('dateTimeValue').textContent = new Date(t.dateISO||Date.now()).toLocaleString();              document.getElementById('fromValue').textContent = t.from || tx.from || '—';              document.getElementById('toValue').textContent = t.to || tx.to || '—';            } else if (window.Platform && Platform.fetchTransferByRef){              Platform.fetchTransferByRef(theRef).then(t=>{/* fallback */});            }          }).catch(()=>{});      }    })();  </script></body></html>

@@ -3,37 +3,44 @@
 (function(global){
   const API_BASE = 'http://localhost:3001';
   const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/3g36t35kn6po0';
-  function getApiToken(){ return localStorage.getItem('api_token') || ''; }
-  function getUser(){
-    let u = null;
-    try { u = JSON.parse(sessionStorage.getItem('loggedInUser')||''); } catch { u = null; }
-    // If no stored session but a forced user email was injected by dynamic dashboard route, synthesize a lightweight user object
-    if(!u && typeof window !== 'undefined' && window.__FORCED_USER_EMAIL__){
-      u = { email: window.__FORCED_USER_EMAIL__ };
-    }
-    return u;
+  const SHEETDB_API_TOKEN = 'bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3';
+
+  function sheetAuthHeaders(extra={}){
+    return Object.assign({'Authorization': `Bearer ${SHEETDB_API_TOKEN}`}, extra);
   }
 
   // --- Sheet helpers ---
   async function sheetSearch(params){
     const qs = new URLSearchParams(params).toString();
     const url = `${SHEETDB_API_URL}/search?${qs}&casesensitive=false`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: sheetAuthHeaders() });
     if(!res.ok) return [];
     return res.json();
   }
   async function sheetInsert(rows){
     if(!Array.isArray(rows) || !rows.length) return false;
-    try{ const res = await fetch(SHEETDB_API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ data: rows }) }); return res.ok; }catch{ return false; }
+    try {
+      const res = await fetch(SHEETDB_API_URL, {
+        method:'POST',
+        headers: sheetAuthHeaders({'Content-Type':'application/json'}),
+        body: JSON.stringify({ data: rows })
+      });
+      return res.ok;
+    } catch { return false; }
   }
   async function sheetPatch(reference, fields){
-    // Best-effort update: attempt PATCH (if supported); fallback to new row insert (may duplicate but keeps latest status visible)
     try {
       const payload = { data: [{ reference, ...fields }] };
-      const res = await fetch(SHEETDB_API_URL, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const res = await fetch(SHEETDB_API_URL, {
+        method:'PATCH',
+        headers: sheetAuthHeaders({'Content-Type':'application/json'}),
+        body: JSON.stringify(payload)
+      });
       if(res.ok) return true;
     } catch {}
-    try { return sheetInsert([{ formType:'Transfer', reference, ...fields }]); } catch { return false; }
+    try {
+      return sheetInsert([{ formType:'Transfer', reference, ...fields }]);
+    } catch { return false; }
   }
 
   function shapeRow(t){

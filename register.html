@@ -91,6 +91,7 @@
 
   <script>
   const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
+  const SHEETDB_API_TOKEN = "bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3";
 
   function showError(msg){
     const el = document.getElementById('regAlert');
@@ -144,7 +145,7 @@
     try {
       // 1) Check duplicates
       const searchUrl = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
-      const sRes = await fetch(searchUrl);
+      const sRes = await fetch(searchUrl, { headers:{ 'Authorization': `Bearer ${SHEETDB_API_TOKEN}` } });
       const rows = await sRes.json();
       if (Array.isArray(rows) && rows.length > 0) {
         showError('This email is already registered.');
@@ -166,7 +167,7 @@
       };
       const res = await fetch(SHEETDB_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${SHEETDB_API_TOKEN}` },
         body: JSON.stringify(payload)
       });
       if (!res.ok) {

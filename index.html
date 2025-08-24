@@ -3,8 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shenzhenswift - Money Transfer & Banking Services</title>
+    <title>Shenzhenswift - Premier Digital Banking & Financial Services</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #7c3aed;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,180 +27,258 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             overflow-x: hidden;
+            background: #0a0e27;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        /* Header */
-        header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 1rem 0;
+        /* Animated Background */
+        .hero-background {
             position: fixed;
-            width: 100%;
             top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 20%, #f093fb 40%, #f5576c 60%, #4facfe 80%, #00f2fe 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 20s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+        }
+
+        @keyframes float {
+            from {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        /* Glassmorphism Header */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
             z-index: 1000;
-            backdrop-filter: blur(10px);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+        }
+
+        header.scrolled {
+            background: rgba(15, 23, 42, 0.95);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         }
 
         nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 1rem 5%;
+            max-width: 1400px;
+            margin: 0 auto;
         }
 
-        .logo {
-            font-size: 2rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, #fff, #e0e7ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .nav-links {
+        /* Enhanced Logo */
+        .logo-container {
             display: flex;
-            list-style: none;
-            gap: 2rem;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
         }
 
-        .nav-links a {
-            color: white;
-            text-decoration: none;
-            transition: all 0.3s ease;
+        .logo-container:hover {
+            transform: scale(1.05);
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .logo-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+            z-index: 1;
             position: relative;
         }
 
-        .nav-links a:hover {
-            color: #e0e7ff;
-            transform: translateY(-2px);
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        /* Navigation */
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2.5rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            padding: 0.5rem 0;
         }
 
         .nav-links a::after {
             content: '';
             position: absolute;
+            bottom: 0;
+            left: 0;
             width: 0;
             height: 2px;
-            bottom: -5px;
-            left: 0;
-            background: #e0e7ff;
+            background: linear-gradient(90deg, #667eea, #764ba2);
             transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #fff;
         }
 
         .nav-links a:hover::after {
             width: 100%;
         }
 
-        .auth-buttons {
+        /* CTA Buttons */
+        .nav-cta {
             display: flex;
             gap: 1rem;
         }
 
         .btn {
-            padding: 10px 20px;
-            border-radius: 25px;
-            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
             font-weight: 600;
             transition: all 0.3s ease;
-            border: 2px solid transparent;
             cursor: pointer;
+            border: none;
+            font-size: 0.95rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
             position: relative;
             overflow: hidden;
         }
 
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
+        .btn-glass {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid var(--glass-border);
         }
 
-        .btn:hover::before {
-            left: 100%;
+        .btn-glass:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
         }
 
         .btn-primary {
-            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: white;
-            border: 2px solid white;
-        }
-
-        .btn-secondary:hover {
-            background: white;
-            color: #1e3c72;
-            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
         }
 
         /* Hero Section */
         .hero {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 150px 0 100px;
-            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 5% 80px;
             position: relative;
-            overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><radialGradient id="a" cx="50%" cy="50%" r="50%"><stop offset="0%" style="stop-color:rgba(255,255,255,0.1)"/><stop offset="100%" style="stop-color:rgba(255,255,255,0)"/></radialGradient></defs><circle cx="200" cy="200" r="100" fill="url(%23a)"/><circle cx="800" cy="300" r="150" fill="url(%23a)"/><circle cx="600" cy="700" r="120" fill="url(%23a)"/></svg>') no-repeat;
-            background-size: cover;
-            opacity: 0.1;
         }
 
         .hero-content {
-            position: relative;
-            z-index: 2;
+            max-width: 1400px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
         }
 
-        .hero h1 {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            opacity: 0;
-            animation: fadeInUp 1s ease 0.5s forwards;
-        }
-
-        .hero p {
-            font-size: 1.3rem;
-            margin-bottom: 2rem;
-            opacity: 0;
-            animation: fadeInUp 1s ease 0.7s forwards;
-        }
-
-        .hero-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 2rem;
-            opacity: 0;
-            animation: fadeInUp 1s ease 0.9s forwards;
+        .hero-text {
+            animation: fadeInUp 1s ease;
         }
 
         @keyframes fadeInUp {
@@ -199,10 +292,137 @@
             }
         }
 
+        .hero-text h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-text p {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        /* Credit Card Visual */
+        .hero-visual {
+            position: relative;
+            animation: fadeInUp 1s ease 0.2s backwards;
+        }
+
+        .floating-cards {
+            position: relative;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .credit-card {
+            position: absolute;
+            width: 350px;
+            height: 220px;
+            border-radius: 20px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .credit-card:nth-child(1) {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+            transform: rotate(-5deg) translateY(-20px);
+            z-index: 3;
+        }
+
+        .credit-card:nth-child(2) {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.9), rgba(245, 87, 108, 0.9));
+            transform: rotate(5deg) translateY(20px);
+            z-index: 2;
+        }
+
+        .credit-card:nth-child(3) {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.9), rgba(0, 242, 254, 0.9));
+            transform: rotate(-2deg) translateY(0);
+            z-index: 1;
+        }
+
+        .credit-card:hover {
+            transform: rotate(0) translateY(0) scale(1.05);
+            z-index: 10;
+        }
+
+        .card-chip {
+            width: 50px;
+            height: 40px;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            border-radius: 8px;
+        }
+
+        .card-number {
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.9);
+            font-family: 'Courier New', monospace;
+        }
+
+        .card-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .card-holder {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+
+        .card-brand {
+            font-size: 1.5rem;
+            color: white;
+            font-weight: 800;
+            font-style: italic;
+        }
+
         /* Features Section */
         .features {
-            padding: 100px 0;
-            background: #f8fafc;
+            padding: 100px 5%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+        }
+
+        .features-container {
+            max-width: 1400px;
+            margin: 0 auto;
         }
 
         .section-header {
@@ -211,14 +431,18 @@
         }
 
         .section-header h2 {
-            font-size: 2.5rem;
+            font-size: 3rem;
+            font-weight: 900;
             margin-bottom: 1rem;
-            color: #1e3c72;
+            background: linear-gradient(135deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .section-header p {
-            font-size: 1.1rem;
-            color: #64748b;
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.7);
             max-width: 600px;
             margin: 0 auto;
         }
@@ -227,14 +451,15 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 2rem;
-            margin-top: 4rem;
         }
 
         .feature-card {
-            background: white;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
             padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
@@ -245,134 +470,169 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
+            right: 0;
             height: 4px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
         }
 
         .feature-card:hover {
             transform: translateY(-10px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
         }
 
         .feature-icon {
             width: 60px;
             height: 60px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 1rem;
-            color: white;
+            margin-bottom: 1.5rem;
             font-size: 1.5rem;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
         }
 
         .feature-card h3 {
             font-size: 1.3rem;
             margin-bottom: 1rem;
-            color: #1e3c72;
+            color: white;
         }
 
         .feature-card p {
-            color: #64748b;
+            color: rgba(255, 255, 255, 0.7);
             line-height: 1.6;
         }
 
-        /* Services Section */
+        /* Banking Services */
         .services {
-            padding: 100px 0;
-            background: white;
+            padding: 100px 5%;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
         }
 
         .services-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 2rem;
-            margin-top: 4rem;
+            max-width: 1400px;
+            margin: 0 auto;
         }
 
         .service-card {
-            text-align: center;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
             padding: 2rem;
-            border-radius: 15px;
+            text-align: center;
             transition: all 0.3s ease;
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.3), transparent);
+            transition: all 0.5s ease;
+            transform: translate(-50%, -50%);
+        }
+
+        .service-card:hover::after {
+            width: 300px;
+            height: 300px;
         }
 
         .service-card:hover {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            transform: scale(1.05);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
         }
 
         .service-icon {
             font-size: 3rem;
             margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .service-card h3 {
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
-        }
-
-        /* Currency Section */
-        .currency {
-            padding: 100px 0;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
         }
 
-        .currency-grid {
+        .service-card p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        /* Stats Section */
+        .stats {
+            padding: 80px 5%;
+            background: rgba(15, 23, 42, 0.95);
+        }
+
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-top: 3rem;
-        }
-
-        .currency-card {
-            background: rgba(255,255,255,0.1);
-            padding: 1.5rem;
-            border-radius: 10px;
+            gap: 3rem;
             text-align: center;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            transition: all 0.3s ease;
         }
 
-        .currency-card:hover {
-            background: rgba(255,255,255,0.2);
-            transform: translateY(-5px);
+        .stat-item {
+            animation: fadeInUp 1s ease;
         }
 
-        .currency-code {
-            font-size: 1.5rem;
-            font-weight: bold;
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 0.5rem;
         }
 
-        .currency-name {
-            font-size: 0.9rem;
-            opacity: 0.8;
+        .stat-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
         }
 
         /* Footer */
         footer {
-            background: #1a202c;
-            color: white;
-            padding: 3rem 0 1rem;
+            background: #0a0e27;
+            padding: 60px 5% 30px;
+            border-top: 1px solid var(--glass-border);
         }
 
         .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
+            gap: 3rem;
+            margin-bottom: 3rem;
         }
 
         .footer-section h3 {
+            color: white;
             margin-bottom: 1rem;
-            color: #e2e8f0;
+            font-size: 1.2rem;
         }
 
         .footer-section ul {
@@ -380,328 +640,29 @@
         }
 
         .footer-section ul li {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.8rem;
         }
 
         .footer-section ul li a {
-            color: #a0aec0;
+            color: rgba(255, 255, 255, 0.7);
             text-decoration: none;
-            transition: color 0.3s ease;
+            transition: all 0.3s ease;
         }
 
         .footer-section ul li a:hover {
-            color: #e2e8f0;
+            color: white;
+            padding-left: 5px;
         }
 
         .footer-bottom {
             text-align: center;
             padding-top: 2rem;
-            border-top: 1px solid #4a5568;
-            color: #a0aec0;
+            border-top: 1px solid var(--glass-border);
+            color: rgba(255, 255, 255, 0.5);
         }
 
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-            overflow-y: auto;
-            padding: 20px 0;
-        }
-
-        .modal-content {
-            background: white;
-            margin: 5% auto;
-            padding: 2rem;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 500px;
-            position: relative;
-            animation: modalSlideIn 0.3s ease;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .close {
-            position: absolute;
-            right: 1rem;
-            top: 1rem;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #666;
-            transition: color 0.3s ease;
-            z-index: 10;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            background: rgba(0,0,0,0.1);
-        }
-
-        .close:hover {
-            color: #333;
-            background: rgba(0,0,0,0.2);
-        }
-
-        .modal h2 {
-            margin-bottom: 1.5rem;
-            color: #1e3c72;
-            text-align: center;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #333;
-            font-weight: 500;
-        }
-
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-            background: white;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .modal .btn {
-            width: 100%;
-            margin-top: 1rem;
-            padding: 0.75rem;
-            font-size: 1rem;
-        }
-
-        .form-footer {
-            text-align: center;
-            margin-top: 1rem;
-            color: #666;
-        }
-
-        .form-footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-
-        .form-footer a:hover {
-            text-decoration: underline;
-        }
-
-        .alert {
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            border-radius: 8px;
-            display: none;
-        }
-
-        .alert-success {
-            background: #d1fae5;
-            color: #047857;
-            border: 1px solid #a7f3d0;
-        }
-
-        .alert-error {
-            background: #fde8e8;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
-        }
-
-        /* Dashboard Styles */
-        .dashboard {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #f4f4f4;
-            z-index: 3000;
-            overflow-y: auto;
-        }
-
-        .dashboard.active {
-            display: block;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        .dashboard-sidebar {
-            width: 280px;
-            background: #e7e7e7;
-            padding: 20px;
-            min-height: 100vh;
-            position: relative;
-        }
-
-        .dashboard-sidebar h2 {
-            font-size: 18px;
-            color: #006341;
-            margin-bottom: 10px;
-        }
-
-        .dashboard-balance {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        .dashboard-account-list {
-            font-size: 16px;
-            margin-top: 10px;
-        }
-
-        .dashboard-account-list > div {
-            margin-bottom: 8px;
-        }
-
-        .dashboard-main-content {
-            flex: 1;
-            background: white;
-            padding: 20px;
-        }
-
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .dashboard-header h2 {
-            color: #333;
-            margin: 0;
-        }
-
-        .dashboard-search-bar {
-            padding: 10px;
-            width: 300px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-
-        .dashboard-filters {
-            margin-bottom: 20px;
-        }
-
-        .dashboard-filters button, .dashboard-transfer-btn {
-            padding: 10px 15px;
-            background: #006341;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-right: 10px;
-            font-size: 14px;
-            transition: background 0.3s ease;
-        }
-
-        .dashboard-filters button:hover, .dashboard-transfer-btn:hover {
-            background: #004d2c;
-        }
-
-        .dashboard-transaction-history table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        .dashboard-transaction-history th, .dashboard-transaction-history td {
-            border-bottom: 1px solid #ddd;
-            padding: 12px 10px;
-            text-align: left;
-        }
-
-        .dashboard-transaction-history th {
-            background: #f0f0f0;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .dashboard-transaction-history td {
-            color: #555;
-        }
-
-        .dashboard-close-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 35px;
-            height: 35px;
-            cursor: pointer;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.3s ease;
-        }
-
-        .dashboard-close-btn:hover {
-            background: #c82333;
-        }
-
-        .welcome-banner {
-            background: linear-gradient(135deg, #006341 0%, #004d2c 100%);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .welcome-banner h3 {
-            margin: 0 0 5px 0;
-            font-size: 18px;
-        }
-
-        .welcome-banner p {
-            margin: 0;
-            opacity: 0.9;
-            font-size: 14px;
-        }
-
-        .mobile-menu-btn {
+        /* Mobile Menu */
+        .mobile-menu-toggle {
             display: none;
             background: none;
             border: none;
@@ -710,843 +671,390 @@
             cursor: pointer;
         }
 
-        .mobile-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: rgba(30, 60, 114, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 0;
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .hero-visual {
+                margin-top: 3rem;
+            }
+            
+            .hero-buttons {
+                justify-content: center;
+            }
         }
 
-        .mobile-menu.active {
-            display: block;
-        }
-
-        .mobile-menu ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .mobile-menu ul li {
-            padding: 0.5rem 1rem;
-        }
-
-        .mobile-menu ul li a {
-            color: white;
-            text-decoration: none;
-            display: block;
-        }
-
-        /* Mobile Responsive */
         @media (max-width: 768px) {
             .nav-links {
                 display: none;
             }
-
-            .mobile-menu-btn {
+            
+            .nav-cta {
+                display: none;
+            }
+            
+            .mobile-menu-toggle {
                 display: block;
             }
-
-            .hero h1 {
-                font-size: 2.5rem;
+            
+            .hero-text h1 {
+                font-size: 2rem;
             }
-
-            .hero p {
-                font-size: 1.1rem;
+            
+            .credit-card {
+                width: 280px;
+                height: 180px;
             }
-
-            .hero-buttons {
-                flex-direction: column;
-                align-items: center;
-            }
-
+            
             .features-grid {
                 grid-template-columns: 1fr;
             }
-
-            .auth-buttons {
-                display: none;
-            }
-
-            /* Mobile Dashboard */
-            .dashboard-container {
-                flex-direction: column;
-            }
-
-            .dashboard-sidebar {
-                width: 100%;
-                min-height: auto;
-                padding: 15px;
-            }
-
-            .dashboard-header {
-                flex-direction: column;
-                gap: 15px;
-                align-items: stretch;
-            }
-
-            .dashboard-search-bar {
-                width: 100%;
-            }
-
-            .dashboard-filters {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 10px;
-            }
-
-            .dashboard-filters button {
-                margin-right: 0;
-                flex: 1;
-                min-width: 120px;
-            }
-
-            .dashboard-transaction-history {
-                overflow-x: auto;
-            }
-
-            .dashboard-transaction-history table {
-                min-width: 600px;
-            }
-
-            /* Mobile Modal */
-            .modal {
-                padding: 10px;
-            }
-
-            .modal-content {
-                margin: 0;
-                padding: 1.5rem;
-                width: 100%;
-                max-width: none;
-                border-radius: 10px;
-                position: relative;
-                top: 50%;
-                transform: translateY(-50%);
-            }
-
-            .modal h2 {
-                font-size: 1.5rem;
-                margin-bottom: 1rem;
-            }
-
-            .form-group {
-                margin-bottom: 1rem;
-            }
-
-            .form-group label {
-                font-size: 0.9rem;
-                margin-bottom: 0.4rem;
-            }
-
-            .form-group input, .form-group select {
-                padding: 14px 12px;
-                font-size: 16px;
-            }
-
-            .modal .btn {
-                padding: 16px;
-                font-size: 1rem;
-                margin-top: 1.5rem;
-            }
-
-            .close {
-                right: 0.5rem;
-                top: 0.5rem;
-                font-size: 1.3rem;
-            }
-
-            .form-footer {
-                font-size: 0.85rem;
-                margin-top: 1.5rem;
-                line-height: 1.5;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .modal {
-                padding: 5px;
-            }
-
-            .modal-content {
-                padding: 1rem;
-                border-radius: 8px;
-            }
-
-            .modal h2 {
-                font-size: 1.3rem;
-            }
-
-            .form-group input, .form-group select {
-                padding: 12px 10px;
-            }
-        }
-
-        @media (min-width: 1200px) {
-            .modal-content {
-                max-width: 600px;
-                padding: 3rem;
-            }
-
-            .modal h2 {
-                font-size: 2rem;
-            }
-
-            .form-group input, .form-group select {
-                padding: 15px 18px;
-                font-size: 1.1rem;
-            }
-        }
-
-        @media (max-height: 600px) and (orientation: landscape) {
-            .modal {
-                padding: 5px 0;
-            }
-
-            .modal-content {
-                margin: 2% auto;
-                max-height: 95vh;
-            }
-        }
-
-        @media (hover: none) and (pointer: coarse) {
-            .btn {
-                min-height: 44px;
-            }
-
-            .form-group input, .form-group select {
-                min-height: 44px;
-            }
-
-            .close {
-                width: 44px;
-                height: 44px;
-                font-size: 1.2rem;
-            }
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn.loading {
-            background: #6c757d;
-            position: relative;
-        }
-
-        .btn.loading::after {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            margin: auto;
-            border: 2px solid #fff;
-            border-top: 2px solid transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        @keyframes spin {
-            0% { transform: translateY(-50%) rotate(0deg); }
-            100% { transform: translateY(-50%) rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <script src="common.js"></script>
-    <header>
-        <nav class="container">
-            <div class="logo">Shenzhenswift</div>
+    
+    <!-- Animated Background -->
+    <div class="hero-background"></div>
+    <div class="particles" id="particles"></div>
+    
+    <!-- Header -->
+    <header id="header">
+        <nav>
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7V12C2 16.5 4.23 20.68 8 22.47C10.5 21.5 12.5 19.5 13.62 17H20C21.1 17 22 16.1 22 15V12C22 10.9 21.1 10 20 10H13.62C12.5 7.5 10.5 5.5 8 4.53L12 2Z" fill="white"/>
+                    </svg>
+                </div>
+                <span class="logo-text">Shenzhenswift</span>
+            </div>
+            
             <ul class="nav-links">
                 <li><a href="#home">Home</a></li>
                 <li><a href="#services">Services</a></li>
-                <li><a href="#transfer">Transfer</a></li>
-                <li><a href="#banking">Banking</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#about">About</a></li>
                 <li><a href="#contact">Contact</a></li>
             </ul>
-            <div class="auth-buttons">
-                <a href="login.html" class="btn btn-secondary">Login</a>
-                <a href="register.html" class="btn btn-primary">Register</a>
+            
+            <div class="nav-cta">
+                <a href="login.html" class="btn btn-glass">Sign In</a>
+                <a href="register.html" class="btn btn-primary">Get Started</a>
             </div>
-
-            <!-- Dashboard (embedded but redirects to dashboard.html after login) -->
-            <div id="dashboard" class="dashboard">
-                <div class="dashboard-container">
-                    <div class="dashboard-sidebar">
-                        <button class="dashboard-close-btn" onclick="closeDashboard()" title="Logout">&times;</button>
-                        <h2>All Accounts</h2>
-                        <div class="dashboard-balance">$2,972,569.21</div>
-                        <h3>Account Owner:</h3>
-                        <div id="dashboardUserName">User</div>
-                        <h3>Investment</h3>
-                        <div class="dashboard-account-list">
-                            <div>Individual - TOD: <strong>$6,835.77</strong></div>
-                        </div>
-                        <h3>Professionally Managed</h3>
-                        <div class="dashboard-account-list">
-                            <div>User's Investment Account: <strong>$256,456.56</strong></div>
-                        </div>
-                        <br>
-                        <button class="dashboard-transfer-btn" onclick="openModal('transferModal')">Transfer Money</button>
-                    </div>
-                    <div class="dashboard-main-content">
-                        <div class="welcome-banner">
-                            <h3>Welcome back, <span id="dashboardUserNameHeader">User</span>!</h3>
-                            <p>Manage your accounts and transactions from your Shenzhenswift dashboard</p>
-                        </div>
-                        <div class="dashboard-header">
-                            <h2>All Accounts</h2>
-                            <input type="text" class="dashboard-search-bar" placeholder="Search Activity & Orders">
-                        </div>
-                        <div class="dashboard-filters">
-                            <button onclick="filterTransactions('30days', event)" class="filter-active">Past 30 Days</button>
-                            <button onclick="filterTransactions('orders', event)">Orders</button>
-                            <button onclick="filterTransactions('transfers', event)">Transfers</button>
-                        </div>
-                        <div class="dashboard-transaction-history">
-                            <h3>Past 30 Days</h3>
-                            <table id="transactionTable">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Account</th>
-                                        <th>Description</th>
-                                        <th>Type</th>
-                                        <th>Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="transactionTableBody">
-                                    <tr>
-                                        <td>Jan-5-2025</td>
-                                        <td>Investment Account</td>
-                                        <td>Initial Deposit</td>
-                                        <td>Deposit</td>
-                                        <td style="color: green;">+ $10,000.00</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Jan-4-2025</td>
-                                        <td>Individual - TOD</td>
-                                        <td>Account Opening</td>
-                                        <td>Setup</td>
-                                        <td style="color: blue;">$0.00</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
-            <div class="mobile-menu" id="mobileMenu">
-                <ul>
-                    <li><a href="#home" onclick="toggleMobileMenu()">Home</a></li>
-                    <li><a href="#services" onclick="toggleMobileMenu()">Services</a></li>
-                    <li><a href="#transfer" onclick="toggleMobileMenu()">Transfer</a></li>
-                    <li><a href="#banking" onclick="toggleMobileMenu()">Banking</a></li>
-                    <li><a href="#contact" onclick="toggleMobileMenu()">Contact</a></li>
-                    <li><a href="login.html" onclick="toggleMobileMenu()">Login</a></li>
-                    <li><a href="register.html" onclick="toggleMobileMenu()">Register</a></li>
-                </ul>
-            </div>
+            
+            <button class="mobile-menu-toggle">☰</button>
         </nav>
     </header>
-
+    
+    <!-- Hero Section -->
     <section class="hero" id="home">
-        <div class="container">
-            <div class="hero-content">
-                <h1>Send Money From The US To 130+ Countries Within Minutes</h1>
-                <p>Transfer money cheaper and faster to anyone anywhere in the world with no hidden charges. Experience the best banking and money transfer services.</p>
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>Welcome to the Future of <span class="gradient-text">Digital Banking</span></h1>
+                <p>Experience seamless financial services with cutting-edge security, instant global transfers, and personalized wealth management solutions.</p>
                 <div class="hero-buttons">
-                    <a href="#" class="btn btn-primary" onclick="openModal('transferModal')">Send Money Now</a>
-                    <a href="#services" class="btn btn-secondary">Learn More</a>
+                    <a href="register.html" class="btn btn-primary btn-large">
+                        Open Account
+                        <span>→</span>
+                    </a>
+                    <a href="#services" class="btn btn-glass btn-large">
+                        Explore Services
+                    </a>
+                </div>
+                
+                <!-- Trust Indicators -->
+                <div style="display: flex; gap: 2rem; margin-top: 3rem; flex-wrap: wrap;">
+                    <div style="color: rgba(255,255,255,0.7);">
+                        <strong style="color: white;">500K+</strong> Active Users
+                    </div>
+                    <div style="color: rgba(255,255,255,0.7);">
+                        <strong style="color: white;">$2B+</strong> Processed
+                    </div>
+                    <div style="color: rgba(255,255,255,0.7);">
+                        <strong style="color: white;">150+</strong> Countries
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hero-visual">
+                <div class="floating-cards">
+                    <div class="credit-card">
+                        <div class="card-chip"></div>
+                        <div class="card-number">•••• •••• •••• 3482</div>
+                        <div class="card-bottom">
+                            <div class="card-holder">
+                                <div style="font-size: 0.7rem; opacity: 0.7;">CARD HOLDER</div>
+                                <div>JOHN DOE</div>
+                            </div>
+                            <div class="card-brand">SWIFT</div>
+                        </div>
+                    </div>
+                    <div class="credit-card">
+                        <div class="card-chip"></div>
+                        <div class="card-number">•••• •••• •••• 9015</div>
+                        <div class="card-bottom">
+                            <div class="card-holder">
+                                <div style="font-size: 0.7rem; opacity: 0.7;">PLATINUM</div>
+                                <div>PREMIUM</div>
+                            </div>
+                            <div class="card-brand">SWIFT</div>
+                        </div>
+                    </div>
+                    <div class="credit-card">
+                        <div class="card-chip"></div>
+                        <div class="card-number">•••• •••• •••• 1170</div>
+                        <div class="card-bottom">
+                            <div class="card-holder">
+                                <div style="font-size: 0.7rem; opacity: 0.7;">BUSINESS</div>
+                                <div>CORPORATE</div>
+                            </div>
+                            <div class="card-brand">SWIFT</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
-
-    <section class="features" id="services">
-        <div class="container">
+    
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="features-container">
             <div class="section-header">
                 <h2>Why Choose Shenzhenswift?</h2>
-                <p>We provide comprehensive financial services designed to meet your personal and business banking needs</p>
+                <p>Advanced features designed for modern banking needs</p>
             </div>
+            
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-icon">🏦</div>
-                    <h3>Complete Banking Solutions</h3>
-                    <p>Walk into any of our nationwide office locations and create a bank account for personal or business needs and start enjoying the best banking experience.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🚀</div>
-                    <h3>Fast Money Transfers</h3>
-                    <p>Transferring money has never been so easy. We have many options to transfer to both local and international accounts within minutes.</p>
-                </div>
-                <div class="feature-card">
                     <div class="feature-icon">🛡️</div>
-                    <h3>Advanced Security</h3>
-                    <p>We have many options to detect fraud and account hacking activities. We provide the best bank safety experience anytime, anywhere.</p>
+                    <h3>Bank-Grade Security</h3>
+                    <p>256-bit encryption, biometric authentication, and real-time fraud detection to keep your money safe.</p>
                 </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Instant Transfers</h3>
+                    <p>Send money globally in seconds with competitive exchange rates and transparent fees.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">💎</div>
+                    <h3>Premium Rewards</h3>
+                    <p>Earn cashback, travel points, and exclusive perks with every transaction.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Smart Analytics</h3>
+                    <p>AI-powered insights to help you track spending, save money, and invest wisely.</p>
+                </div>
+                
                 <div class="feature-card">
                     <div class="feature-icon">🌍</div>
-                    <h3>Global Reach</h3>
-                    <p>Receive payments from different countries with different currencies. Hold over 54 currencies in one account and be at the center of the world.</p>
+                    <h3>Global Access</h3>
+                    <p>Access your accounts from anywhere, with support for 150+ countries and 50+ currencies.</p>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">💼</div>
-                    <h3>Business Solutions</h3>
-                    <p>Tell us about your business. We're interested in helping growing local businesses, whether private or public. We've got you covered.</p>
-                </div>
+                
                 <div class="feature-card">
                     <div class="feature-icon">🤝</div>
-                    <h3>Customer Partnership</h3>
-                    <p>Our culture enables extraordinary people to perform in outstanding ways. We believe in forming life-long partnerships with our customers.</p>
+                    <h3>24/7 Support</h3>
+                    <p>Expert assistance available round the clock via chat, phone, or video call.</p>
                 </div>
             </div>
         </div>
     </section>
-
-    <section class="services">
-        <div class="container">
-            <div class="section-header">
-                <h2>Our Services</h2>
-                <p>Everything you need for modern banking and money transfers</p>
+    
+    <!-- Banking Services -->
+    <section class="services" id="services">
+        <div class="section-header">
+            <h2>Complete Banking Solutions</h2>
+            <p>Everything you need in one powerful platform</p>
+        </div>
+        
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-icon">💳</div>
+                <h3>Personal Banking</h3>
+                <p>Checking, savings, and money market accounts with competitive rates</p>
             </div>
-            <div class="services-grid">
-                <div class="service-card">
-                    <div class="service-icon">💸</div>
-                    <h3>Send Money</h3>
-                    <p>Quick transfers worldwide</p>
-                </div>
-                <div class="service-card">
-                    <div class="service-icon">💰</div>
-                    <h3>Receive Money</h3>
-                    <p>Get payments globally</p>
-                </div>
-                <div class="service-card">
-                    <div class="service-icon">💳</div>
-                    <h3>Banking Cards</h3>
-                    <p>Debit and credit solutions</p>
-                </div>
-                <div class="service-card">
-                    <div class="service-icon">📱</div>
-                    <h3>Mobile Banking</h3>
-                    <p>Bank on the go</p>
-                </div>
+            
+            <div class="service-card">
+                <div class="service-icon">🏢</div>
+                <h3>Business Banking</h3>
+                <p>Corporate accounts, merchant services, and business loans</p>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-icon">📈</div>
+                <h3>Investments</h3>
+                <p>Stocks, bonds, mutual funds, and cryptocurrency trading</p>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-icon">🏠</div>
+                <h3>Mortgages</h3>
+                <p>Home loans with flexible terms and competitive rates</p>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-icon">🎓</div>
+                <h3>Student Banking</h3>
+                <p>Special accounts and loans designed for students</p>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-icon">💰</div>
+                <h3>Wealth Management</h3>
+                <p>Private banking and personalized investment strategies</p>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-icon">🛡️</div>
+                <h3>Insurance</h3>
+                <p>Life, health, auto, and property insurance options</p>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-icon">🌐</div>
+                <h3>International</h3>
+                <p>Multi-currency accounts and cross-border payments</p>
             </div>
         </div>
     </section>
-
-    <section class="currency">
-        <div class="container">
-            <div class="section-header">
-                <h2>Supported Currencies</h2>
-                <p>We support major global currencies for seamless international transactions</p>
+    
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-number">500K+</div>
+                <div class="stat-label">Happy Customers</div>
             </div>
-            <div class="currency-grid">
-                <div class="currency-card">
-                    <div class="currency-code">GBP</div>
-                    <div class="currency-name">British Pound</div>
-                </div>
-                <div class="currency-card">
-                    <div class="currency-code">EUR</div>
-                    <div class="currency-name">Euro</div>
-                </div>
-                <div class="currency-card">
-                    <div class="currency-code">USD</div>
-                    <div class="currency-name">US Dollar</div>
-                </div>
-                <div class="currency-card">
-                    <div class="currency-code">KWD</div>
-                    <div class="currency-name">Kuwaiti Dinar</div>
-                </div>
-                <div class="currency-card">
-                    <div class="currency-code">AUD</div>
-                    <div class="currency-name">Australian Dollar</div>
-                </div>
-                <div class="currency-card">
-                    <div class="currency-code">HUF</div>
-                    <div class="currency-name">Hungarian Forint</div>
-                </div>
-                <div class="currency-card">
-                    <div class="currency-code">CAD</div>
-                    <div class="currency-name">Canadian Dollar</div>
-                </div>
-                <div class="currency-card">
-                    <div class="currency-code">SGD</div>
-                    <div class="currency-name">Singapore Dollar</div>
-                </div>
+            <div class="stat-item">
+                <div class="stat-number">150+</div>
+                <div class="stat-label">Countries Served</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">$2B+</div>
+                <div class="stat-label">Transactions Processed</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">99.9%</div>
+                <div class="stat-label">Uptime Guaranteed</div>
             </div>
         </div>
     </section>
-
+    
+    <!-- Footer -->
     <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3>Shenzhenswift</h3>
-                    <p>Your trusted partner for money transfers and banking services worldwide. We make financial transactions simple, secure, and fast.</p>
-                </div>
-                <div class="footer-section">
-                    <h3>Services</h3>
-                    <ul>
-                        <li><a href="#">Money Transfer</a></li>
-                        <li><a href="#">Banking</a></li>
-                        <li><a href="#">Currency Exchange</a></li>
-                        <li><a href="#">Business Solutions</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h3>Support</h3>
-                    <ul>
-                        <li><a href="#">Help Center</a></li>
-                        <li><a href="#">Contact Us</a></li>
-                        <li><a href="#">Track Transfer</a></li>
-                        <li><a href="#">Security</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h3>Legal</h3>
-                    <ul>
-                        <li><a href="#">Privacy Policy</a></li>
-                        <li><a href="#">Terms of Service</a></li>
-                        <li><a href="#">Compliance</a></li>
-                        <li><a href="#">Licensing</a></li>
-                    </ul>
-                </div>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>About Shenzhenswift</h3>
+                <p style="color: rgba(255,255,255,0.7); line-height: 1.6;">
+                    Your trusted partner for modern banking solutions. We combine cutting-edge technology with personalized service to deliver the best banking experience.
+                </p>
             </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 Shenzhenswift. All rights reserved. | Licensed Money Transfer & Banking Services</p>
+            
+            <div class="footer-section">
+                <h3>Services</h3>
+                <ul>
+                    <li><a href="#">Personal Banking</a></li>
+                    <li><a href="#">Business Solutions</a></li>
+                    <li><a href="#">Investments</a></li>
+                    <li><a href="#">Loans & Credit</a></li>
+                </ul>
             </div>
+            
+            <div class="footer-section">
+                <h3>Support</h3>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Contact Us</a></li>
+                    <li><a href="#">Security</a></li>
+                    <li><a href="#">FAQs</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Legal</h3>
+                <ul>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">Compliance</a></li>
+                    <li><a href="#">Disclosures</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2025 Shenzhenswift. All rights reserved. Member FDIC. Equal Housing Lender.</p>
         </div>
     </footer>
-
-    <!-- Transfer Modal -->
-    <div id="transferModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('transferModal')">&times;</span>
-            <h2>Send Money</h2>
-            <div id="transferAlert" class="alert"></div>
-            <form id="transferForm">
-                <div class="form-group">
-                    <label for="sendAmount">Amount to Send</label>
-                    <input type="number" id="sendAmount" name="amount" min="1" step="0.01" required>
-                </div>
-                <div class="form-group">
-                    <label for="fromCurrency">From Currency</label>
-                    <select id="fromCurrency" name="fromCurrency" required>
-                        <option value="USD">USD - US Dollar</option>
-                        <option value="EUR">EUR - Euro</option>
-                        <option value="GBP">GBP - British Pound</option>
-                        <option value="CAD">CAD - Canadian Dollar</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="toCurrency">To Currency</label>
-                    <select id="toCurrency" name="toCurrency" required>
-                        <option value="GBP">GBP - British Pound</option>
-                        <option value="EUR">EUR - Euro</option>
-                        <option value="USD">USD - US Dollar</option>
-                        <option value="KWD">KWD - Kuwaiti Dinar</option>
-                        <option value="AUD">AUD - Australian Dollar</option>
-                        <option value="HUF">HUF - Hungarian Forint</option>
-                        <option value="CAD">CAD - Canadian Dollar</option>
-                        <option value="SGD">SGD - Singapore Dollar</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="recipientName">Recipient Name</label>
-                    <input type="text" id="recipientName" name="recipientName" required>
-                </div>
-                <div class="form-group">
-                    <label for="recipientEmail">Recipient Email</label>
-                    <input type="email" id="recipientEmail" name="recipientEmail" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Continue Transfer</button>
-            </form>
-            <div class="form-footer">
-                <p>Need help? <a href="#contact">Contact Support</a></p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Forgot Password Modal -->
-    <div id="forgotPasswordModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('forgotPasswordModal')">&times;</span>
-            <h2>Reset Password</h2>
-            <div id="forgotAlert" class="alert"></div>
-            <form id="forgotPasswordForm">
-                <div class="form-group">
-                    <label for="forgotEmail">Email Address</label>
-                    <input type="email" id="forgotEmail" name="email" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Send Reset Link</button>
-            </form>
-            <div class="form-footer">
-                <p>Remember your password? <a href="login.html">Login here</a></p>
-            </div>
-        </div>
-    </div>
-
+    
     <script>
-        // SheetDB API Configuration
-        const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
-
-        // Helper function to submit data to SheetDB
-        async function submitToSheetDB(data) {
-            try {
-                const response = await fetch(SHEETDB_API_URL, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ data })
-                });
-                return response.ok;
-            } catch (error) {
-                console.error("SheetDB submission error:", error);
-                return false;
+        // Create floating particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particlesContainer.appendChild(particle);
             }
         }
-
-        // Modal functionality
-        function openModal(modalId) {
-            document.getElementById(modalId).style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-
-        function switchModal(currentModal, targetModal) {
-            closeModal(currentModal);
-            setTimeout(() => openModal(targetModal), 200);
-        }
-
-        function toggleMobileMenu() {
-            const mobileMenu = document.getElementById('mobileMenu');
-            mobileMenu.classList.toggle('active');
-        }
-
-        function showAlert(alertId, message, type) {
-            const alert = document.getElementById(alertId);
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            alert.style.display = 'block';
-        }
-
-        // Dashboard functions (for embedded dashboard if used)
-        function closeDashboard() {
-            document.getElementById('dashboard').classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
-
-        function filterTransactions(type, event) {
-            // Remove active class from all buttons
-            document.querySelectorAll('.dashboard-filters button').forEach(btn => {
-                btn.classList.remove('filter-active');
-            });
-            
-            // Add active class to clicked button
-            event.target.classList.add('filter-active');
-            
-            // Filter logic would go here
-            console.log('Filtering transactions by:', type);
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
-                if (event.target === modal) {
-                    closeModal(modal.id);
-                }
-            });
-        }
-
-        // Registration Form Handler with SheetDB
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const name = document.getElementById('registerName').value.trim();
-            const email = document.getElementById('registerEmail').value.trim();
-            const phone = document.getElementById('registerPhone').value.trim();
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = document.getElementById('registerConfirmPassword').value;
-
-            // Validation
-            if (password !== confirmPassword) {
-                showAlert('registerAlert', 'Passwords do not match', 'error');
-                return;
-            }
-
-            if (!name || !email || !phone || !password) {
-                showAlert('registerAlert', 'Please fill in all fields', 'error');
-                return;
-            }
-
-            // Show loading state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Creating Account...';
-            submitBtn.disabled = true;
-
-            // Submit to SheetDB
-            const success = await submitToSheetDB({
-                formType: 'Registration',
-                name: name,
-                email: email,
-                phone: phone,
-                password: password,
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent
-            });
-
-            // Reset button state
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-
-            if (success) {
-                showAlert('registerAlert', 'Account created successfully! You can now login with your credentials.', 'success');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                    this.reset();
-                }, 1000);
+        
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
             } else {
-                showAlert('registerAlert', 'Registration failed. Please try again.', 'error');
+                header.classList.remove('scrolled');
             }
         });
-
-        // Transfer Form Handler with SheetDB
-        document.getElementById('transferForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const amount = document.getElementById('sendAmount').value;
-            const fromCurrency = document.getElementById('fromCurrency').value;
-            const toCurrency = document.getElementById('toCurrency').value;
-            const recipientName = document.getElementById('recipientName').value;
-            const recipientEmail = document.getElementById('recipientEmail').value;
-
-            // Validation
-            if (fromCurrency === toCurrency) {
-                showAlert('transferAlert', 'Please select different currencies for conversion', 'error');
-                return;
-            }
-
-            if (!amount || !recipientName || !recipientEmail) {
-                showAlert('transferAlert', 'Please fill in all required fields', 'error');
-                return;
-            }
-
-            // Show loading state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Processing Transfer...';
-            submitBtn.disabled = true;
-
-            // Submit to SheetDB
-            const success = await submitToSheetDB({
-                formType: 'Money Transfer',
-                amount: amount,
-                fromCurrency: fromCurrency,
-                toCurrency: toCurrency,
-                recipientName: recipientName,
-                recipientEmail: recipientEmail,
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent
-            });
-
-            // Reset button state
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-
-            if (success) {
-                showAlert('transferAlert', `Transfer of ${amount} ${fromCurrency} to ${toCurrency} initiated for ${recipientName}`, 'success');
-                setTimeout(() => {
-                    closeModal('transferModal');
-                    alert('Transfer request submitted! You will receive a confirmation email shortly.');
-                    this.reset();
-                }, 1000);
-            } else {
-                showAlert('transferAlert', 'Transfer failed. Please try again.', 'error');
-            }
-        });
-
-        // Forgot Password Form Handler with SheetDB
-        document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('forgotEmail').value.trim();
-
-            if (!email) {
-                showAlert('forgotAlert', 'Please enter your email address', 'error');
-                return;
-            }
-
-            // Show loading state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Sending Reset Link...';
-            submitBtn.disabled = true;
-
-            // Submit to SheetDB
-            const success = await submitToSheetDB({
-                formType: 'Forgot Password',
-                email: email,
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent
-            });
-
-            // Reset button state
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-
-            if (success) {
-                showAlert('forgotAlert', 'Password reset request submitted! Check your email for further instructions.', 'success');
-                setTimeout(() => {
-                    closeModal('forgotPasswordModal');
-                    this.reset();
-                }, 1000);
-            } else {
-                showAlert('forgotAlert', 'Request failed. Please try again.', 'error');
-            }
-        });
-
+        
         // Smooth scrolling for navigation links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
-                const href = this.getAttribute('href');
-                if (href && href.startsWith('#')) {
-                    e.preventDefault();
-                    const target = document.querySelector(href);
-                    if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
                 }
             });
         });
-
-        // If URL hash is #forgot, open forgot password modal on load
-        window.addEventListener('DOMContentLoaded', function() {
-            if (window.location.hash === '#forgot') {
-                openModal('forgotPasswordModal');
-            }
+        
+        // Initialize particles on load
+        createParticles();
+        
+        // Animate elements on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInUp 1s ease forwards';
+                }
+            });
+        }, observerOptions);
+        
+        document.querySelectorAll('.feature-card, .service-card').forEach(el => {
+            observer.observe(el);
         });
     </script>
 </body>
 </html>
-

@@ -1,481 +1,694 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard • Shenzhenswift</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    :root{
-      --brand:#1e3c72; --brand2:#2a5298; --accent1:#667eea; --accent2:#764ba2;
-      --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666; --border:#e5e7eb;
-      --shadow:0 10px 30px rgba(0,0,0,.08);
-    }
-    body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:var(--text);background:var(--bg);overflow-x:hidden}
-    .container{max-width:1200px;margin:0 auto;padding:0 20px}
-    header{background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%);color:#fff;padding:1rem 0;position:fixed;width:100%;top:0;z-index:1000;backdrop-filter:blur(10px)}
-    nav{display:flex;justify-content:space-between;align-items:center}
-    .logo{font-size:1.6rem;font-weight:800;background:linear-gradient(45deg,#fff,#e0e7ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.3px}
-    .nav-links{display:flex;list-style:none;gap:1.5rem}
-    .nav-links a{color:#fff;text-decoration:none;transition:.3s;font-weight:600;position:relative}
-    .nav-links a:hover{color:#e0e7ff;transform:translateY(-2px)}
-    .btn{padding:10px 18px;border-radius:12px;text-decoration:none;font-weight:700;transition:.3s;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:.95rem}
-    .btn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);transition:left .5s}
-    .btn:hover::before{left:100%}
-    .btn-primary{background:linear-gradient(45deg,var(--accent1),var(--accent2));color:#fff;box-shadow:0 6px 20px rgba(118,75,162,.25)}
-    .btn-action{background:linear-gradient(45deg,var(--accent1),var(--accent2));color:#fff;border:none;box-shadow:0 6px 18px rgba(102,126,234,.28);font-weight:800}
-    .btn-secondary{background:transparent;color:#fff;border:2px solid #fff}
-    .btn-secondary:hover{background:#fff;color:var(--brand)}
-    main{padding-top:96px}
-    .page-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 14px}
-    .page-title{font-size:1.6rem;font-weight:800;color:var(--brand);letter-spacing:.2px}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
-    .toolbar .search{width:320px;max-width:60vw;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff}
-    .grid{display:grid;gap:18px}
-    @media (min-width:700px){.grid.cols-3{grid-template-columns:repeat(3,1fr)} .grid.cols-2{grid-template-columns:2fr 1fr}}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
-    .card h3{margin-bottom:8px;color:var(--brand);font-size:1.05rem}
-    .kpi{display:flex;align-items:baseline;gap:10px}
-    .kpi .value{font-size:1.8rem;font-weight:800}
-    .kpi .muted{color:var(--muted);font-size:.9rem}
-    .accounts{display:grid;gap:10px}
-    .account-row{padding:12px;border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:space-between;background:#fff}
-    .account-row .left{display:flex;align-items:center;gap:12px}
-    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;color:var(--accent1);background:#eef2ff}
-    .amount{font-weight:800}
-    .tx-list{display:grid;gap:10px}
-    .tx{display:grid;grid-template-columns:1fr auto;gap:6px 10px;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer}
-    .tx .name{font-weight:700}
-    .tx .meta{color:var(--muted);font-size:.9rem}
-    .tx .delta.pos{color:#047857;font-weight:800}
-    .tx .delta.neg{color:#b91c1c;font-weight:800}
-    .footer-space{height:24px}
-    .sync-indicator{position:fixed;bottom:20px;right:20px;padding:8px 12px;background:rgba(255,255,255,0.9);border-radius:20px;font-size:12px;color:#666;display:none;align-items:center;gap:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}
-    .sync-indicator.active{display:flex}
-    .sync-dot{width:8px;height:8px;border-radius:50%;background:#28a745;animation:pulse 2s infinite}
-    @keyframes pulse{0%{opacity:1}50%{opacity:0.5}100%{opacity:1}}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard • Shenzhenswift</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Enhanced Dashboard Styles */
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #7c3aed;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --gray: #64748b;
+            --light: #f8fafc;
+            --card: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        /* Animated background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+            z-index: -1;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            padding: 2rem;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 3rem;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: #fff;
+            transform: translateX(4px);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+            color: #fff;
+            border-left: 3px solid var(--primary);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .welcome-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .header-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .header-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Balance Cards */
+        .balance-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .balance-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+        }
+
+        .balance-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+        }
+
+        .balance-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .balance-amount {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .balance-change {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .change-positive {
+            color: var(--success);
+        }
+
+        .change-negative {
+            color: var(--danger);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .quick-action {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+        }
+
+        .quick-action:hover {
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .action-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .action-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Transaction List */
+        .transactions-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .transaction-item:hover {
+            background: rgba(99, 102, 241, 0.05);
+            padding-left: 1.5rem;
+        }
+
+        .transaction-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .transaction-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .transaction-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .transaction-name {
+            font-weight: 600;
+        }
+
+        .transaction-date {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+        }
+
+        .transaction-amount {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .amount-positive {
+            color: var(--success);
+        }
+
+        .amount-negative {
+            color: var(--danger);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+                position: fixed;
+                top: 1rem;
+                left: 1rem;
+                z-index: 101;
+                background: rgba(99, 102, 241, 0.2);
+                border: 1px solid var(--border);
+                color: white;
+                padding: 10px;
+                border-radius: 10px;
+                cursor: pointer;
+            }
+        }
+
+        @media (min-width: 1025px) {
+            .mobile-menu-btn {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .balance-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .dashboard-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+        }
+    </style>
 </head>
 <body>
-  <script src="common.js"></script>
-  
-  <header>
-    <div class="container">
-      <nav>
-        <div class="logo">Shenzhenswift</div>
-        <ul class="nav-links">
-          <li><a href="index.html">Home</a></li>
-          <li><a href="transfer.html">Transfer</a></li>
-          <li><a href="#">Cards</a></li>
-          <li><a href="#">Support</a></li>
-        </ul>
-        <div class="auth-buttons">
-          <a href="#" class="btn btn-secondary" onclick="logout()">Logout</a>
-        </div>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <div class="container">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Dashboard</div>
-          <div id="userNameLine" class="subtitle" style="margin-top:4px;"></div>
-          <div style="color:var(--muted); margin-top:4px;">Overview of your accounts and recent activity</div>
-        </div>
-        <div class="toolbar">
-          <input class="search" placeholder="Search transactions, accounts…" id="searchInput">
-          <a class="btn btn-primary" href="transfer.html">New transfer</a>
-        </div>
-      </div>
-
-      <section class="grid cols-3" style="margin: 10px 0 8px;" id="kpiSection">
-        <div class="card">
-          <h3>Total balance</h3>
-          <div class="kpi"><div class="value" id="totalBalanceValue">$0.00</div><div class="muted">All accounts</div></div>
-        </div>
-        <div class="card">
-          <h3>Available</h3>
-          <div class="kpi"><div class="value" id="availableValue">$0.00</div><div class="muted">After holds</div></div>
-        </div>
-        <div class="card">
-          <h3>Pending</h3>
-          <div class="kpi"><div class="value" id="pendingValue">$0.00</div><div class="muted">In process</div></div>
-        </div>
-      </section>
-
-      <section class="grid cols-2" style="margin-top: 8px;" id="accountSection">
-        <div class="card">
-          <h3>Your accounts</h3>
-          <div class="accounts" style="margin-top:10px;" id="accountsList">
-            <div class="account-row">
-              <div class="left">
-                <span class="pill">Checking</span>
-                <div>
-                  <div style="font-weight:800;">Everyday Checking</div>
-                  <div class="muted" style="font-size:.9rem;">••• 3482</div>
-                </div>
-              </div>
-              <div class="amount" id="checkingBalance">$0.00</div>
-            </div>
-            <div class="account-row">
-              <div class="left">
-                <span class="pill" style="background:#d1fae5;color:#047857;">Savings</span>
-                <div>
-                  <div style="font-weight:800;">High-Yield Savings</div>
-                  <div class="muted" style="font-size:.9rem;">••• 9015</div>
-                </div>
-              </div>
-              <div class="amount" id="savingsBalance">$0.00</div>
-            </div>
-            <div class="account-row">
-              <div class="left">
-                <span class="pill" style="background:#fef3c7;color:#92400e;">Brokerage</span>
-                <div>
-                  <div style="font-weight:800;">Invest Portfolio</div>
-                  <div class="muted" style="font-size:.9rem;">••• 1170</div>
-                </div>
-              </div>
-              <div class="amount" id="brokerageBalance">$0.00</div>
-            </div>
-          </div>
-          <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-            <a class="btn btn-primary" href="transfer.html">Transfer money</a>
-            <button class="btn btn-action" type="button" onclick="alert('Feature coming soon!')">Deposit funds</button>
-            <button class="btn btn-action" type="button" onclick="window.print()">Statements</button>
-          </div>
-        </div>
-        <div class="card">
-          <h3>Recent transactions</h3>
-          <div class="tx-list" style="margin-top:10px;" id="txList">
-            <div style="color:var(--muted);text-align:center;padding:24px 0;">Loading transactions...</div>
-          </div>
-          <div style="margin-top:12px;">
-            <a class="btn btn-primary" id="viewDetailsBtn" href="transaction-details.html">View all transactions</a>
-          </div>
-        </div>
-      </section>
-
-      <div class="footer-space"></div>
-    </div>
-  </main>
-
-  <div class="sync-indicator" id="syncIndicator">
-    <div class="sync-dot"></div>
-    <span>Syncing...</span>
-  </div>
-
-  <script>
-    // Default financial values
-    const DEFAULT_BASE_AVAILABLE = 221540.20;
-    const DEFAULT_TOTAL_BALANCE = 256780.00;
+    <script src="common.js"></script>
     
-    let currentUser = null;
-    let userFinancials = {
-      baseAvailable: DEFAULT_BASE_AVAILABLE,
-      totalBalance: DEFAULT_TOTAL_BALANCE
-    };
-    let allTransfers = [];
-    let syncInterval = null;
-
-    function currency(n) {
-      try {
-        return Number(n).toLocaleString(undefined, {style:'currency', currency:'USD'});
-      } catch {
-        return `$${n}`;
-      }
-    }
-
-    function logout() {
-      sessionStorage.removeItem('loggedInUser');
-      sessionStorage.removeItem('initiatedTransactions');
-      window.location.href = 'index.html';
-    }
-
-    async function loadUserFinancials() {
-      if (!currentUser || !currentUser.email) return;
-      
-      try {
-        userFinancials = await Platform.fetchUserFinancials(currentUser.email);
-      } catch (e) {
-        console.log('Using default financials');
-        userFinancials = {
-          baseAvailable: DEFAULT_BASE_AVAILABLE,
-          totalBalance: DEFAULT_TOTAL_BALANCE
-        };
-      }
-    }
-
-    async function loadTransfers() {
-      if (!currentUser || !currentUser.email) return;
-      
-      showSyncIndicator();
-      
-      try {
-        // Sync all transfers (local + remote)
-        allTransfers = await Platform.syncAllTransfers();
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 2L2 7V12C2 16.5 4.23 20.68 8 22.47L12 24L20 22.47C23.77 20.68 26 16.5 26 12V7L12 2Z"/>
+                </svg>
+            </div>
+            <span class="logo-text">Shenzhenswift</span>
+        </div>
         
-        // Filter for current user - strict filtering by email
-        allTransfers = allTransfers.filter(t => 
-          t.email === currentUser.email
-        );
+        <nav>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active">
+                        <span class="nav-icon">🏠</span>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">💳</span>
+                        <span>Accounts</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="transfer.html" class="nav-link">
+                        <span class="nav-icon">💸</span>
+                        <span>Transfers</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">📊</span>
+                        <span>Investments</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">💰</span>
+                        <span>Loans</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">🎯</span>
+                        <span>Goals</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">📈</span>
+                        <span>Analytics</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">⚙️</span>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
         
-        // Sort by date (newest first)
-        allTransfers.sort((a, b) => {
-          const dateA = new Date(a.dateISO || a.date || 0);
-          const dateB = new Date(b.dateISO || b.date || 0);
-          return dateB - dateA;
+        <!-- Premium Upgrade -->
+        <div style="margin-top: 3rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.1)); border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.3);">
+            <h4 style="margin-bottom: 0.5rem; color: #f59e0b;">Go Premium</h4>
+            <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin-bottom: 1rem;">Unlock exclusive features and rewards</p>
+            <button style="width: 100%; padding: 10px; background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                Upgrade Now
+            </button>
+        </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="welcome-section">
+                <div class="user-avatar">JD</div>
+                <div>
+                    <h2 style="margin-bottom: 0.25rem;">Welcome back, <span id="userName">John</span>!</h2>
+                    <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">Here's your financial overview</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <button class="header-btn" onclick="window.location.href='transfer.html'">Send Money</button>
+                <button class="header-btn" style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
+                    Notifications
+                    <span style="display: inline-block; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; margin-left: 8px;"></span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Balance Cards -->
+        <div class="balance-cards">
+            <div class="balance-card">
+                <div class="balance-label">Total Balance</div>
+                <div class="balance-amount" id="totalBalance">$256,780.00</div>
+                <div class="balance-change change-positive">
+                    <span>↑</span>
+                    <span>+12.5% from last month</span>
+                </div>
+            </div>
+            
+            <div class="balance-card">
+                <div class="balance-label">Available Balance</div>
+                <div class="balance-amount" id="availableBalance">$221,540.20</div>
+                <div class="balance-change change-positive">
+                    <span>↑</span>
+                    <span>+8.3% from last month</span>
+                </div>
+            </div>
+            
+            <div class="balance-card">
+                <div class="balance-label">Investments</div>
+                <div class="balance-amount">$45,320.80</div>
+                <div class="balance-change change-positive">
+                    <span>↑</span>
+                    <span>+15.7% YTD</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <a href="transfer.html" class="quick-action">
+                <div class="action-icon">💸</div>
+                <div class="action-label">Transfer</div>
+            </a>
+            <a href="#" class="quick-action">
+                <div class="action-icon">📱</div>
+                <div class="action-label">Pay Bills</div>
+            </a>
+            <a href="#" class="quick-action">
+                <div class="action-icon">💳</div>
+                <div class="action-label">Cards</div>
+            </a>
+            <a href="#" class="quick-action">
+                <div class="action-icon">📊</div>
+                <div class="action-label">Invest</div>
+            </a>
+            <a href="#" class="quick-action">
+                <div class="action-icon">🎯</div>
+                <div class="action-label">Goals</div>
+            </a>
+            <a href="#" class="quick-action">
+                <div class="action-icon">📈</div>
+                <div class="action-label">Analytics</div>
+            </a>
+        </div>
+        
+        <!-- Recent Transactions -->
+        <div class="transactions-section">
+            <div class="section-header">
+                <h3 class="section-title">Recent Transactions</h3>
+                <a href="transaction-details.html" style="color: #667eea; text-decoration: none; font-weight: 600;">View All →</a>
+            </div>
+            
+            <div id="transactionsList">
+                <div class="transaction-item">
+                    <div class="transaction-info">
+                        <div class="transaction-icon">🛒</div>
+                        <div class="transaction-details">
+                            <div class="transaction-name">Amazon Purchase</div>
+                            <div class="transaction-date">Today, 2:30 PM</div>
+                        </div>
+                    </div>
+                    <div class="transaction-amount amount-negative">-$156.99</div>
+                </div>
+                
+                <div class="transaction-item">
+                    <div class="transaction-info">
+                        <div class="transaction-icon">💰</div>
+                        <div class="transaction-details">
+                            <div class="transaction-name">Salary Deposit</div>
+                            <div class="transaction-date">Dec 1, 2024</div>
+                        </div>
+                    </div>
+                    <div class="transaction-amount amount-positive">+$8,500.00</div>
+                </div>
+                
+                <div class="transaction-item">
+                    <div class="transaction-info">
+                        <div class="transaction-icon">🍔</div>
+                        <div class="transaction-details">
+                            <div class="transaction-name">Restaurant</div>
+                            <div class="transaction-date">Nov 30, 2024</div>
+                        </div>
+                    </div>
+                    <div class="transaction-amount amount-negative">-$45.20</div>
+                </div>
+                
+                <div class="transaction-item">
+                    <div class="transaction-info">
+                        <div class="transaction-icon">⚡</div>
+                        <div class="transaction-details">
+                            <div class="transaction-name">Utility Bill</div>
+                            <div class="transaction-date">Nov 28, 2024</div>
+                        </div>
+                    </div>
+                    <div class="transaction-amount amount-negative">-$120.00</div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        // Check authentication
+        if (!Platform.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+        
+        // Load user data
+        const user = Platform.getUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.name || 'User';
+            
+            // Update avatar initials
+            const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
+            document.querySelector('.user-avatar').textContent = initials.slice(0, 2);
+        }
+        
+        // Load financial data
+        async function loadFinancialData() {
+            const financials = await Platform.fetchUserFinancials(user.email);
+            if (financials) {
+                document.getElementById('totalBalance').textContent = 
+                    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+                    .format(financials.totalBalance || 0);
+                
+                document.getElementById('availableBalance').textContent = 
+                    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+                    .format(financials.baseAvailable || 0);
+            }
+        }
+        
+        // Toggle sidebar on mobile
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+        
+        // Initialize
+        loadFinancialData();
+        
+        // Animate balance cards on load
+        document.querySelectorAll('.balance-card').forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
         });
-      } catch (e) {
-        console.error('Failed to load transfers:', e);
-        allTransfers = Platform.getLocalTransfers();
-      }
-      
-      hideSyncIndicator();
-    }
-
-    function calculateBalances() {
-      // Calculate spent and pending amounts
-      const spent = allTransfers
-        .filter(t => String(t.status || '').toLowerCase() === 'completed')
-        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-      
-      const pending = allTransfers
-        .filter(t => String(t.status || '').toLowerCase() === 'pending')
-        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-      
-      const available = Math.max(0, userFinancials.baseAvailable - spent - pending);
-      
-      return { spent, pending, available };
-    }
-
-    function updateKPIs() {
-      const { spent, pending, available } = calculateBalances();
-      
-      document.getElementById('totalBalanceValue').textContent = currency(userFinancials.totalBalance);
-      document.getElementById('availableValue').textContent = currency(available);
-      document.getElementById('pendingValue').textContent = currency(pending);
-    }
-
-    function updateAccounts() {
-      const { available } = calculateBalances();
-      
-      // For new users with zero balance, show $0.00 across all accounts
-      if (available === 0 && currentUser && currentUser.isNewUser) {
-        document.getElementById('checkingBalance').textContent = currency(0);
-        document.getElementById('savingsBalance').textContent = currency(0);
-        document.getElementById('brokerageBalance').textContent = currency(0);
-        return;
-      }
-      
-      // Distribute balance across accounts (example distribution)
-      const checkingBalance = available * 0.3;
-      const savingsBalance = available * 0.6;
-      const brokerageBalance = available * 0.1;
-      
-      document.getElementById('checkingBalance').textContent = currency(checkingBalance);
-      document.getElementById('savingsBalance').textContent = currency(savingsBalance);
-      document.getElementById('brokerageBalance').textContent = currency(brokerageBalance);
-    }
-
-    function renderTransfers() {
-      const txList = document.getElementById('txList');
-      
-      if (allTransfers.length === 0) {
-        // Check if this is a new user
-        if (currentUser && currentUser.isNewUser) {
-          txList.innerHTML = `
-            <div style="padding:20px;background:#f0f4ff;border-radius:12px;text-align:center;">
-              <div style="font-size:1.1rem;font-weight:700;color:var(--brand);margin-bottom:8px;">
-                Welcome to Shenzhenswift!
-              </div>
-              <div style="color:var(--muted);margin-bottom:16px;">
-                Your account is ready. Start by making your first transfer.
-              </div>
-              <a href="transfer.html" class="btn btn-primary" style="display:inline-block;text-decoration:none;">
-                Make Your First Transfer
-              </a>
-            </div>
-          `;
-        } else {
-          txList.innerHTML = '<div style="color:var(--muted);text-align:center;padding:24px 0;">No transactions yet.</div>';
-        }
-        return;
-      }
-      
-      // Show only recent 10 transactions
-      const recentTransfers = allTransfers.slice(0, 10);
-      
-      txList.innerHTML = recentTransfers.map(t => {
-        const date = t.dateISO ? new Date(t.dateISO).toLocaleDateString() : 'Today';
-        const amount = Number(t.amount) || 0;
-        const delta = amount > 0 ? `+${currency(amount)}` : `-${currency(Math.abs(amount))}`;
-        const deltaClass = amount >= 0 ? 'pos' : 'neg';
-        const name = t.network || t.type || 'Transfer';
-        const status = t.status || 'Pending';
-        const statusColor = status.toLowerCase() === 'completed' ? '#047857' : '#b45309';
-        
-        const meta = [
-          date,
-          t.from ? `From: ${t.from}` : null,
-          t.to ? `To: ${t.to}` : null,
-          `<span style="color:${statusColor};font-weight:600">${status}</span>`
-        ].filter(Boolean).join(' • ');
-        
-        return `
-          <div class="tx" data-ref="${t.reference || ''}" onclick="viewTransaction('${t.reference || ''}')">
-            <div>
-              <div class="name">${name}</div>
-              <div class="meta">${meta}</div>
-            </div>
-            <div class="delta ${deltaClass}">${delta}</div>
-          </div>
-        `;
-      }).join('');
-      
-      // Update view details button
-      if (recentTransfers.length > 0) {
-        const latestRef = recentTransfers[0].reference;
-        if (latestRef) {
-          document.getElementById('viewDetailsBtn').href = `transaction-details.html?ref=${encodeURIComponent(latestRef)}`;
-        }
-      }
-    }
-
-    function viewTransaction(ref) {
-      if (ref) {
-        window.location.href = `transaction-details.html?ref=${encodeURIComponent(ref)}`;
-      }
-    }
-
-    function showSyncIndicator() {
-      document.getElementById('syncIndicator').classList.add('active');
-    }
-
-    function hideSyncIndicator() {
-      setTimeout(() => {
-        document.getElementById('syncIndicator').classList.remove('active');
-      }, 500);
-    }
-
-    async function refreshDashboard() {
-      await loadUserFinancials();
-      await loadTransfers();
-      updateKPIs();
-      updateAccounts();
-      renderTransfers();
-    }
-
-    function startAutoSync() {
-      // Clear any existing interval
-      if (syncInterval) clearInterval(syncInterval);
-      
-      // Sync every 30 seconds
-      syncInterval = setInterval(() => {
-        refreshDashboard();
-      }, 30000);
-    }
-
-    // Search functionality
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-      const query = e.target.value.toLowerCase();
-      
-      if (!query) {
-        renderTransfers();
-        return;
-      }
-      
-      const filtered = allTransfers.filter(t => {
-        const searchable = [
-          t.reference,
-          t.from,
-          t.to,
-          t.network,
-          t.type,
-          t.status,
-          String(t.amount)
-        ].filter(Boolean).join(' ').toLowerCase();
-        
-        return searchable.includes(query);
-      });
-      
-      const txList = document.getElementById('txList');
-      
-      if (filtered.length === 0) {
-        txList.innerHTML = '<div style="color:var(--muted);text-align:center;padding:24px 0;">No matching transactions found.</div>';
-        return;
-      }
-      
-      txList.innerHTML = filtered.slice(0, 10).map(t => {
-        const date = t.dateISO ? new Date(t.dateISO).toLocaleDateString() : 'Today';
-        const amount = Number(t.amount) || 0;
-        const delta = amount > 0 ? `+${currency(amount)}` : `-${currency(Math.abs(amount))}`;
-        const deltaClass = amount >= 0 ? 'pos' : 'neg';
-        const name = t.network || t.type || 'Transfer';
-        const status = t.status || 'Pending';
-        const statusColor = status.toLowerCase() === 'completed' ? '#047857' : '#b45309';
-        
-        const meta = [
-          date,
-          t.from ? `From: ${t.from}` : null,
-          t.to ? `To: ${t.to}` : null,
-          `<span style="color:${statusColor};font-weight:600">${status}</span>`
-        ].filter(Boolean).join(' • ');
-        
-        return `
-          <div class="tx" data-ref="${t.reference || ''}" onclick="viewTransaction('${t.reference || ''}')">
-            <div>
-              <div class="name">${name}</div>
-              <div class="meta">${meta}</div>
-            </div>
-            <div class="delta ${deltaClass}">${delta}</div>
-          </div>
-        `;
-      }).join('');
-    });
-
-    // Initialize dashboard
-    window.addEventListener('DOMContentLoaded', async () => {
-      // Check authentication
-      if (!Platform.isAuthenticated()) {
-        window.location.href = 'login.html';
-        return;
-      }
-      
-      currentUser = Platform.getUser();
-      
-      // Display user name
-      const nameEl = document.getElementById('userNameLine');
-      if (nameEl && currentUser) {
-        const displayName = currentUser.name || currentUser.fullname || currentUser.email?.split('@')[0] || 'User';
-        nameEl.textContent = `Welcome, ${displayName}`;
-      }
-      
-      // Load and display data
-      await refreshDashboard();
-      
-      // Clear new user flag after first dashboard visit
-      if (currentUser && currentUser.isNewUser) {
-        delete currentUser.isNewUser;
-        Platform.setUser(currentUser);
-      }
-      
-      // Start auto-sync
-      startAutoSync();
-      
-      // Refresh on visibility change
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-          refreshDashboard();
-        }
-      });
-    });
-
-    // Cleanup on unload
-    window.addEventListener('beforeunload', () => {
-      if (syncInterval) clearInterval(syncInterval);
-    });
-  </script>
+    </script>
 </body>
 </html>

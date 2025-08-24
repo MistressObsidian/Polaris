@@ -1,172 +1,627 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Login • Shenzhenswift</title>
-  <style>
-    :root{ --brand:#1e3c72; --brand2:#2a5298; }
-    *{ box-sizing:border-box; }
-    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(135deg,var(--brand),var(--brand2)); min-height:100vh; display:grid; place-items:center; color:#111; }
-    .card{
-      width:min(400px,92vw);
-      background:#fff; border-radius:16px; padding:32px 24px 24px; box-shadow:0 10px 30px rgba(0,0,0,.15);
-    }
-    .brand{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-    .brand h1{ margin:0; font-size:22px; color:#1e3c72 }
-    .brand a{ color:#1e3c72; text-decoration:none; font-weight:600 }
-    h2{ margin:8px 0 18px; color:#1e3c72 }
-    .form-group{ margin-bottom:14px; }
-    label{ display:block; font-weight:600; margin:0 0 6px; }
-    input{
-      width:100%; padding:12px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:16px;
-      transition:border-color .2s;
-    }
-    input:focus{ outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,.15) }
-    .btn{
-      width:100%; padding:12px 16px; border:none; border-radius:10px; background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; font-weight:700; cursor:pointer;
-      transition:filter .2s; position:relative;
-    }
-    .btn:disabled{ opacity:.7; cursor:not-allowed }
-    .btn:hover:not(:disabled){ filter:brightness(1.05) }
-    .spinner {
-      display:inline-block; width:18px; height:18px; vertical-align:middle; margin-left:8px;
-      border:2px solid #fff; border-top:2px solid #667eea; border-radius:50%; animation:spin .8s linear infinite;
-    }
-    @keyframes spin { to{ transform:rotate(360deg)} }
-    .links{ display:flex; gap:12px; justify-content:space-between; margin-top:12px }
-    .links a{ color:#1e3c72; text-decoration:none; font-weight:600 }
-    .links a:hover{ text-decoration:underline }
-    @media (max-width:500px){ .card{padding:18px 6vw;} }
-    .alert{ display:none; margin:10px 0; padding:10px 12px; border-radius:8px; font-size:14px; }
-    .alert.show{ display:block; }
-    .alert.error{ background:#fde8e8; color:#b91c1c; border:1px solid #fecaca; }
-    .alert.success{ background:#d1fae5; color:#047857; border:1px solid #a7f3d0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login • Shenzhenswift</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #7c3aed;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 20%, #f093fb 40%, #f5576c 60%, #4facfe 80%, #00f2fe 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 20s ease infinite;
+            z-index: -2;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Floating orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.6;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .orb1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+            top: -200px;
+            left: -200px;
+            animation-delay: 0s;
+        }
+
+        .orb2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(240, 147, 251, 0.8), transparent);
+            bottom: -150px;
+            right: -150px;
+            animation-delay: 5s;
+        }
+
+        .orb3 {
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(245, 87, 108, 0.8), transparent);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        /* Login Container */
+        .login-container {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 480px;
+            animation: slideIn 0.8s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Glass Card */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Logo Section */
+        .logo-section {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .logo-icon svg {
+            width: 45px;
+            height: 45px;
+            fill: white;
+            z-index: 1;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1rem;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.2rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Checkbox */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            padding: 0;
+        }
+
+        .checkbox-wrapper label {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        .forgot-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-link:hover {
+            color: #764ba2;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn.loading {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            cursor: not-allowed;
+        }
+
+        /* Divider */
+        .divider {
+            text-align: center;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .divider span {
+            background: rgba(15, 23, 42, 0.8);
+            padding: 0 1rem;
+            color: rgba(255, 255, 255, 0.5);
+            position: relative;
+            font-size: 0.9rem;
+        }
+
+        /* Social Login */
+        .social-login {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .social-btn {
+            flex: 1;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .social-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Sign Up Link */
+        .signup-link {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        .signup-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .signup-link a:hover {
+            color: #764ba2;
+        }
+
+        /* Alert Messages */
+        .alert {
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .alert.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #86efac;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .glass-card {
+                padding: 2rem 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .social-login {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
-  <script src="common.js"></script>
-  
-  <main class="card">
-    <div class="brand">
-      <h1>Shenzhenswift</h1>
-      <a href="index.html">← Back to Home</a>
-    </div>
-    <h2>Login to your account</h2>
-    <div id="loginAlert" class="alert"></div>
-
-    <form id="loginForm" autocomplete="off">
-      <div class="form-group">
-        <label for="loginEmail">Email Address</label>
-        <input type="email" id="loginEmail" name="email" autocomplete="email" required />
-      </div>
-      <div class="form-group">
-        <label for="loginPassword">Password</label>
-        <input type="password" id="loginPassword" name="password" autocomplete="current-password" required />
-      </div>
-      <button type="submit" class="btn" id="loginBtn">Login</button>
-    </form>
-
-    <div class="links">
-      <a href="index.html#forgot">Forgot password?</a>
-      <a href="register.html">Create an account</a>
-    </div>
-  </main>
-
-  <script>
-    function showAlert(msg, type = 'error') {
-      const el = document.getElementById('loginAlert');
-      el.textContent = msg;
-      el.className = `alert ${type} show`;
-    }
+    <script src="common.js"></script>
     
-    function clearAlert() {
-      const el = document.getElementById('loginAlert');
-      el.textContent = '';
-      el.className = 'alert';
-    }
-
-    // Clear form on load
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('loginEmail').value = '';
-      document.getElementById('loginPassword').value = '';
-      
-      // Clear any existing session
-      if (Platform.isAuthenticated()) {
-        Platform.setUser(null);
-      }
-    });
-
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearAlert();
-
-      const btn = document.getElementById('loginBtn');
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.innerHTML = 'Verifying <span class="spinner"></span>';
-
-      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-      const password = document.getElementById('loginPassword').value;
-
-      if (!email || !password) {
-        showAlert('Please fill in all fields.');
-        btn.disabled = false;
-        btn.textContent = originalText;
-        return;
-      }
-
-      try {
-        // Search for user in SheetDB
-        const rows = await Platform.sheetSearch({
-          formType: 'Registration',
-          email: email
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+    
+    <!-- Login Container -->
+    <div class="login-container">
+        <div class="glass-card">
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L2 7V12C2 16.5 4.23 20.68 8 22.47L12 24L20 22.47C23.77 20.68 26 16.5 26 12V7L12 2Z" fill="white"/>
+                    </svg>
+                </div>
+                <h1>Welcome Back</h1>
+                <p class="subtitle">Sign in to your Shenzhenswift account</p>
+            </div>
+            
+            <!-- Alert Message -->
+            <div id="loginAlert" class="alert"></div>
+            
+            <!-- Login Form -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">📧</span>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            placeholder="Enter your email"
+                            required
+                        >
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            placeholder="Enter your password"
+                            required
+                        >
+                    </div>
+                </div>
+                
+                <div class="checkbox-group">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="remember" name="remember">
+                        <label for="remember">Remember me</label>
+                    </div>
+                    <a href="#" class="forgot-link">Forgot password?</a>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="loginBtn">
+                    Sign In
+                </button>
+            </form>
+            
+            <!-- Divider -->
+            <div class="divider">
+                <span>Or continue with</span>
+            </div>
+            
+            <!-- Social Login -->
+            <div class="social-login">
+                <a href="#" class="social-btn">
+                    <span>🌐</span>
+                    <span>Google</span>
+                </a>
+                <a href="#" class="social-btn">
+                    <span>🍎</span>
+                    <span>Apple</span>
+                </a>
+                <a href="#" class="social-btn">
+                    <span>📘</span>
+                    <span>Facebook</span>
+                </a>
+            </div>
+            
+            <!-- Sign Up Link -->
+            <div class="signup-link">
+                Don't have an account? <a href="register.html">Sign up now</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Clear form on load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
         });
 
-        if (!Array.isArray(rows) || rows.length === 0) {
-          showAlert('Invalid email or password.');
-          btn.disabled = false;
-          btn.textContent = originalText;
-          return;
-        }
+        // Form submission
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('loginBtn');
+            const alert = document.getElementById('loginAlert');
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+            
+            // Reset alert
+            alert.className = 'alert';
+            alert.textContent = '';
+            
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = 'Signing in<span class="spinner"></span>';
+            
+            try {
+                // Search for user in SheetDB
+                const rows = await Platform.sheetSearch({
+                    formType: 'Registration',
+                    email: email
+                });
 
-        const user = rows[0];
-        
-        // Verify password
-        if (user.password !== password) {
-          showAlert('Invalid email or password.');
-          btn.disabled = false;
-          btn.textContent = originalText;
-          return;
-        }
+                if (!Array.isArray(rows) || rows.length === 0) {
+                    throw new Error('Invalid email or password');
+                }
 
-        // Create session
-        const sessionUser = {
-          name: user.fullname || user.name || 'User',
-          email: user.email,
-          phone: user.phone || '',
-          registrationDate: user.date || new Date().toISOString(),
-          isAuthenticated: true,
-          loginTime: new Date().toISOString()
-        };
+                const user = rows[0];
+                
+                // Verify password
+                if (user.password !== password) {
+                    throw new Error('Invalid email or password');
+                }
 
-        Platform.setUser(sessionUser);
-        
-        // Show success message
-        showAlert('Login successful! Redirecting...', 'success');
-        
-        // Redirect to dashboard
-        setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 1000);
+                // Create session
+                const sessionUser = {
+                    name: user.fullname || user.name || 'User',
+                    email: user.email,
+                    phone: user.phone || '',
+                    isAuthenticated: true,
+                    loginTime: new Date().toISOString()
+                };
 
-      } catch (err) {
-        console.error('Login error:', err);
-        showAlert('Login failed. Please check your connection and try again.');
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-    });
-  </script>
+                Platform.setUser(sessionUser);
+                
+                // Show success message
+                alert.className = 'alert success show';
+                alert.textContent = 'Login successful! Redirecting...';
+                
+                // Redirect to dashboard
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+
+            } catch (err) {
+                alert.className = 'alert error show';
+                alert.textContent = err.message || 'Login failed. Please try again.';
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            }
+        });
+    </script>
 </body>
 </html>

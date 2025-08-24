@@ -216,9 +216,9 @@
         // Sync all transfers (local + remote)
         allTransfers = await Platform.syncAllTransfers();
         
-        // Filter for current user
+        // Filter for current user - strict filtering by email
         allTransfers = allTransfers.filter(t => 
-          !t.email || t.email === currentUser.email
+          t.email === currentUser.email
         );
         
         // Sort by date (newest first)
@@ -261,6 +261,14 @@
     function updateAccounts() {
       const { available } = calculateBalances();
       
+      // For new users with zero balance, show $0.00 across all accounts
+      if (available === 0 && currentUser && currentUser.isNewUser) {
+        document.getElementById('checkingBalance').textContent = currency(0);
+        document.getElementById('savingsBalance').textContent = currency(0);
+        document.getElementById('brokerageBalance').textContent = currency(0);
+        return;
+      }
+      
       // Distribute balance across accounts (example distribution)
       const checkingBalance = available * 0.3;
       const savingsBalance = available * 0.6;
@@ -275,7 +283,24 @@
       const txList = document.getElementById('txList');
       
       if (allTransfers.length === 0) {
-        txList.innerHTML = '<div style="color:var(--muted);text-align:center;padding:24px 0;">No transactions yet.</div>';
+        // Check if this is a new user
+        if (currentUser && currentUser.isNewUser) {
+          txList.innerHTML = `
+            <div style="padding:20px;background:#f0f4ff;border-radius:12px;text-align:center;">
+              <div style="font-size:1.1rem;font-weight:700;color:var(--brand);margin-bottom:8px;">
+                Welcome to Shenzhenswift!
+              </div>
+              <div style="color:var(--muted);margin-bottom:16px;">
+                Your account is ready. Start by making your first transfer.
+              </div>
+              <a href="transfer.html" class="btn btn-primary" style="display:inline-block;text-decoration:none;">
+                Make Your First Transfer
+              </a>
+            </div>
+          `;
+        } else {
+          txList.innerHTML = '<div style="color:var(--muted);text-align:center;padding:24px 0;">No transactions yet.</div>';
+        }
         return;
       }
       
@@ -429,6 +454,12 @@
       
       // Load and display data
       await refreshDashboard();
+      
+      // Clear new user flag after first dashboard visit
+      if (currentUser && currentUser.isNewUser) {
+        delete currentUser.isNewUser;
+        Platform.setUser(currentUser);
+      }
       
       // Start auto-sync
       startAutoSync();

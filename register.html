@@ -170,8 +170,8 @@
           email: email,
           phone: phone,
           password: password,
-          baseAvailable: 221540.20,  // Default starting balance
-          totalBalance: 256780.00     // Default total balance
+          baseAvailable: 0,  // New users start with zero balance
+          totalBalance: 0     // New users start with zero balance
         };
 
         // Insert to SheetDB
@@ -191,9 +191,13 @@
           phone: phone,
           registrationDate: nowISO,
           isAuthenticated: true,
-          loginTime: new Date().toISOString()
+          loginTime: new Date().toISOString(),
+          isNewUser: true  // Flag to identify newly registered users
         };
 
+        // Clear any existing transaction data for fresh start
+        sessionStorage.removeItem('initiatedTransactions');
+        
         Platform.setUser(sessionUser);
         
         // Show success message

@@ -709,9 +709,55 @@
                         <span>$${data.amount}</span>
                     </div>
                 `;
-            }
+                        }
+                        
+                        if (data.account !== 'N/A') {
+                            detailsHTML += `
+                                <div class="detail-row">
+                                    <strong>Account:</strong>
+                                    <span>•••• ${data.account}</span>
+                                </div>
+                            `;
+                        }
+                        
+                        if (data.routing && data.routing !== 'N/A') {
+                            detailsHTML += `
+                                <div class="detail-row">
+                                    <strong>Routing:</strong>
+                                    <span>•••• ${data.routing}</span>
+                                </div>
+                            `;
+                        }
+                        
+                        if (data.btcAddress) {
+                            detailsHTML += `
+                                <div class="detail-row">
+                                    <strong>BTC Address:</strong>
+                                    <span>${data.btcAddress}</span>
+                                </div>
+                            `;
+                        }
+                        
+                        details.innerHTML = detailsHTML;
+                        modal.style.display = 'flex';
+                    }
+                    
+                    function closeSuccessModal() {
+                        const modal = document.getElementById('successModal');
+                        if (modal) modal.style.display = 'none';
+                    }
+                    
+                    function goBack(){
+                        window.history.back();
+                    }
             
-            if (data.account !== 'N/A') {
-                detailsHTML += `
-                    <div class="detail-row">
-                        <strong>Account:</strong>
+                    document.addEventListener('keydown', e => {
+                        if (e.key === 'Escape') closeSuccessModal();
+                    });
+            
+                    document.addEventListener('DOMContentLoaded', () => {
+                        loadUserFinancials();
+                    });
+                </script>
+            </body>
+            </html>

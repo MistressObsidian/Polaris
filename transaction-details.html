@@ -1,112 +1,64 @@
-<!-- Shared platform utilities: user session, transfers sync (API + SheetDB fallback) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Transaction Details - Shenzhenswift</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-:root {
-  --brand:#4f46e5; --brand2:#6366f1;
-  --accent1:#667eea; --accent2:#764ba2;
-  --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666;
-  --border:#e5e7eb; --ok:#047857; --warn:#b45309;
-  --shadow:0 10px 30px rgba(0,0,0,.08);
-}
-* { box-sizing:border-box; }
-body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif; color:var(--text); background:var(--bg); }
-.container { max-width:1000px; margin:0 auto; padding:0 20px; }
-header { background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%); color:#fff; padding:1rem 0; position:fixed; width:100%; top:0; z-index:1000; backdrop-filter:blur(10px); }
-nav { display:flex; justify-content:space-between; align-items:center; }
-.logo { font-size:1.25rem; font-weight:800; }
-.nav-links { list-style:none; display:flex; gap:1.25rem; margin:0; padding:0; }
-.nav-links a { color:#fff; text-decoration:none; font-weight:600; position:relative; }
-.nav-links a::after { content:''; position:absolute; left:0; bottom:-5px; height:2px; width:0; background:#e0e7ff; transition:.3s; }
-.nav-links a:hover::after { width:100%; }
-main { padding-top:120px; }
-.card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:var(--shadow); }
-.page-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:18px 0 14px; }
-.page-title { font-size:1.6rem; font-weight:800; color:var(--brand); }
-.success-banner { display:flex; align-items:center; gap:14px; border:1px solid #bbf7d0; background:#ecfdf5; color:var(--ok); padding:14px; border-radius:12px; font-weight:700; }
-.success-icon { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:#10b981; color:#fff; font-weight:900; box-shadow:0 6px 18px rgba(16,185,129,.3); }
-.amount-line { display:flex; align-items:baseline; gap:10px; margin:18px 0 14px; flex-wrap:wrap; }
-.amount-line .value { font-size:2rem; font-weight:900; }
-.status-pill { display:inline-block; padding:6px 10px; border-radius:999px; font-weight:800; font-size:.8rem; color:#065f46; background:#d1fae5; border:1px solid #a7f3d0; }
-.details-grid { display:grid; gap:12px; grid-template-columns:1fr; }
-@media (min-width:720px){ .details-grid { grid-template-columns:1fr 1fr; } }
-.detail .label { color:var(--muted); font-size:.75rem; margin-bottom:6px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
-.detail .value { font-weight:800; }
-.actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
-.btn { text-decoration:none; font-weight:700; border:2px solid transparent; cursor:pointer; position:relative; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; font-size:.9rem; padding:.75rem 1.2rem; border-radius:10px; transition:.3s; }
-.btn:before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent); transition:left .5s; }
-.btn:hover:before { left:0; }
-.btn-primary { background:linear-gradient(45deg,var(--accent1) 0%,var(--accent2) 100%); color:#fff; box-shadow:0 6px 20px rgba(118,75,162,.25); }
-.btn-outline { background:#fff; border-color:#d9ddff; color:var(--brand); }
-.btn-outline:hover { color:#fff; background:linear-gradient(45deg,var(--accent1),var(--accent2)); box-shadow:0 6px 20px rgba(118,75,162,.22); }
-.note { margin-top:18px; font-size:.8rem; color:var(--muted); }
-</style>
-<script>
-(function(global){
-  const API_BASE = 'https://www.shenzhenswift.online';
-  const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/3g36t35kn6po0';
-  const SHEETDB_API_TOKEN = 'bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3';
-  global.API_BASE = API_BASE;
-  global.SHEETDB_API_URL = SHEETDB_API_URL;
-  global.SHEETDB_API_TOKEN = SHEETDB_API_TOKEN;
-
-  function sheetAuthHeaders(extra={}) {
-    return Object.assign({ Authorization:`Bearer ${SHEETDB_API_TOKEN}` }, extra);
-  }
-  async function sheetSearch(params){
-    try{
-      const qs = new URLSearchParams(params||{}).toString();
-      const res = await fetch(`${SHEETDB_API_URL}/search?${qs}&casesensitive=false`, { headers: sheetAuthHeaders() });
-      if(!res.ok) return [];
-      return res.json();
-    }catch{return [];}
-  }
-  async function sheetInsert(rows){
-    if(!Array.isArray(rows)||!rows.length) return false;
-    try{
-      const res = await fetch(SHEETDB_API_URL,{
-        method:'POST',
-        headers:sheetAuthHeaders({'Content-Type':'application/json'}),
-        body:JSON.stringify({ data: rows })
-      });
-      return res.ok;
-    }catch{return false;}
-  }
-  async function sheetPatch(reference, fields){
-    try{
-      const res = await fetch(SHEETDB_API_URL,{
-        method:'PATCH',
-        headers:sheetAuthHeaders({'Content-Type':'application/json'}),
-        body:JSON.stringify({ data:[{ reference, ...fields }]})
-      });
-      if(res.ok) return true;
-    }catch{}
-    return sheetInsert([{ formType:'Transfer', reference, ...fields }]);
-  }
-  function getUser(){ try { return JSON.parse(sessionStorage.getItem('loggedInUser')||''); } catch { return null; } }
-  function shapeRow(t){
-    return {
-      formType:'Transfer',
-      reference:t.reference,
-      email:t.email || (getUser() && getUser().email) || '',
-      amount:t.amount,
-      from:t.from || t.from_account || '',
-      to:t.to || t.to_account || '',
-      status:t.status || 'Pending',
-      dateISO:t.dateISO || new Date().toISOString(),
-      network:t.type || t.network || 'Transfer'
-    };
-  }
-  global.Platform = global.Platform || {};
-  Object.assign(global.Platform,{ sheetSearch, sheetInsert, sheetPatch, shapeRow });
-})(window);
-</script>
+  <meta charset="UTF-8">
+  <title>Transaction Details - Shenzhenswift</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root {
+      --brand:#4f46e5; --brand2:#6366f1;
+      --accent1:#667eea; --accent2:#764ba2;
+      --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666;
+      --border:#e5e7eb; --ok:#047857; --warn:#b45309;
+      --shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif; color:var(--text); background:var(--bg); }
+    .container { max-width:1000px; margin:0 auto; padding:0 20px; }
+    header { background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%); color:#fff; padding:1rem 0; position:fixed; width:100%; top:0; z-index:1000; backdrop-filter:blur(10px); }
+    nav { display:flex; justify-content:space-between; align-items:center; }
+    .logo { font-size:1.25rem; font-weight:800; }
+    .nav-links { list-style:none; display:flex; gap:1.25rem; margin:0; padding:0; }
+    .nav-links a { color:#fff; text-decoration:none; font-weight:600; position:relative; }
+    .nav-links a::after { content:''; position:absolute; left:0; bottom:-5px; height:2px; width:0; background:#e0e7ff; transition:.3s; }
+    .nav-links a:hover::after { width:100%; }
+    main { padding-top:120px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:var(--shadow); }
+    .page-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:18px 0 14px; }
+    .page-title { font-size:1.6rem; font-weight:800; color:var(--brand); }
+    .subtitle { color:var(--muted); font-size:0.9rem; }
+    .success-banner { display:flex; align-items:center; gap:14px; border:1px solid #bbf7d0; background:#ecfdf5; color:var(--ok); padding:14px; border-radius:12px; font-weight:700; }
+    .pending-banner { display:flex; align-items:center; gap:14px; border:1px solid #fed7aa; background:#fff7ed; color:var(--warn); padding:14px; border-radius:12px; font-weight:700; }
+    .success-icon, .pending-icon { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; color:#fff; font-weight:900; box-shadow:0 6px 18px rgba(16,185,129,.3); }
+    .success-icon { background:#10b981; }
+    .pending-icon { background:#f59e0b; }
+    .amount-line { display:flex; align-items:baseline; gap:10px; margin:18px 0 14px; flex-wrap:wrap; }
+    .amount-line .value { font-size:2rem; font-weight:900; }
+    .status-pill { display:inline-block; padding:6px 10px; border-radius:999px; font-weight:800; font-size:.8rem; }
+    .status-pill.completed { color:#065f46; background:#d1fae5; border:1px solid #a7f3d0; }
+    .status-pill.pending { color:#92400e; background:#fef3c7; border:1px solid #fde68a; }
+    .details-grid { display:grid; gap:12px; grid-template-columns:1fr; }
+    @media (min-width:720px){ .details-grid { grid-template-columns:1fr 1fr; } }
+    .detail { padding:12px; border:1px solid var(--border); border-radius:12px; background:#fff; }
+    .detail .label { color:var(--muted); font-size:.75rem; margin-bottom:6px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
+    .detail .value { font-weight:800; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+    .btn { text-decoration:none; font-weight:700; border:2px solid transparent; cursor:pointer; position:relative; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; font-size:.9rem; padding:.75rem 1.2rem; border-radius:10px; transition:.3s; }
+    .btn:before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent); transition:left .5s; }
+    .btn:hover:before { left:100%; }
+    .btn-primary { background:linear-gradient(45deg,var(--accent1) 0%,var(--accent2) 100%); color:#fff; box-shadow:0 6px 20px rgba(118,75,162,.25); }
+    .btn-outline { background:#fff; border-color:#d9ddff; color:var(--brand); }
+    .btn-outline:hover { color:#fff; background:linear-gradient(45deg,var(--accent1),var(--accent2)); box-shadow:0 6px 20px rgba(118,75,162,.22); }
+    .note { margin-top:18px; font-size:.8rem; color:var(--muted); }
+    .sync-badge { position:fixed; bottom:20px; right:20px; padding:6px 10px; background:rgba(255,255,255,0.9); border-radius:20px; font-size:11px; color:#666; display:none; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+    .sync-badge.active { display:flex; }
+    .sync-dot { width:6px; height:6px; border-radius:50%; background:#28a745; animation:pulse 2s infinite; }
+    @keyframes pulse { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }
+  </style>
 </head>
 <body>
+  <script src="common.js"></script>
+  
   <!-- Fixed header -->
   <header>
     <div class="container">
@@ -133,9 +85,9 @@ main { padding-top:120px; }
       </div>
 
       <section class="card confirm" id="txContainer">
-        <div class="success-banner">
-          <div class="success-icon">✓</div>
-          <div id="bannerText">Processing...</div>
+        <div id="statusBanner" class="pending-banner">
+          <div class="pending-icon">⏱</div>
+          <div id="bannerText">Loading...</div>
         </div>
 
         <div class="amount-line">
@@ -146,7 +98,7 @@ main { padding-top:120px; }
         <div class="details-grid">
           <div class="detail">
             <div class="label">Status</div>
-            <div class="value"><span class="status-pill" id="statusPill">Pending</span></div>
+            <div class="value"><span class="status-pill pending" id="statusPill">Loading...</span></div>
           </div>
           <div class="detail">
             <div class="label">Date & time</div>
@@ -170,7 +122,7 @@ main { padding-top:120px; }
           </div>
           <div class="detail">
             <div class="label">Fees</div>
-            <div class="value" id="feesValue">—</div>
+            <div class="value" id="feesValue">$0.00</div>
           </div>
           <div class="detail">
             <div class="label">Posted by</div>
@@ -184,7 +136,6 @@ main { padding-top:120px; }
           <a class="btn btn-outline" href="dashboard.html">Back to dashboard</a>
         </div>
 
-
         <div class="note">Transfers between your Shenzhenswift accounts usually post instantly. External transfers may take 1–3 business days.</div>
       </section>
 
@@ -192,121 +143,197 @@ main { padding-top:120px; }
     </div>
   </main>
 
+  <div class="sync-badge" id="syncBadge">
+    <div class="sync-dot"></div>
+    <span>Live</span>
+  </div>
+
   <script>
-    // Build the page from only the current transaction:
-    // - If ?ref=<id> present, show that tx
-    // - Else show the most recent initiated transaction for the logged-in user
-    (function(){
-      const user = safeParse(sessionStorage.getItem('loggedInUser')) || {};
-      let list = safeParse(sessionStorage.getItem('initiatedTransactions')) || [];
+    let currentTransfer = null;
+    let syncInterval = null;
 
-      // Keep only this user's transactions if email is stored
-      if (user.email) {
-        list = list.filter(t => !t.email || t.email === user.email);
+    function currency(n) {
+      try {
+        return Number(n).toLocaleString('en-US', {style:'currency', currency:'USD'});
+      } catch {
+        return `$${n}`;
       }
+    }
 
-      const params = new URLSearchParams(location.search);
-      const ref = params.get('ref') || params.get('id') || params.get('reference');
-
-  let tx = null;
-      if (ref) {
-        tx = list.find(t => (t.reference || t.ref || t.id) === ref) || null;
+    function formatDateTime(iso) {
+      try {
+        const d = iso ? new Date(iso) : new Date();
+        return d.toLocaleDateString() + ' • ' + d.toLocaleTimeString();
+      } catch {
+        return '—';
       }
-      if (!tx) {
-        // Use the most recent one (assuming you unshift on creation)
-        tx = list[0] || null;
-      }
+    }
 
-      if (!tx) {
-        // Nothing to show — replace card with empty state and exit
-        const container = document.getElementById('txContainer');
-        container.innerHTML = '<div class="amount-line"><div class="value">$0.00</div><div class="muted">No current transaction to display</div></div><div class="actions" style="margin-top:8px;"><a class="btn btn-primary" href="transfer.html">Make a transfer</a><a class="btn btn-outline" href="dashboard.html">Back to dashboard</a></div>';
+    function updateUI(transfer) {
+      if (!transfer) return;
+      
+      currentTransfer = transfer;
+      const status = (transfer.status || 'Pending').toLowerCase();
+      const isCompleted = status === 'completed';
+      
+      // Update status banner
+      const banner = document.getElementById('statusBanner');
+      const bannerText = document.getElementById('bannerText');
+      
+      if (isCompleted) {
+        banner.className = 'success-banner';
+        banner.innerHTML = '<div class="success-icon">✓</div><div id="bannerText">Transfer Completed</div>';
+      } else {
+        banner.className = 'pending-banner';
+        banner.innerHTML = '<div class="pending-icon">⏱</div><div id="bannerText">Processing Transfer...</div>';
+      }
+      
+      // Update amount and summary
+      const amount = Number(transfer.amount) || 0;
+      document.getElementById('amountValue').textContent = currency(amount);
+      
+      const from = transfer.from || transfer.from_account || '—';
+      const to = transfer.to || transfer.to_account || '—';
+      const summary = (from !== '—' || to !== '—') 
+        ? `Transferred from ${from} to ${to}`
+        : (transfer.network || transfer.type || 'Transfer');
+      document.getElementById('summaryText').textContent = summary;
+      
+      // Update status pill
+      const pill = document.getElementById('statusPill');
+      pill.textContent = transfer.status || 'Pending';
+      pill.className = isCompleted ? 'status-pill completed' : 'status-pill pending';
+      
+      // Update details
+      document.getElementById('dateTimeValue').textContent = formatDateTime(transfer.dateISO || transfer.date);
+      document.getElementById('fromValue').textContent = from;
+      document.getElementById('toValue').textContent = to;
+      document.getElementById('referenceValue').textContent = transfer.reference || '—';
+      document.getElementById('networkValue').textContent = transfer.network || transfer.type || 'Transfer';
+      document.getElementById('feesValue').textContent = transfer.fees || transfer.fee || '$0.00';
+      
+      // Show sync indicator
+      showSyncIndicator();
+    }
+
+    function showSyncIndicator() {
+      const badge = document.getElementById('syncBadge');
+      badge.classList.add('active');
+      setTimeout(() => {
+        badge.classList.remove('active');
+      }, 2000);
+    }
+
+    async function loadTransfer(ref) {
+      if (!ref) {
+        // Try to get the most recent transfer
+        const transfers = Platform.getLocalTransfers();
+        if (transfers.length > 0) {
+          currentTransfer = transfers[0];
+          updateUI(currentTransfer);
+          return;
+        }
+        showEmptyState();
         return;
       }
-
-      // Helpers
-      function safeParse(s){ try { return JSON.parse(s||''); } catch { return null; } }
-      function nowISOToLocal(iso){
-        try{
-          const d = iso ? new Date(iso) : new Date();
-          return d.toLocaleDateString() + ' • ' + d.toLocaleTimeString();
-        } catch { return ''; }
+      
+      // First check local storage
+      const localTransfers = Platform.getLocalTransfers();
+      const localTransfer = localTransfers.find(t => t.reference === ref);
+      
+      if (localTransfer) {
+        updateUI(localTransfer);
       }
-      function fmtAmount(a, delta){
-        if (a == null && delta) return delta;
-        if (typeof a === 'string') return a;
-        if (typeof a === 'number') return a.toLocaleString('en-US',{style:'currency',currency:'USD'});
-        return '$0.00';
-      }
-
-      // Populate initial fields
-      const status = tx.status || 'Pending';
-      const amountStr = fmtAmount(tx.amount, tx.delta);
-      document.getElementById('amountValue').textContent = amountStr;
-      const fromText = tx.from || tx.fromAccount || '—';
-      const toText = tx.to || tx.toAccount || '—';
-      const actionWord = 'to';
-      document.getElementById('summaryText').textContent =
-        (fromText !== '—' || toText !== '—')
-          ? 'Transferred from ' + fromText + ' ' + actionWord + ' ' + toText
-          : (tx.name || tx.type || 'Transfer');
-      document.getElementById('statusPill').textContent = status;
-      document.getElementById('bannerText').textContent = (status.toLowerCase()==='pending') ? 'Processing...' : 'Completed';
-      document.getElementById('dateTimeValue').textContent = tx.dateTime || nowISOToLocal(tx.dateISO || tx.date);
-      document.getElementById('fromValue').textContent = fromText;
-      document.getElementById('toValue').textContent = toText;
-      document.getElementById('referenceValue').textContent = tx.reference || tx.ref || tx.id || '—';
-      document.getElementById('networkValue').textContent = tx.network || tx.type || 'Transfer';
-      document.getElementById('feesValue').textContent = tx.fees || tx.fee || '—';
-      document.getElementById('postedByValue').textContent = tx.postedBy || 'Shenzhenswift Processing';
-
-      function applyTransfer(t){
-        if(!t) return;
-        document.getElementById('statusPill').textContent = t.status || 'Pending';
-        document.getElementById('bannerText').textContent = ( (t.status||'').toLowerCase()==='pending') ? 'Processing...' : 'Completed';
-        if(t.amount!=null) document.getElementById('amountValue').textContent = fmtAmount(t.amount);
-        if(t.from) document.getElementById('fromValue').textContent = t.from;
-        if(t.to) document.getElementById('toValue').textContent = t.to;
-        if(t.reference) document.getElementById('referenceValue').textContent = t.reference;
-        if(t.network || t.type) document.getElementById('networkValue').textContent = t.network || t.type;
-        if(t.fees || t.fee) document.getElementById('feesValue').textContent = t.fees || t.fee;
-        document.getElementById('dateTimeValue').textContent = nowISOToLocal(t.updatedAt || t.dateISO || t.date);
-      }
-
-      // Fetch from API for source-of-truth
-      const token = localStorage.getItem('api_token') || '';
-      if (tx.reference || ref) {
-        const lookupRef = tx.reference || ref;
-        if (token){
-          fetch('http://localhost:3001/api/transfers?ref=' + encodeURIComponent(lookupRef), { headers:{ Authorization:'Bearer ' + token } })
-            .then(r => r.ok ? r.json() : [])
-            .then(arr => {
-              if (Array.isArray(arr) && arr[0]) {
-                applyTransfer(arr[0]);
-              } else if (window.Platform && Platform.fetchTransferByRef){
-                Platform.fetchTransferByRef(lookupRef).then(applyTransfer);
-              }
-            })
-            .catch(()=>{
-              if (window.Platform && Platform.fetchTransferByRef){
-                Platform.fetchTransferByRef(lookupRef).then(applyTransfer);
-              }
-            });
-        } else if (window.Platform && Platform.fetchTransferByRef){
-          Platform.fetchTransferByRef(lookupRef).then(applyTransfer);
+      
+      // Then fetch from SheetDB for latest status
+      try {
+        const remoteTransfer = await Platform.fetchTransferByRef(ref);
+        if (remoteTransfer) {
+          // Merge remote data with local
+          const merged = localTransfer ? { ...localTransfer, ...remoteTransfer } : remoteTransfer;
+          updateUI(merged);
+          
+          // Update local storage
+          Platform.upsertLocalTransfer(merged);
         }
-
-        // Production SSE (gracefully fail if unsupported)
-        try {
-          const src = new EventSource((window.API_BASE || '') + '/api/stream?ref=' + encodeURIComponent(lookupRef));
-          src.addEventListener('transfer.updated', ev => {
-            try { applyTransfer(JSON.parse(ev.data||'{}')); } catch {}
-          });
-          window.addEventListener('beforeunload', () => { try { src.close(); } catch {} });
-        } catch {}
+      } catch (e) {
+        console.error('Failed to fetch transfer:', e);
       }
-    })();
+    }
+
+    function showEmptyState() {
+      const container = document.getElementById('txContainer');
+      container.innerHTML = `
+        <div class="amount-line">
+          <div class="value">$0.00</div>
+          <div class="muted">No transaction to display</div>
+        </div>
+        <div class="actions" style="margin-top:8px;">
+          <a class="btn btn-primary" href="transfer.html">Make a transfer</a>
+          <a class="btn btn-outline" href="dashboard.html">Back to dashboard</a>
+        </div>
+      `;
+    }
+
+    async function syncTransferStatus() {
+      if (!currentTransfer || !currentTransfer.reference) return;
+      
+      try {
+        const remoteTransfer = await Platform.fetchTransferByRef(currentTransfer.reference);
+        if (remoteTransfer) {
+          const hasChanged = remoteTransfer.status !== currentTransfer.status;
+          
+          if (hasChanged) {
+            updateUI(remoteTransfer);
+            Platform.upsertLocalTransfer(remoteTransfer);
+          }
+        }
+      } catch (e) {
+        console.error('Sync failed:', e);
+      }
+    }
+
+    function startAutoSync() {
+      if (syncInterval) clearInterval(syncInterval);
+      
+      // Sync every 5 seconds for live updates
+      syncInterval = setInterval(() => {
+        syncTransferStatus();
+      }, 5000);
+    }
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', async () => {
+      // Check authentication
+      if (!Platform.isAuthenticated()) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      // Get reference from URL
+      const params = new URLSearchParams(location.search);
+      const ref = params.get('ref') || params.get('id') || params.get('reference');
+      
+      // Load transfer
+      await loadTransfer(ref);
+      
+      // Start auto-sync if we have a transfer
+      if (currentTransfer) {
+        startAutoSync();
+      }
+      
+      // Refresh on visibility change
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && currentTransfer) {
+          syncTransferStatus();
+        }
+      });
+    });
+
+    // Cleanup
+    window.addEventListener('beforeunload', () => {
+      if (syncInterval) clearInterval(syncInterval);
+    });
   </script>
-  <script src="common.js"></script>
 </body>
 </html>

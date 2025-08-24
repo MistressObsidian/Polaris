@@ -13,7 +13,7 @@
     .brand h1{ margin:0; font-size:22px; color:#1e3c72 }
     .brand a{ color:#1e3c72; text-decoration:none; font-weight:600 }
     h2{ margin:8px 0 16px; color:#1e3c72 }
-    .form-row{ display:grid; grid-template-columns:1fr; gap:12px; }
+    .form-row{ display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:12px; }
     @media (min-width:680px){ .form-row.two{ grid-template-columns:1fr 1fr; } }
     .form-group{ display:flex; flex-direction:column; }
     label{ font-weight:600; margin:0 0 6px; }
@@ -27,7 +27,7 @@
       background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; font-weight:700; cursor:pointer;
       transition:filter .2s; position:relative; margin-top:12px;
     }
-    .btn:hover{ filter:brightness(1.05) }
+    .btn:hover:not(:disabled){ filter:brightness(1.05) }
     .btn:disabled{ opacity:.7; cursor:not-allowed }
     .spinner {
       display:inline-block; width:18px; height:18px; vertical-align:middle; margin-left:8px;
@@ -40,10 +40,12 @@
     .alert.success{ background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
     .links{ display:flex; gap:12px; justify-content:space-between; margin-top:12px }
     .links a{ color:#1e3c72; text-decoration:none; font-weight:600 }
+    .links a:hover{ text-decoration:underline }
   </style>
 </head>
 <body>
   <script src="common.js"></script>
+  
   <main class="card">
     <div class="brand">
       <h1>Shenzhenswift</h1>
@@ -51,8 +53,7 @@
     </div>
     <h2>Create your account</h2>
 
-    <div id="regAlert" class="alert error"></div>
-    <div id="regSuccess" class="alert success"></div>
+    <div id="regAlert" class="alert"></div>
 
     <form id="registerForm" autocomplete="off" novalidate>
       <div class="form-row two">
@@ -90,107 +91,126 @@
   </main>
 
   <script>
-  const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
-
-  function showError(msg){
-    const el = document.getElementById('regAlert');
-    el.textContent = msg;
-    el.classList.add('show');
-  }
-  function clearError(){
-    const el = document.getElementById('regAlert');
-    el.textContent = '';
-    el.classList.remove('show');
-  }
-  function showSuccess(msg){
-    const el = document.getElementById('regSuccess');
-    el.textContent = msg;
-    el.classList.add('show');
-  }
-  function clearSuccess(){
-    const el = document.getElementById('regSuccess');
-    el.textContent = '';
-    el.classList.remove('show');
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    // ensure fields are empty
-    ['fullname','phone','email','password'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = '';
-    });
-  });
-
-  document.getElementById('registerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    clearError(); clearSuccess();
-
-    const btn = document.getElementById('registerBtn');
-    btn.disabled = true;
-    btn.innerHTML = 'Creating account <span class="spinner"></span>';
-
-    const fullname = document.getElementById('fullname').value.trim();
-    const phone = document.getElementById('phone').value.trim();
-    const email = document.getElementById('email').value.trim().toLowerCase();
-    const password = document.getElementById('password').value;
-
-    // basic client validation
-    if (!fullname || !email || !password || password.length < 6) {
-      showError('Please fill all required fields. Password must be at least 6 characters.');
-      btn.disabled = false; btn.textContent = 'Create account';
-      return;
+    function showAlert(msg, type = 'error') {
+      const el = document.getElementById('regAlert');
+      el.textContent = msg;
+      el.className = `alert ${type} show`;
+    }
+    
+    function clearAlert() {
+      const el = document.getElementById('regAlert');
+      el.textContent = '';
+      el.className = 'alert';
     }
 
-    try {
-      // 1) Check duplicates
-      const searchUrl = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
-      const sRes = await fetch(searchUrl);
-      const rows = await sRes.json();
-      if (Array.isArray(rows) && rows.length > 0) {
-        showError('This email is already registered.');
-        btn.disabled = false; btn.textContent = 'Create account';
+    // Clear form on load
+    document.addEventListener('DOMContentLoaded', () => {
+      ['fullname','phone','email','password'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+    });
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert();
+
+      const btn = document.getElementById('registerBtn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML = 'Creating account <span class="spinner"></span>';
+
+      const fullname = document.getElementById('fullname').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      const password = document.getElementById('password').value;
+
+      // Basic validation
+      if (!fullname || !email || !password) {
+        showAlert('Please fill all required fields.');
+        btn.disabled = false;
+        btn.textContent = originalText;
         return;
       }
 
-      // 2) Submit to SheetDB
-      const nowISO = new Date().toISOString();
-      const payload = {
-        data: [{
+      if (password.length < 6) {
+        showAlert('Password must be at least 6 characters.');
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+
+      if (!email.includes('@')) {
+        showAlert('Please enter a valid email address.');
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+
+      try {
+        // Check if email already exists
+        const existing = await Platform.sheetSearch({
+          formType: 'Registration',
+          email: email
+        });
+
+        if (Array.isArray(existing) && existing.length > 0) {
+          showAlert('This email is already registered. Please login instead.');
+          btn.disabled = false;
+          btn.textContent = originalText;
+          return;
+        }
+
+        // Create new user record
+        const nowISO = new Date().toISOString();
+        const newUser = {
           formType: 'Registration',
           date: nowISO,
-          fullname,
-          email,
-          phone,
-          password
-        }]
-      };
-      const res = await fetch(SHEETDB_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) {
-        showError('Registration failed. Please try again.');
-        btn.disabled = false; btn.textContent = 'Create account';
-        return;
-      }
+          fullname: fullname,
+          email: email,
+          phone: phone,
+          password: password,
+          baseAvailable: 221540.20,  // Default starting balance
+          totalBalance: 256780.00     // Default total balance
+        };
 
-      // 3) On success, create session and redirect
-      sessionStorage.setItem('loggedInUser', JSON.stringify({
-        name: fullname,
-        email,
-        phone,
-        registrationDate: nowISO,
-        isAuthenticated: true,
-        loginTime: new Date().toISOString()
-      }));
-      window.location.href = 'dashboard.html';
-    } catch (err) {
-      console.error(err);
-      showError('Could not reach the server. Please try again.');
-      btn.disabled = false; btn.textContent = 'Create account';
-    }
-  });
+        // Insert to SheetDB
+        const success = await Platform.sheetInsert([newUser]);
+
+        if (!success) {
+          showAlert('Registration failed. Please try again.');
+          btn.disabled = false;
+          btn.textContent = originalText;
+          return;
+        }
+
+        // Create session
+        const sessionUser = {
+          name: fullname,
+          email: email,
+          phone: phone,
+          registrationDate: nowISO,
+          isAuthenticated: true,
+          loginTime: new Date().toISOString()
+        };
+
+        Platform.setUser(sessionUser);
+        
+        // Show success message
+        showAlert('Account created successfully! Redirecting...', 'success');
+        
+        // Redirect to dashboard
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1500);
+
+      } catch (err) {
+        console.error('Registration error:', err);
+        showAlert('Could not complete registration. Please try again.');
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
   </script>
 </body>
 </html>

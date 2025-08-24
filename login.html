@@ -28,7 +28,7 @@
       transition:filter .2s; position:relative;
     }
     .btn:disabled{ opacity:.7; cursor:not-allowed }
-    .btn:hover{ filter:brightness(1.05) }
+    .btn:hover:not(:disabled){ filter:brightness(1.05) }
     .spinner {
       display:inline-block; width:18px; height:18px; vertical-align:middle; margin-left:8px;
       border:2px solid #fff; border-top:2px solid #667eea; border-radius:50%; animation:spin .8s linear infinite;
@@ -36,15 +36,17 @@
     @keyframes spin { to{ transform:rotate(360deg)} }
     .links{ display:flex; gap:12px; justify-content:space-between; margin-top:12px }
     .links a{ color:#1e3c72; text-decoration:none; font-weight:600 }
+    .links a:hover{ text-decoration:underline }
     @media (max-width:500px){ .card{padding:18px 6vw;} }
     .alert{ display:none; margin:10px 0; padding:10px 12px; border-radius:8px; font-size:14px; }
     .alert.show{ display:block; }
     .alert.error{ background:#fde8e8; color:#b91c1c; border:1px solid #fecaca; }
-    .alert.ok{ background:#d1fae5; color:#047857; border:1px solid #a7f3d0; }
+    .alert.success{ background:#d1fae5; color:#047857; border:1px solid #a7f3d0; }
   </style>
 </head>
 <body>
   <script src="common.js"></script>
+  
   <main class="card">
     <div class="brand">
       <h1>Shenzhenswift</h1>
@@ -72,95 +74,99 @@
   </main>
 
   <script>
-  const SHEETDB_API_URL = "https://sheetdb.io/api/v1/3g36t35kn6po0";
-
-  function showAlert(msg){
-    const el = document.getElementById('loginAlert');
-    el.textContent = msg;
-    el.className = 'alert error show';
-  }
-  function clearAlert(){
-    const el = document.getElementById('loginAlert');
-    el.textContent = '';
-    el.className = 'alert';
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const email = document.getElementById('loginEmail');
-    const pass = document.getElementById('loginPassword');
-    email.value = '';
-    pass.value = '';
-  });
-
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    clearAlert();
-
-    const btn = document.getElementById('loginBtn');
-    btn.disabled = true;
-    btn.innerHTML = 'Verifying <span class="spinner"></span>';
-
-    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-    const password = document.getElementById('loginPassword').value;
-
-    try {
-      let authenticated = false;
-      // 1. Try SheetDB first (existing behavior)
-      try {
-        const url = `${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(email)}&casesensitive=false`;
-        const res = await fetch(url);
-        if (res.ok) {
-          const rows = await res.json();
-            if (Array.isArray(rows) && rows.length) {
-              const rowUser = rows[0];
-              if ((rowUser.password || '') === password) {
-                sessionStorage.setItem('loggedInUser', JSON.stringify({
-                  name: rowUser.fullname || rowUser.name || 'User',
-                  email: rowUser.email,
-                  phone: rowUser.phone || '',
-                  registrationDate: rowUser.date || new Date().toISOString(),
-                  isAuthenticated: true,
-                  loginTime: new Date().toISOString()
-                }));
-                authenticated = true;
-              }
-            }
-        }
-      } catch {}
-
-      // 2. Fallback: internal user store (e.g., Gregory Keyes) if not authenticated yet
-      if(!authenticated){
-        try {
-          const res2 = await fetch('http://localhost:3001/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
-          if(res2.ok){
-            const data = await res2.json();
-            if(data && data.ok){
-              sessionStorage.setItem('loggedInUser', JSON.stringify({
-                name: data.user.name,
-                email: data.user.email,
-                isAuthenticated: true,
-                registrationDate: data.user.createdAt || new Date().toISOString(),
-                loginTime: new Date().toISOString()
-              }));
-              authenticated = true;
-            }
-          }
-        } catch {}
-      }
-
-      if(!authenticated){
-        showAlert('Invalid email or password.');
-      } else {
-        window.location.href = 'dashboard.html';
-      }
-    } catch (err) {
-      console.error(err);
-      showAlert('Login failed. Check your connection and try again.');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Login';
+    function showAlert(msg, type = 'error') {
+      const el = document.getElementById('loginAlert');
+      el.textContent = msg;
+      el.className = `alert ${type} show`;
     }
-  });
+    
+    function clearAlert() {
+      const el = document.getElementById('loginAlert');
+      el.textContent = '';
+      el.className = 'alert';
+    }
+
+    // Clear form on load
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+      
+      // Clear any existing session
+      if (Platform.isAuthenticated()) {
+        Platform.setUser(null);
+      }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert();
+
+      const btn = document.getElementById('loginBtn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML = 'Verifying <span class="spinner"></span>';
+
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value;
+
+      if (!email || !password) {
+        showAlert('Please fill in all fields.');
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+
+      try {
+        // Search for user in SheetDB
+        const rows = await Platform.sheetSearch({
+          formType: 'Registration',
+          email: email
+        });
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+          showAlert('Invalid email or password.');
+          btn.disabled = false;
+          btn.textContent = originalText;
+          return;
+        }
+
+        const user = rows[0];
+        
+        // Verify password
+        if (user.password !== password) {
+          showAlert('Invalid email or password.');
+          btn.disabled = false;
+          btn.textContent = originalText;
+          return;
+        }
+
+        // Create session
+        const sessionUser = {
+          name: user.fullname || user.name || 'User',
+          email: user.email,
+          phone: user.phone || '',
+          registrationDate: user.date || new Date().toISOString(),
+          isAuthenticated: true,
+          loginTime: new Date().toISOString()
+        };
+
+        Platform.setUser(sessionUser);
+        
+        // Show success message
+        showAlert('Login successful! Redirecting...', 'success');
+        
+        // Redirect to dashboard
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1000);
+
+      } catch (err) {
+        console.error('Login error:', err);
+        showAlert('Login failed. Please check your connection and try again.');
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
   </script>
 </body>
 </html>

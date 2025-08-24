@@ -41,6 +41,15 @@
         }
         h2 { color: #333; margin-bottom: 5px; font-size: 1.8rem; }
         .subtitle { color: #666; font-size: 0.9rem; }
+        .available-balance {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+            color: #155724;
+        }
         .transfer-method-btn {
             padding: 15px 20px;
             margin: 8px 0;
@@ -207,19 +216,14 @@
             transform: translateX(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-    /* Token row */
-    .token-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
-    .token-row label { font-size: 12px; color: #666; }
-    .token-row input { flex: 1; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 12px; }
         .success-modal {
-            display: none; /* will be set to flex via JS when shown */
+            display: none;
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(5px);
             z-index: 1000;
             animation: fadeIn 0.3s ease;
-            /* Center and allow scrolling on very small viewports */
             align-items: center;
             justify-content: center;
             padding: 16px;
@@ -233,7 +237,6 @@
             text-align: center;
             width: min(92vw, 520px);
             max-width: 520px;
-            /* Constrain height to viewport and allow internal scroll */
             max-height: calc(100dvh - 48px);
             overflow: auto;
             animation: successSlideIn 0.4s ease;
@@ -288,7 +291,6 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
-        /* Top-right X close button */
         .modal-close {
             position: absolute;
             top: 10px; right: 10px;
@@ -318,102 +320,234 @@
             .close-btn { width: 100%; }
             .modal-close { width: 28px; height: 28px; font-size: 16px; }
         }
-        .loading-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(102, 126, 234, 0.9);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            backdrop-filter: blur(5px);
-        }
-        .loading-spinner {
-            width: 60px; height: 60px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            animation: bigSpin 1s linear infinite;
-        }
-        @keyframes bigSpin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
     </style>
 </head>
 <body>
     <script src="common.js"></script>
-<script>
-// Ensure any lingering localhost references removed (none needed now)
-// Use Platform.syncTransfer already pointing at production SheetDB
+    
+    <button class="back-btn" onclick="goBack()">←</button>
+    
+    <div class="container">
+        <div class="header">
+            <div class="logo">Shenzhenswift</div>
+            <h2>Transfer Money</h2>
+            <p class="subtitle">Fast & secure transfers worldwide</p>
+            <div class="available-balance" id="availableBalanceLine">Loading balance...</div>
+        </div>
 
-// Remove page-level redefinitions; rely on common.js
-if(!sessionStorage.getItem('loggedInUser')){ window.location.href='login.html'; }
-let USER_BASE_AVAILABLE=null;
-let activeForm=null;
-async function loadUserFinancials(){
-  const user = JSON.parse(sessionStorage.getItem('loggedInUser')||'null');
-  if(!user) return;
-  try{
-    const res = await fetch(`http://localhost:3001/api/users/${encodeURIComponent(user.email)}`);
-    if(res.ok){
-      const data=await res.json();
-      USER_BASE_AVAILABLE=Number(data.baseAvailable||0);
-    }
-  }catch{}
-  recalcAvailable();
-}
-function recalcAvailable(){
-  if(USER_BASE_AVAILABLE==null) return;
-  try{
-    const list=JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');
-    const spent=list.filter(t=>String(t.status||'').toLowerCase()==='completed')
-      .reduce((s,t)=>s+(Number(t.amount)||0),0);
-    const avail=Math.max(0,USER_BASE_AVAILABLE - spent);
-    const el=document.getElementById('availableBalanceLine');
-    if(el) el.textContent=`Available: ${avail.toLocaleString(undefined,{style:'currency',currency:'USD'})}`;
-  }catch{}
-}
+        <!-- Wire Transfer -->
+        <button class="transfer-method-btn" id="wireBtn" onclick="toggleForm('wireForm')">
+            <span class="method-icon">💸</span>
+            <span class="method-text">Wire Transfer</span>
+            <span class="method-arrow">▶</span>
+        </button>
+        <div class="transfer-form" id="wireForm">
+            <h3>Wire Transfer Details</h3>
+            <div class="form-group">
+                <label>Account Number</label>
+                <input type="text" class="transfer-input" name="account" placeholder="Enter account number">
+            </div>
+            <div class="form-group">
+                <label>Routing Number</label>
+                <input type="text" class="transfer-input" name="routing" placeholder="Enter routing number">
+            </div>
+            <div class="form-group">
+                <label>Amount ($)</label>
+                <input type="number" class="transfer-input" step="0.01" min="0.01" placeholder="0.00">
+            </div>
+            <div class="message"></div>
+            <button class="submit-btn" onclick="submitTransfer('wireForm')">Submit Wire Transfer</button>
+        </div>
 
-// + helper for currency
-function currency(n){ try{ return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) }catch{ return `$${n}` } }
+        <!-- EFT Transfer -->
+        <button class="transfer-method-btn" id="eftBtn" onclick="toggleForm('eftForm')">
+            <span class="method-icon">🏦</span>
+            <span class="method-text">EFT Transfer</span>
+            <span class="method-arrow">▶</span>
+        </button>
+        <div class="transfer-form" id="eftForm">
+            <h3>EFT Transfer Details</h3>
+            <div class="form-group">
+                <label>Account Number</label>
+                <input type="text" class="transfer-input" name="account" placeholder="Enter account number">
+            </div>
+            <div class="form-group">
+                <label>Routing Number</label>
+                <input type="text" class="transfer-input" name="routing" placeholder="Enter routing number">
+            </div>
+            <div class="form-group">
+                <label>Amount ($)</label>
+                <input type="number" class="transfer-input" step="0.01" min="0.01" placeholder="0.00">
+            </div>
+            <div class="message"></div>
+            <button class="submit-btn" onclick="submitTransfer('eftForm')">Submit EFT Transfer</button>
+        </div>
 
-function toggleForm(formId) {
-    const form = document.getElementById(formId);
-    const btn = document.getElementById(formId.replace('Form', 'Btn'));
-    if (activeForm && activeForm !== form) {
-        activeForm.style.display = "none";
-        const activeBtn = document.querySelector('.transfer-method-btn.active');
-        if (activeBtn) activeBtn.classList.remove('active');
-    }
-    if (form.style.display === "none" || form.style.display === "") {
-        form.style.display = "block";
-        btn.classList.add('active');
-        activeForm = form;
-        setTimeout(() => {
-            form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
-    } else {
-        form.style.display = "none";
-        btn.classList.remove('active');
-        activeForm = null;
-    }
-}
-function submitTransfer(formId) {
+        <!-- ACH Transfer -->
+        <button class="transfer-method-btn" id="achBtn" onclick="toggleForm('achForm')">
+            <span class="method-icon">🔄</span>
+            <span class="method-text">ACH Transfer</span>
+            <span class="method-arrow">▶</span>
+        </button>
+        <div class="transfer-form" id="achForm">
+            <h3>ACH Transfer Details</h3>
+            <div class="form-group">
+                <label>Account Number</label>
+                <input type="text" class="transfer-input" name="account" placeholder="Enter account number">
+            </div>
+            <div class="form-group">
+                <label>Routing Number</label>
+                <input type="text" class="transfer-input" name="routing" placeholder="Enter routing number">
+            </div>
+            <div class="form-group">
+                <label>Amount ($)</label>
+                <input type="number" class="transfer-input" step="0.01" min="0.01" placeholder="0.00">
+            </div>
+            <div class="message"></div>
+            <button class="submit-btn" onclick="submitTransfer('achForm')">Submit ACH Transfer</button>
+        </div>
+
+        <!-- Bitcoin Conversion -->
+        <button class="transfer-method-btn" id="btcBtn" onclick="toggleForm('btcForm')">
+            <span class="method-icon">₿</span>
+            <span class="method-text">Bitcoin Conversion</span>
+            <span class="method-arrow">▶</span>
+        </button>
+        <div class="transfer-form" id="btcForm">
+            <h3>Bitcoin Conversion Details</h3>
+            <div class="form-group">
+                <label>Bitcoin Address</label>
+                <input type="text" class="transfer-input" id="btcAddress" placeholder="Enter Bitcoin address">
+            </div>
+            <div class="form-group">
+                <label>Amount ($)</label>
+                <input type="number" class="transfer-input" id="btcAmount" step="0.01" min="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label>Email Confirmation</label>
+                <input type="email" class="transfer-input" id="btcEmail" placeholder="Enter email">
+            </div>
+            <div class="message"></div>
+            <button class="submit-btn" onclick="submitTransfer('btcForm')">Convert to Bitcoin</button>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="success-modal" id="successModal">
+        <div class="success-content">
+            <button class="modal-close" onclick="closeSuccessModal()" aria-label="Close">×</button>
+            <div class="success-icon">✅</div>
+            <h2>Transfer Submitted Successfully!</h2>
+            <p>Your transfer has been submitted and is being processed.</p>
+            <div class="success-details" id="successDetails"></div>
+            <button class="close-btn" onclick="closeSuccessModal()">Continue to Details</button>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        if(!sessionStorage.getItem('loggedInUser')){ 
+            window.location.href='login.html'; 
+        }
+
+        let USER_BASE_AVAILABLE = null;
+        let activeForm = null;
+
+        async function loadUserFinancials(){
+            const user = JSON.parse(sessionStorage.getItem('loggedInUser')||'null');
+            if(!user || !user.email) return;
+            
+            // Try SheetDB first for user financials
+            try {
+                const rows = await Platform.sheetSearch({
+                    formType: 'Registration',
+                    email: user.email
+                });
+                if(Array.isArray(rows) && rows.length > 0){
+                    const r = rows[0];
+                    USER_BASE_AVAILABLE = Number(r.baseAvailable || 221540.20);
+                }
+            } catch(e) {
+                console.log('Using default balance');
+                USER_BASE_AVAILABLE = 221540.20;
+            }
+            recalcAvailable();
+        }
+
+        function recalcAvailable(){
+            if(USER_BASE_AVAILABLE == null) {
+                USER_BASE_AVAILABLE = 221540.20; // Default
+            }
+            
+            try {
+                const list = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');
+                const spent = list.filter(t => String(t.status||'').toLowerCase() === 'completed')
+                    .reduce((s,t) => s + (Number(t.amount)||0), 0);
+                const avail = Math.max(0, USER_BASE_AVAILABLE - spent);
+                const el = document.getElementById('availableBalanceLine');
+                if(el) {
+                    el.textContent = `Available: ${avail.toLocaleString(undefined, {style:'currency',currency:'USD'})}`;
+                }
+            } catch(e) {
+                console.error('Error calculating balance:', e);
+            }
+        }
+
+        function currency(n){ 
+            try { 
+                return Number(n).toLocaleString(undefined, {style:'currency',currency:'USD'});
+            } catch { 
+                return `$${n}`;
+            }
+        }
+
+        function toggleForm(formId) {
+            const form = document.getElementById(formId);
+            const btn = document.getElementById(formId.replace('Form', 'Btn'));
+            
+            if (activeForm && activeForm !== form) {
+                activeForm.style.display = "none";
+                const activeBtn = document.querySelector('.transfer-method-btn.active');
+                if (activeBtn) activeBtn.classList.remove('active');
+            }
+            
+            if (form.style.display === "none" || form.style.display === "") {
+                form.style.display = "block";
+                btn.classList.add('active');
+                activeForm = form;
+                setTimeout(() => {
+                    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            } else {
+                form.style.display = "none";
+                btn.classList.remove('active');
+                activeForm = null;
+            }
+        }
+
+        async function submitTransfer(formId) {
             const form = document.getElementById(formId);
             const submitBtn = form.querySelector('.submit-btn');
             const messageElement = form.querySelector('.message');
+            
             const formData = {
                 formType: formId.replace('Form', ' Transfer'),
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent
+                timestamp: new Date().toISOString()
             };
+            
             let isValid = true;
             let validationMessage = '';
+            
+            // Validation
             if (formId === 'wireForm' || formId === 'eftForm' || formId === 'achForm') {
                 const accountNumber = form.querySelector("input[name='account']")?.value || "";
                 const routingNumber = form.querySelector("input[name='routing']")?.value || "";
                 const amount = form.querySelector("input[type='number']")?.value || "";
+                
                 formData.accountNumber = accountNumber;
                 formData.routingNumber = routingNumber;
                 formData.amount = amount;
+                
                 if (accountNumber.length < 4) {
                     isValid = false;
                     validationMessage = "Account number must be at least 4 digits.";
@@ -428,9 +562,11 @@ function submitTransfer(formId) {
                 const btcAddress = document.getElementById('btcAddress').value;
                 const amount = document.getElementById('btcAmount').value;
                 const email = document.getElementById('btcEmail').value;
+                
                 formData.btcAddress = btcAddress;
                 formData.amount = amount;
                 formData.email = email;
+                
                 if (!btcAddress || btcAddress.length < 10) {
                     isValid = false;
                     validationMessage = "Please enter a valid Bitcoin address.";
@@ -442,169 +578,93 @@ function submitTransfer(formId) {
                     validationMessage = "Please enter a valid email address.";
                 }
             }
+            
             if (!isValid) {
                 showMessage(messageElement, validationMessage, 'error');
                 return;
             }
-                        // Real-time flow: create transfer immediately and show modal; status will update via SSE
-                        messageElement.style.display = "none";
-                        submitBtn.disabled = true;
-                        submitBtn.classList.add("loading");
-                        submitBtn.innerHTML = `Submitting<span class="spinner"></span>`;
+            
+            // Submit transfer
+            messageElement.style.display = "none";
+            submitBtn.disabled = true;
+            submitBtn.classList.add("loading");
+            submitBtn.innerHTML = `Submitting<span class="spinner"></span>`;
+            
+            const user = JSON.parse(sessionStorage.getItem('loggedInUser') || '{}');
+            const typeMap = { 
+                wireForm: 'Wire Transfer', 
+                eftForm: 'EFT Transfer', 
+                achForm: 'ACH Transfer', 
+                btcForm: 'Bitcoin Conversion' 
+            };
+            const network = typeMap[formId] || 'Transfer';
+            const ref = 'TXN' + Date.now().toString().slice(-8);
+            const amountNum = Number(formData.amount || 0);
+            const from = 'Everyday Checking •••3482';
+            let to = 'External Account';
+            
+            if (formId === 'btcForm' && formData.btcAddress) {
+                to = formData.btcAddress.substring(0, 10) + '...';
+            } else if (formData.accountNumber) {
+                to = `Acct •••${String(formData.accountNumber).slice(-4)}`;
+            }
+            
+            // Create transfer object
+            const tx = {
+                reference: ref,
+                email: user.email || '',
+                amount: amountNum,
+                from: from,
+                to: to,
+                status: 'Pending',
+                dateISO: new Date().toISOString(),
+                network: network,
+                type: network
+            };
+            
+            // Save to local storage
+            Platform.upsertLocalTransfer(tx);
+            
+            // Sync to SheetDB
+            try {
+                await Platform.syncTransfer(tx);
+            } catch(e) {
+                console.error('Failed to sync transfer:', e);
+            }
+            
+            // Update available balance
+            recalcAvailable();
+            
+            // Show success
+            setTimeout(() => {
+                submitBtn.classList.remove("loading");
+                submitBtn.classList.add("success");
+                submitBtn.innerHTML = "Transfer Submitted";
+                
+                const successData = {
+                    type: network,
+                    account: formData.accountNumber ? formData.accountNumber.slice(-4) : 'N/A',
+                    routing: formData.routingNumber ? formData.routingNumber.slice(-4) : 'N/A',
+                    amount: formData.amount || 'N/A',
+                    reference: ref,
+                    date: new Date().toLocaleDateString(),
+                    time: new Date().toLocaleTimeString(),
+                    status: 'Pending',
+                    btcAddress: formData.btcAddress ? formData.btcAddress.substring(0, 10) + '...' : null
+                };
+                
+                showSuccessModal(successData);
+                
+                // Reset form
+                setTimeout(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove("success");
+                    submitBtn.innerHTML = "Submit " + network;
+                    form.querySelectorAll('input').forEach(input => input.value = '');
+                }, 3000);
+            }, 1500);
+        }
 
-                        const user = JSON.parse(sessionStorage.getItem('loggedInUser') || '{}');
-                        const typeMap = { wireForm:'Wire Transfer', eftForm:'EFT Transfer', achForm:'ACH Transfer', btcForm:'Bitcoin Conversion' };
-                        const network = typeMap[formId] || 'Transfer';
-                        const ref = 'TXN' + Date.now().toString().slice(-8);
-                        const amountNum = Number(formData.amount || 0);
-                        const from = 'Everyday Checking •••3482';
-                        let to = 'External Account';
-                        if (formId === 'btcForm' && formData.btcAddress) {
-                            to = formData.btcAddress;
-                        } else if (formData.accountNumber) {
-                            to = `Acct •••${String(formData.accountNumber).slice(-4)}`;
-                        }
-
-                        // Save to local list for details view (optional UX)
-                        const tx = {
-                            email: user.email,
-                            source: 'transfer',
-                            name: network,
-                            type: network,
-                            amount: amountNum,
-                            delta: amountNum ? `- ${currency(amountNum)}` : undefined,
-                            from, to,
-                            status: 'Pending',
-                            reference: ref,
-                            dateISO: new Date().toISOString(),
-                            network
-                        };
-                        const key = 'initiatedTransactions';
-                        const list = JSON.parse(sessionStorage.getItem(key) || '[]');
-                        list.unshift(tx);
-                        sessionStorage.setItem(key, JSON.stringify(list));
-                        recalcAvailable();
-
-                        // Send to API with auth + idempotency
-                        (async () => {
-                            const API_TOKEN = localStorage.getItem('api_token');
-                            if (!API_TOKEN) {
-                                alert('Missing API token. Please set localStorage.api_token before submitting.');
-                                submitBtn.disabled = false; submitBtn.classList.remove('loading'); submitBtn.innerHTML = 'Submit';
-                                return;
-                            }
-                            const payload = {
-                                reference: ref,
-                                email: user.email || null,
-                                amount: amountNum,
-                                type: network,
-                                from, to,
-                                status: 'Pending',
-                                dateISO: new Date().toISOString(),
-                                source: 'transfer'
-                            };
-                            const idKey = `transfer-${ref}`;
-                            let delay = 300;
-                            for (let i=0; i<3; i++) {
-                                try {
-                                    const res = await fetch('http://localhost:3001/api/transfers', {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'Authorization': `Bearer ${API_TOKEN}`,
-                                            'Idempotency-Key': idKey
-                                        },
-                                        body: JSON.stringify(payload)
-                                    });
-                                    if (res.ok) break;
-                                } catch {}
-                                await new Promise(r => setTimeout(r, delay));
-                                delay *= 2;
-                            }
-                            // Send to SheetDB instead of local API
-                            (async () => {
-                                const payloadRow = {
-                                    formType: 'Transfer',
-                                    reference: ref,
-                                    email: user.email || '',
-                                    amount: amountNum,
-                                    from, to,
-                                    status: 'Pending',
-                                    dateISO: new Date().toISOString(),
-                                    network
-                                };
-                                try {
-                                    await fetch('https://sheetdb.io/api/v1/3g36t35kn6po0', {
-                                        method: 'POST',
-                                        headers: {
-                                          'Content-Type': 'application/json',
-                                          'Authorization': `Bearer ${SHEETDB_API_TOKEN}`
-                                        },
-                                        body: JSON.stringify({ data: [ payloadRow ] })
-                                    });
-                                } catch {}
-                                if (window.Platform && Platform.recordTransferToSheet) {
-                                    Platform.recordTransferToSheet(payloadRow);
-                                }
-                            })();
-
-                        submitBtn.classList.remove("loading");
-                        submitBtn.classList.add("success");
-                        submitBtn.innerHTML = "Transfer Submitted";
-
-                        const successData = {
-                            type: network,
-                            account: formData.accountNumber ? formData.accountNumber.slice(-4) : 'N/A',
-                            routing: formData.routingNumber ? formData.routingNumber.slice(-4) : 'N/A',
-                            amount: formData.amount || 'N/A',
-                            reference: ref,
-                            date: new Date().toLocaleDateString(),
-                            time: new Date().toLocaleTimeString(),
-                            status: 'Pending',
-                            btcAddress: formData.btcAddress ? formData.btcAddress.substring(0, 10) + '...' : null
-                        };
-
-                        // Show modal immediately
-                        showSuccessModal(successData);
-
-                        // Enable clicking to go to the details for this ref
-                        submitBtn.disabled = false;
-                        submitBtn.style.cursor = 'pointer';
-                        submitBtn.addEventListener('click', () => {
-                            window.location.href = `transaction-details.html?ref=${encodeURIComponent(ref)}`;
-                        }, { once:true });
-
-        // Subscribe to SSE updates for this reference
-                                try {
-                                    const API_TOKEN = localStorage.getItem('api_token');
-                                    const src = new EventSource(`http://localhost:3001/api/stream?token=${encodeURIComponent(API_TOKEN)}`);
-                                    const updateHandler = (ev) => {
-                                        try {
-                                            const data = JSON.parse(ev.data || '{}');
-                                            if (data.reference === ref && data.status) {
-                                                if (window.Platform && Platform.applyTransferEvent) Platform.applyTransferEvent(data);
-                                                recalcAvailable();
-                                                // Update modal status text
-                                                const details = document.getElementById('successDetails');
-                                                if (details) {
-                                                    details.querySelectorAll('.detail-row').forEach(row => {
-                                                        const label = row.querySelector('strong');
-                                                        if (label && label.textContent.includes('Status')) {
-                                                            const span = row.querySelector('span');
-                                                            if (span) span.textContent = data.status;
-                                                        }
-                                                    });
-                                                }
-                                            }
-                                        } catch {}
-                                    };
-                                    src.addEventListener('transfer.updated', updateHandler);
-                                    // Optional: close stream when modal is closed
-                                    const originalClose = window.closeSuccessModal;
-                                    window.closeSuccessModal = function () { try { src.close(); } catch {} originalClose(); };
-                                } catch {}
-                            })();
-                        } // end submitTransfer
         function showMessage(element, message, type) {
             element.innerText = message;
             element.style.display = "block";
@@ -614,11 +674,11 @@ function submitTransfer(formId) {
                 element.style.borderColor = '#f5c6cb';
             }
         }
-        // prepareSuccessData merged into inline successData above
-    function showSuccessModal(data) {
+
+        function showSuccessModal(data) {
             const modal = document.getElementById('successModal');
             const details = document.getElementById('successDetails');
-            const content = modal.querySelector('.success-content');
+            
             let detailsHTML = `
                 <div class="detail-row">
                     <strong>Transfer Type:</strong>
@@ -641,6 +701,7 @@ function submitTransfer(formId) {
                     <span style="color: #28a745; font-weight: bold;">${data.status}</span>
                 </div>
             `;
+            
             if (data.amount !== 'N/A') {
                 detailsHTML += `
                     <div class="detail-row">
@@ -649,96 +710,8 @@ function submitTransfer(formId) {
                     </div>
                 `;
             }
+            
             if (data.account !== 'N/A') {
                 detailsHTML += `
                     <div class="detail-row">
                         <strong>Account:</strong>
-                        <span>****${data.account}</span>
-                    </div>
-                `;
-            }
-            if (data.routing !== 'N/A') {
-                detailsHTML += `
-                    <div class="detail-row">
-                        <strong>Routing:</strong>
-                        <span>****${data.routing}</span>
-                    </div>
-                `;
-            }
-            if (data.btcAddress) {
-                detailsHTML += `
-                    <div class="detail-row">
-                        <strong>BTC Address:</strong>
-                        <span>${data.btcAddress}</span>
-                    </div>
-                `;
-            }
-                        details.innerHTML = detailsHTML;
-                        modal.style.display = 'flex';
-
-                        // Redirect to details for this exact ref on Continue
-            const btn = document.querySelector('.close-btn');
-            if (btn) {
-              btn.onclick = () => {
-                window.location.href = `transaction-details.html?ref=${encodeURIComponent(data.reference)}`;
-              };
-            }
-
-                        // Allow closing by clicking on the dimmed backdrop
-                        modal.addEventListener('click', (e) => {
-                            if (e.target === modal) {
-                                closeSuccessModal();
-                            }
-                        }, { once: true });
-
-                        // X button closes without redirect
-                        const xBtn = modal.querySelector('.modal-close');
-                        if (xBtn) {
-                            xBtn.onclick = (e) => {
-                                e.stopPropagation();
-                                closeSuccessModal();
-                            };
-                        }
-
-                        // Esc key closes
-                        const onKey = (e) => {
-                            if (e.key === 'Escape') {
-                                closeSuccessModal();
-                                document.removeEventListener('keydown', onKey);
-                            }
-                        };
-                        document.addEventListener('keydown', onKey, { once: true });
-        }
-        function closeSuccessModal() {
-                        document.getElementById('successModal').style.display = 'none';
-            // Optionally reset forms or redirect
-        }
-        function goBack() {
-            window.history.length > 1 ? window.history.back() : window.location.href = 'dashboard.html';
-        }
-
-                // Initialize token input
-                (function(){
-                    const el = document.getElementById('apiTokenInput');
-                    if (!el) return;
-                    el.value = localStorage.getItem('api_token') || '';
-                    el.addEventListener('change', () => {
-                        localStorage.setItem('api_token', el.value.trim());
-                    });
-                                })();
-
-                                // Global SSE for balance + transaction sync
-                                (function(){
-                                    const token = localStorage.getItem('api_token');
-                                    if(!token) return; try {
-                                        const src = new EventSource(`http://localhost:3001/api/stream?token=${encodeURIComponent(token)}`);
-                                        const handler = ev => { try { const d = JSON.parse(ev.data||'{}'); if(window.Platform && Platform.applyTransferEvent) Platform.applyTransferEvent(d); recalcAvailable(); } catch{} };
-                                        src.addEventListener('transfer.created', handler);
-                                        src.addEventListener('transfer.updated', handler);
-                                    } catch {}
-                                })();
-
-                                loadUserFinancials();
-    </script>
-</body>
-</html>

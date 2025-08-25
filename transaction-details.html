@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>Transaction Details - Bank Swift</title>
+  <link rel="icon" href="bank-swift.png" type="image/png" />
+  <link rel="apple-touch-icon" href="bank-swift.png" />
+  <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
     :root {
@@ -17,7 +20,8 @@
     .container { max-width:1000px; margin:0 auto; padding:0 20px; }
     header { background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%); color:#fff; padding:1rem 0; position:fixed; width:100%; top:0; z-index:1000; backdrop-filter:blur(10px); }
     nav { display:flex; justify-content:space-between; align-items:center; }
-    .logo { font-size:1.25rem; font-weight:800; }
+  .logo { font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:.6rem; }
+  .logo img { height:40px; width:auto; display:block; }
     .nav-links { list-style:none; display:flex; gap:1.25rem; margin:0; padding:0; }
     .nav-links a { color:#fff; text-decoration:none; font-weight:600; position:relative; }
     .nav-links a::after { content:''; position:absolute; left:0; bottom:-5px; height:2px; width:0; background:#e0e7ff; transition:.3s; }
@@ -63,7 +67,7 @@
   <header>
     <div class="container">
       <nav>
-  <div class="logo">Bank Swift</div>
+  <div class="logo"><img src="bank-swift.png" alt="Bank Swift Logo" loading="lazy"><span>Bank Swift</span></div>
         <ul class="nav-links">
           <li><a href="dashboard.html">Home</a></li>
           <li><a href="transfer.html">Transfer</a></li>

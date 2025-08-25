@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transfer Money • Bank Swift</title>
+    <link rel="icon" href="bank-swift.png" type="image/png" />
+    <link rel="apple-touch-icon" href="bank-swift.png" />
+    <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* Inherit the same design system */
@@ -71,7 +74,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
         }
+        .logo-inline { display:flex; align-items:center; gap:.65rem; text-decoration:none; }
+        .logo-inline img { height:42px; width:auto; display:block; }
+        .logo-inline span { font-weight:800; font-size:1.1rem; background:linear-gradient(135deg,#fff,#e0e7ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 
         .back-btn {
             padding: 0.75rem 1.5rem;
@@ -557,12 +565,11 @@
     <!-- Header -->
     <header class="header">
         <div class="header-content">
-            <a href="dashboard.html" class="back-btn">
-                <span>←</span>
-                <span>Back to Dashboard</span>
+            <a href="dashboard.html" class="logo-inline" aria-label="Bank Swift Home">
+                <img src="bank-swift.png" alt="Bank Swift Logo" loading="lazy" /><span>Bank Swift</span>
             </a>
-            <h1 class="page-title">Transfer Money</h1>
-            <div></div>
+            <h1 class="page-title" style="flex:1;">Transfer Money</h1>
+            <a href="dashboard.html" class="back-btn" style="margin-left:auto;">← Dashboard</a>
         </div>
     </header>
     

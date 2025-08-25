@@ -4,6 +4,9 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Portfolio • Bank Swift</title>
+  <link rel="icon" href="bank-swift.png" type="image/png" />
+  <link rel="apple-touch-icon" href="bank-swift.png" />
+  <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     :root{
@@ -15,7 +18,8 @@
     .container{max-width:1200px;margin:0 auto;padding:0 20px}
     header{background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%);color:#fff;padding:1rem 0;position:fixed;width:100%;top:0;z-index:1000;backdrop-filter:blur(10px)}
     nav{display:flex;justify-content:space-between;align-items:center}
-    .logo{font-size:1.6rem;font-weight:800;background:linear-gradient(45deg,#fff,#e0e7ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.3px}
+  .logo{display:flex;align-items:center;gap:.6rem;font-size:1.4rem;font-weight:800;background:linear-gradient(45deg,#fff,#e0e7ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.3px}
+  .logo img{height:42px;width:auto;display:block}
     .nav-links{display:flex;list-style:none;gap:1.5rem}
     .nav-links a{color:#fff;text-decoration:none;transition:.3s;font-weight:600;position:relative}
     .nav-links a:hover{color:#e0e7ff;transform:translateY(-2px)}
@@ -76,7 +80,7 @@
   <header>
     <div class="container">
       <nav>
-  <div class="logo">Bank Swift</div>
+  <div class="logo"><img src="bank-swift.png" alt="Bank Swift Logo" loading="lazy"><span>Bank Swift</span></div>
         <ul class="nav-links">
           <li><a href="index.html">Home</a></li>
           <li><a href="transfer.html">Transfer</a></li>

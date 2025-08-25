@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Webhook Receiver Simulator</title>
+  <link rel="icon" href="bank-swift.png" type="image/png" />
+  <link rel="apple-touch-icon" href="bank-swift.png" />
+  <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f5f6fa; color: #222; }
     main { max-width: 720px; margin: 24px auto; background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
@@ -11,6 +14,9 @@
     input, button { padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; }
     button.primary { background: #4c6ef5; color: #fff; border: none; }
     .log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #0f172a; color: #e2e8f0; padding: 10px; border-radius: 8px; max-height: 280px; overflow: auto; }
+    header{display:flex;align-items:center;gap:.75rem;padding:14px 20px;background:#ffffff;border-bottom:1px solid #e5e7eb;box-shadow:0 2px 4px rgba(0,0,0,.04)}
+    header img{height:42px;width:auto;display:block}
+    header h1{font-size:1.2rem;margin:0;font-weight:800;color:#1e3c72}
   </style>
   <script>
     async function sendWebhook(){
@@ -29,6 +35,7 @@
   </script>
 </head>
 <body>
+  <header><img src="bank-swift.png" alt="Bank Swift Logo" loading="lazy"><h1>Bank Swift Webhook Simulator</h1></header>
   <main>
     <h2>Webhook Receiver Simulator</h2>
     <div class="row">

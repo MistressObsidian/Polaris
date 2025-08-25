@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard • Bank Swift</title>
+    <link rel="icon" href="bank-swift.png" type="image/png" />
+    <link rel="apple-touch-icon" href="bank-swift.png" />
+    <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* Enhanced Dashboard Styles */
@@ -72,16 +75,8 @@
             margin-bottom: 3rem;
         }
 
-        .logo-icon {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-        }
+    .logo-icon { width:48px; height:48px; }
+    .logo-icon img { width:100%; height:100%; object-fit:contain; display:block; }
 
         .logo-text {
             font-size: 1.3rem;
@@ -436,11 +431,7 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="logo">
-            <div class="logo-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                    <path d="M12 2L2 7V12C2 16.5 4.23 20.68 8 22.47L12 24L20 22.47C23.77 20.68 26 16.5 26 12V7L12 2Z"/>
-                </svg>
-            </div>
+            <div class="logo-icon"><img src="bank-swift.png" alt="Bank Swift Logo" loading="lazy"></div>
             <span class="logo-text">Bank Swift</span>
         </div>
         

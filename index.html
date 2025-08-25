@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bank Swift - Premier Digital Banking & Financial Services</title>
+    <link rel="icon" href="bank-swift.png" type="image/png" />
+    <link rel="apple-touch-icon" href="bank-swift.png" />
+    <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -128,43 +131,8 @@
             transform: scale(1.05);
         }
 
-        .logo-icon {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .logo-icon::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transform: rotate(45deg);
-            animation: shine 3s infinite;
-        }
-
-        @keyframes shine {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-        }
-
-        .logo-icon svg {
-            width: 28px;
-            height: 28px;
-            fill: white;
-            z-index: 1;
-            position: relative;
-        }
+    .logo-icon { width:48px; height:48px; display:flex; align-items:center; justify-content:center; }
+    .logo-icon img { width:100%; height:100%; object-fit:contain; display:block; }
 
         .logo-text {
             font-size: 1.5rem;
@@ -727,9 +695,7 @@
         <nav>
             <div class="logo-container">
                 <div class="logo-icon">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2L2 7V12C2 16.5 4.23 20.68 8 22.47C10.5 21.5 12.5 19.5 13.62 17H20C21.1 17 22 16.1 22 15V12C22 10.9 21.1 10 20 10H13.62C12.5 7.5 10.5 5.5 8 4.53L12 2Z" fill="white"/>
-                    </svg>
+                    <img src="bank-swift.png" alt="Bank Swift Logo" loading="lazy" />
                 </div>
                 <span class="logo-text">Bank Swift</span>
             </div>

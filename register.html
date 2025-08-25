@@ -4,27 +4,60 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Register • Bank Swift</title>
-  <link rel="stylesheet" href="ui.css" />
   <link rel="icon" href="bank-swift.png" type="image/png" />
   <link rel="apple-touch-icon" href="bank-swift.png" />
   <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
-  <style>/* Minor page tweak */ .auth-wrapper{padding-top:120px;} </style>
+  <link rel="stylesheet" href="ui.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* Page-specific: success modal (shared auth styling comes from ui.css) */
+    #successModal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.65);backdrop-filter:blur(6px);padding:1.5rem;z-index:500;opacity:0;pointer-events:none;transition:opacity .3s ease;}
+    #successModal.show{opacity:1;pointer-events:auto;}
+    #successModal .modal-shell{max-width:420px;width:100%;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:2.25rem 2rem;position:relative;box-shadow:0 20px 50px -10px rgba(0,0,0,.6);text-align:center;}
+    .modal-icon{font-size:2.4rem;line-height:1;margin-bottom:.75rem;filter:drop-shadow(0 4px 10px rgba(16,185,129,.35));}
+    .modal-title{margin:0 0 .5rem;font-size:1.45rem;font-weight:700;letter-spacing:.5px;}
+    .modal-text{margin:0 0 1.5rem;font-size:.95rem;line-height:1.45;color:rgba(255,255,255,.8);}
+    .modal-actions{display:flex;gap:.75rem;flex-wrap:wrap;}
+    .modal-btn{flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;padding:.75rem 1rem;font-size:.85rem;font-weight:600;border-radius:10px;border:none;cursor:pointer;transition:.25s;letter-spacing:.25px;}
+    .modal-btn.primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;box-shadow:0 4px 15px -3px rgba(102,126,234,.45);}
+    .modal-btn.primary:hover{transform:translateY(-2px);box-shadow:0 8px 22px -6px rgba(102,126,234,.55);}
+    .modal-btn.ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.18);}
+    .modal-btn.ghost:hover{background:rgba(255,255,255,.2);}
+  </style>
+  <script src="common.js"></script>
 </head>
 <body>
-  <script src="common.js"></script>
-  
   <div class="hero-background"></div>
   <div class="particles" id="particles"></div>
   <main class="auth-wrapper">
     <section class="auth-card" aria-labelledby="regTitle">
       <div class="auth-head">
         <div class="auth-logo" aria-hidden="true">
-          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#667eea"/><stop offset="60%" stop-color="#764ba2"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient><linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#4facfe"/></linearGradient><linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/><stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/></linearGradient></defs><path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/><path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/><path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/></svg>
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#667eea"/>
+                <stop offset="60%" stop-color="#764ba2"/>
+                <stop offset="100%" stop-color="#8b5cf6"/>
+              </linearGradient>
+              <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#06b6d4"/>
+                <stop offset="100%" stop-color="#4facfe"/>
+              </linearGradient>
+              <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>
+                <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>
+              </linearGradient>
+            </defs>
+            <path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/>
+            <path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>
+            <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
+          </svg>
         </div>
         <h1 class="auth-title" id="regTitle">Create your account</h1>
         <p class="auth-sub">Join the future of digital banking in seconds</p>
       </div>
-  <div id="regAlert" class="alert-auth" role="alert"></div>
+      <div id="regAlert" class="alert-auth" role="alert"></div>
       <form id="registerForm" class="form-grid" novalidate autocomplete="off">
         <div class="form-row-2">
           <div class="field">
@@ -49,9 +82,10 @@
         </div>
         <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
       </form>
-      <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
+  <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
     </section>
   </main>
+
   <!-- Success Modal -->
   <div id="successModal" class="modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
     <div class="modal-shell" role="document">
@@ -66,8 +100,20 @@
   </div>
 
   <script>
-  function showAlert(msg, type = 'error') { const el = document.getElementById('regAlert'); el.textContent = msg; el.className = `alert-auth ${type} show`; }
-  function clearAlert() { const el = document.getElementById('regAlert'); el.textContent=''; el.className='alert-auth'; }
+    // Your Google Apps Script web app URL
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxznREHKJnObwEbXQ6xInlEQSsk1R82AA_YfKbyF8X0pQEPbS6TCdrECg94FVGlpL_o/exec';
+
+    function showAlert(msg, type = 'error') { 
+      const el = document.getElementById('regAlert'); 
+      el.textContent = msg; 
+      el.className = `alert-auth ${type} show`; 
+    }
+    
+    function clearAlert() { 
+      const el = document.getElementById('regAlert'); 
+      el.textContent=''; 
+      el.className='alert-auth'; 
+    }
 
     // Clear form on load
     document.addEventListener('DOMContentLoaded', () => {
@@ -89,8 +135,8 @@
       const fullname = document.getElementById('fullname').value.trim();
       const phone = document.getElementById('phone').value.trim();
       const email = document.getElementById('email').value.trim().toLowerCase();
-  const passwordInput = document.getElementById('password');
-  const password = passwordInput.value;
+      const passwordInput = document.getElementById('password');
+      const password = passwordInput.value;
 
       // Basic validation
       if (!fullname || !email || !password) {
@@ -115,8 +161,6 @@
       }
 
       try {
-  // Bypassing duplicate check: directly insert row into Sheet
-
         // Create new user record
         const nowISO = new Date().toISOString();
         const newUser = {
@@ -126,59 +170,76 @@
           email: email,
           phone: phone,
           password: password,
-          baseAvailable: 0,  // New users start with zero balance
-          totalBalance: 0     // New users start with zero balance
+          baseAvailable: 0,
+          totalBalance: 0
         };
 
-        // Direct insert (no confirmation polling)
-        const inserted = await Platform.sheetInsert([newUser]);
-        if(!inserted){
-          showAlert('Could not save record to sheet. Please retry.');
+        // Submit to Google Sheets via Apps Script
+        const response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newUser)
+        });
+
+        const result = await response.json();
+        
+        if (!result.success) {
+          showAlert(result.message || 'Could not save record to sheet. Please retry.');
           btn.disabled = false;
           btn.textContent = originalText;
           return;
         }
-        window.__LAST_REG_ROW__ = newUser; // for modal display
-
-        // Persist helper info for login prefill & flash message (no auto-login)
-        try { localStorage.setItem('bs-last-registered-email', email); } catch {}
-        try { sessionStorage.setItem('bs-flash', 'Account created successfully. Please sign in.'); } catch {}
-        // Clear any existing transaction data just in case
-        sessionStorage.removeItem('initiatedTransactions');
-
-  // Show success modal (manual login required)
-  openSuccessModal();
-  btn.disabled = true;
-  btn.textContent = 'Account Created';
+        window.__LAST_REG_ROW__ = newUser;
+        // Persist email + flash for login page prefill/message
+        try {
+          localStorage.setItem('bs-last-registered-email', email);
+          sessionStorage.setItem('bs-flash', 'Account created successfully. You can now sign in.');
+        } catch {}
+        // Show success modal
+        openSuccessModal();
+        btn.disabled = true;
+        btn.textContent = 'Account Created';
 
       } catch (err) {
         console.error('Registration error:', err);
-  showAlert('Could not complete registration. Please try again.');
+        if (err.name === 'TypeError' && err.message.includes('fetch')) {
+          showAlert('Network error. Please check your connection and try again.');
+        } else {
+          showAlert('Could not complete registration. Please try again.');
+        }
         btn.disabled = false;
         btn.textContent = originalText;
       }
     });
-    // Modal styling injection (scoped)
-    (function(){
-      const css = `#successModal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.65);backdrop-filter:blur(6px);padding:1.5rem;z-index:500;opacity:0;pointer-events:none;transition:opacity .3s ease;}#successModal.show{opacity:1;pointer-events:auto;}#successModal .modal-shell{max-width:420px;width:100%;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:2.25rem 2rem;position:relative;box-shadow:0 20px 50px -10px rgba(0,0,0,.6);} .modal-icon{font-size:2.4rem;line-height:1;margin-bottom:.75rem;filter:drop-shadow(0 4px 10px rgba(16,185,129,.35));} .modal-title{margin:0 0 .5rem;font-size:1.45rem;font-weight:700;letter-spacing:.5px;} .modal-text{margin:0 0 1.5rem;font-size:.95rem;line-height:1.45;color:rgba(255,255,255,.8);} .modal-actions{display:flex;gap:.75rem;flex-wrap:wrap;} .modal-btn{flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;padding:.75rem 1rem;font-size:.85rem;font-weight:600;border-radius:10px;border:none;cursor:pointer;transition:.25s;letter-spacing:.25px;} .modal-btn.primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;box-shadow:0 4px 15px -3px rgba(102,126,234,.45);} .modal-btn.primary:hover{transform:translateY(-2px);box-shadow:0 8px 22px -6px rgba(102,126,234,.55);} .modal-btn.ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.18);} .modal-btn.ghost:hover{background:rgba(255,255,255,.2);} @media (max-width:480px){#successModal .modal-shell{padding:1.75rem 1.25rem;border-radius:20px;}}
-      `;
-      const style = document.createElement('style');
-      style.textContent = css;
-      document.head.appendChild(style);
-    })();
 
     function openSuccessModal(){
       const modal = document.getElementById('successModal');
       if(!modal) return;
       modal.classList.add('show');
       modal.setAttribute('aria-hidden','false');
+      
       const loginBtn = document.getElementById('modalLoginBtn');
       const closeBtn = document.getElementById('modalCloseBtn');
-      if(loginBtn){ loginBtn.textContent='Log in to your account'; loginBtn.addEventListener('click', ()=>{ window.location.href='login.html'; }); setTimeout(()=>loginBtn.focus(),40); }
-      if(closeBtn){ closeBtn.addEventListener('click', ()=>{ closeSuccessModal(); }); }
-      // ESC key handler
+      
+      if(loginBtn){ 
+        loginBtn.textContent='Log in to your account'; 
+        loginBtn.addEventListener('click', ()=>{ 
+          window.location.href = 'login.html'; 
+        }); 
+        setTimeout(()=>loginBtn.focus(),40); 
+      }
+      
+      if(closeBtn){ 
+        closeBtn.addEventListener('click', ()=>{ 
+          closeSuccessModal(); 
+        }); 
+      }
+      
       document.addEventListener('keydown', escHandler);
-      // Inject verification snippet if available
+      
+      // Show confirmation details
       try {
         if(window.__LAST_REG_ROW__){
           const row = window.__LAST_REG_ROW__;
@@ -186,16 +247,22 @@
           if(shell && !shell.querySelector('.modal-verification')){
             const div = document.createElement('div');
             div.className='modal-verification';
-            div.style.cssText='margin-top:1rem;padding:.75rem .85rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;font-size:.65rem;line-height:1.35;word-break:break-word;';
-            div.innerHTML = `<strong style="font-size:.7rem;letter-spacing:.5px;">CONFIRMED ROW</strong><br>`+
-              `email: <span style="color:#10b981">${row.email||''}</span><br>`+
-              `name: ${(row.fullname||row.name||'').replace(/</g,'&lt;')}`;
+            div.style.cssText='margin-top:1rem;padding:.75rem .85rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;font-size:.65rem;line-height:1.35;word-break:break-word;text-align:left;';
+            div.innerHTML = `<strong style="font-size:.7rem;letter-spacing:.5px;">CONFIRMED REGISTRATION</strong><br>`+
+              `Email: <span style="color:#10b981">${row.email||''}</span><br>`+
+              `Name: ${(row.fullname||row.name||'').replace(/</g,'&lt;')}`;
             shell.appendChild(div);
           }
         }
       } catch {}
     }
-    function escHandler(e){ if(e.key==='Escape'){ closeSuccessModal(); } }
+
+    function escHandler(e){ 
+      if(e.key==='Escape'){ 
+        closeSuccessModal(); 
+      } 
+    }
+
     function closeSuccessModal(){
       const modal = document.getElementById('successModal');
       if(!modal) return;
@@ -203,11 +270,33 @@
       modal.setAttribute('aria-hidden','true');
       document.removeEventListener('keydown', escHandler);
     }
+
     // Password visibility toggle
-    (function(){ const btn=document.getElementById('pwToggleRegister'); const input=document.getElementById('password'); if(!btn||!input) return; btn.addEventListener('click',()=>{ const type=input.getAttribute('type')==='password'?'text':'password'; input.setAttribute('type', type); btn.textContent= type==='password'?'Show':'Hide'; btn.setAttribute('aria-label', (type==='password'?'Show':'Hide')+ ' password'); }); })();
+    (function(){ 
+      const btn=document.getElementById('pwToggleRegister'); 
+      const input=document.getElementById('password'); 
+      if(!btn||!input) return; 
+      btn.addEventListener('click',()=>{ 
+        const type=input.getAttribute('type')==='password'?'text':'password'; 
+        input.setAttribute('type', type); 
+        btn.textContent= type==='password'?'Show':'Hide'; 
+        btn.setAttribute('aria-label', (type==='password'?'Show':'Hide')+ ' password'); 
+      }); 
+    })();
+
     // Particles creation
-    (function makeParticles(){ const c=document.getElementById('particles'); if(!c) return; for(let i=0;i<48;i++){ const p=document.createElement('span'); p.className='particle'; p.style.left=Math.random()*100+'%'; p.style.animationDelay=(Math.random()*16)+'s'; p.style.opacity=Math.random().toString(); c.appendChild(p);} })();
+    (function makeParticles(){ 
+      const c=document.getElementById('particles'); 
+      if(!c) return; 
+      for(let i=0;i<48;i++){ 
+        const p=document.createElement('span'); 
+        p.className='particle'; 
+        p.style.left=Math.random()*100+'%'; 
+        p.style.animationDelay=(Math.random()*16)+'s'; 
+        p.style.opacity=Math.random().toString(); 
+        c.appendChild(p);
+      } 
+    })();
   </script>
-  <style></style>
 </body>
 </html>

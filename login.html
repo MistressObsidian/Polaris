@@ -56,10 +56,26 @@
     
     <script>
         // Clear form on load
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('email').value = '';
-            document.getElementById('password').value = '';
-        });
+                document.addEventListener('DOMContentLoaded', () => {
+                        const emailInput = document.getElementById('email');
+                        const pwInput = document.getElementById('password');
+                        if(emailInput) {
+                            try {
+                                const last = localStorage.getItem('bs-last-registered-email');
+                                if(last) emailInput.value = last;
+                            } catch {}
+                        }
+                        if(pwInput) pwInput.value='';
+                        // Flash message from registration
+                        try {
+                            const flash = sessionStorage.getItem('bs-flash');
+                            if(flash){
+                                const alert = document.getElementById('loginAlert');
+                                if(alert){ alert.className='alert-auth success show'; alert.textContent=flash; }
+                                sessionStorage.removeItem('bs-flash');
+                            }
+                        } catch {}
+                });
 
         // Form submission
         document.getElementById('loginForm').addEventListener('submit', async (e) => {

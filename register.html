@@ -139,29 +139,28 @@
           return;
         }
 
-        // Create session
-        const sessionUser = {
-          name: fullname,
-          email: email,
-          phone: phone,
-          registrationDate: nowISO,
-          isAuthenticated: true,
-          loginTime: new Date().toISOString(),
-          isNewUser: true  // Flag to identify newly registered users
-        };
-
-        // Clear any existing transaction data for fresh start
+        // Persist helper info for login prefill & flash message (no auto-login)
+        try { localStorage.setItem('bs-last-registered-email', email); } catch {}
+        try { sessionStorage.setItem('bs-flash', 'Account created successfully. Please sign in.'); } catch {}
+        // Clear any existing transaction data just in case
         sessionStorage.removeItem('initiatedTransactions');
-        
-        Platform.setUser(sessionUser);
-        
-        // Show success message
-  showAlert('Account created successfully! Redirecting...', 'success');
-        
-        // Redirect to dashboard
-        setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 1500);
+
+        // Enhanced success alert with immediate action button + fallback auto redirect
+        (function(){
+          const el = document.getElementById('regAlert');
+          el.className = 'alert-auth success show';
+          // Allow HTML only in this controlled success branch
+          el.innerHTML = 'Account created! <button type="button" id="goLoginNow" class="go-login-btn">Go to Login now</button>';
+          // Attach handler
+          const goBtn = document.getElementById('goLoginNow');
+          if(goBtn){ goBtn.addEventListener('click', ()=>{ window.location.href='login.html'; }); }
+          // Fallback auto redirect after 5s if user doesn\'t click
+          setTimeout(()=>{ if(document.body.contains(el)) window.location.href='login.html'; }, 5000);
+        })();
+
+        // Re-enable button (optional) and reset text so user can\'t resubmit accidentally
+        btn.disabled = true; // keep disabled to prevent duplicate submissions after success
+        btn.textContent = 'Account Created';
 
       } catch (err) {
         console.error('Registration error:', err);
@@ -170,6 +169,12 @@
         btn.textContent = originalText;
       }
     });
+    // Style for inline success button (scoped injection)
+    (function(){
+      const styleTag = document.createElement('style');
+      styleTag.textContent = `.go-login-btn{margin-left:.75rem;background:transparent;border:1px solid rgba(255,255,255,.4);color:inherit;padding:4px 10px;border-radius:6px;font-size:.7rem;font-weight:600;cursor:pointer;transition:.25s;background:rgba(255,255,255,.08);} .go-login-btn:hover{background:rgba(255,255,255,.15);}`;
+      document.head.appendChild(styleTag);
+    })();
     // Password visibility toggle
     (function(){ const btn=document.getElementById('pwToggleRegister'); const input=document.getElementById('password'); if(!btn||!input) return; btn.addEventListener('click',()=>{ const type=input.getAttribute('type')==='password'?'text':'password'; input.setAttribute('type', type); btn.textContent= type==='password'?'Show':'Hide'; btn.setAttribute('aria-label', (type==='password'?'Show':'Hide')+ ' password'); }); })();
     // Particles creation

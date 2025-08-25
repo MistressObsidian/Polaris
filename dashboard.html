@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard • Bank Swift</title>
-    <link rel="stylesheet" href="ui.css" />
-    <link rel="icon" href="bank-swift.png" type="image/png" />
-    <link rel="apple-touch-icon" href="bank-swift.png" />
-    <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard • Bank Swift</title>
+  <link rel="stylesheet" href="ui.css" />
+  <link rel="icon" href="bank-swift.png" type="image/png" />
+  <link rel="apple-touch-icon" href="bank-swift.png" />
+  <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
         /* Enhanced Dashboard Styles */
         :root {
             --primary: #2563eb;
@@ -32,12 +32,8 @@
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #fff;
-            min-height: 100vh;
-        }
+        body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#fff;min-height:100vh;}
+        
 
         /* Animated background pattern */
         body::before {
@@ -83,6 +79,7 @@
             font-size: 1.3rem;
             font-weight: 800;
             background: linear-gradient(135deg, #fff, #e0e7ff);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -225,16 +222,16 @@
             font-size: 0.9rem;
             margin-bottom: 0.5rem;
         }
-
         .balance-amount {
             font-size: 2rem;
             font-weight: 800;
             background: linear-gradient(135deg, #fff, #e0e7ff);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 1rem;
         }
-
+        
         .balance-change {
             display: flex;
             align-items: center;
@@ -275,13 +272,14 @@
             background: rgba(99, 102, 241, 0.1);
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-        }
-
         .action-icon {
             font-size: 2rem;
             margin-bottom: 0.5rem;
             background: linear-gradient(135deg, #667eea, #764ba2);
+            background-clip: text;
             -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
             -webkit-text-fill-color: transparent;
         }
 
@@ -424,283 +422,107 @@
     </style>
 </head>
 <body>
-    <script src="common.js"></script>
-    
-    <!-- Mobile Menu Button (legacy kept for reference, can remove) -->
-    <button class="mobile-menu-btn" onclick="toggleSidebar()" style="display:none;">☰</button>
-    <!-- Sidebar (left as-is; global header injected above) -->
-    <aside class="sidebar" id="sidebar">
-        <div class="logo">
-            <div class="logo-icon" role="img" aria-label="Bank Swift Logo">
-                <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#667eea"/>
-                            <stop offset="60%" stop-color="#764ba2"/>
-                            <stop offset="100%" stop-color="#8b5cf6"/>
-                        </linearGradient>
-                        <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stop-color="#06b6d4"/>
-                            <stop offset="100%" stop-color="#4facfe"/>
-                        </linearGradient>
-                        <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
-                            <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>
-                            <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>
-                        </linearGradient>
-                    </defs>
-                    <path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/>
-                    <path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>
-                    <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
-                </svg>
-            </div>
-            <span class="logo-text">Bank Swift</span>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">
+      <div class="logo-icon"><img src="bank-swift.png" alt="Bank Swift Logo"/></div>
+      <span class="logo-text">Bank Swift</span>
+    </div>
+    <nav>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="#" class="nav-link active">🏠 Dashboard</a></li>
+        <li class="nav-item"><a href="transfer.html" class="nav-link">💸 Transfers</a></li>
+        <li class="nav-item"><a href="#" class="nav-link">💳 Accounts</a></li>
+        <li class="nav-item"><a href="#" class="nav-link">📊 Investments</a></li>
+        <li class="nav-item"><a href="#" class="nav-link">⚙️ Settings</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div class="dashboard-header">
+      <div class="welcome-section">
+        <div class="user-avatar">U</div>
+        <div>
+          <h2>Welcome back, <span id="userName">User</span>!</h2>
+          <p style="color:rgba(255,255,255,0.6);font-size:.9rem;">Here's your financial overview</p>
         </div>
-        
-        <nav>
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="#" class="nav-link active">
-                        <span class="nav-icon">🏠</span>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <span class="nav-icon">💳</span>
-                        <span>Accounts</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="transfer.html" class="nav-link">
-                        <span class="nav-icon">💸</span>
-                        <span>Transfers</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <span class="nav-icon">📊</span>
-                        <span>Investments</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <span class="nav-icon">💰</span>
-                        <span>Loans</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <span class="nav-icon">🎯</span>
-                        <span>Goals</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <span class="nav-icon">📈</span>
-                        <span>Analytics</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <span class="nav-icon">⚙️</span>
-                        <span>Settings</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-        
-        <!-- Premium Upgrade -->
-        <div style="margin-top: 3rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.1)); border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.3);">
-            <h4 style="margin-bottom: 0.5rem; color: #f59e0b;">Go Premium</h4>
-            <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin-bottom: 1rem;">Unlock exclusive features and rewards</p>
-            <button style="width: 100%; padding: 10px; background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
-                Upgrade Now
-            </button>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn" onclick="window.location.href='transfer.html'">Send Money</button>
+        <button class="header-btn" style="background:rgba(255,255,255,0.1);">Logout</button>
+      </div>
+    </div>
+
+    <!-- Balance Cards -->
+    <div class="balance-cards">
+      <div class="balance-card">
+        <div class="balance-label">Total Balance</div>
+        <div class="balance-amount" id="totalBalance">$0.00</div>
+      </div>
+      <div class="balance-card">
+        <div class="balance-label">Available Balance</div>
+        <div class="balance-amount" id="availableBalance">$0.00</div>
+      </div>
+      <div class="balance-card">
+        <div class="balance-label">Investments</div>
+        <div class="balance-amount">$0.00</div>
+      </div>
+    </div>
+
+    <!-- Recent Transactions (static for now) -->
+    <div class="transactions-section">
+      <div class="section-header">
+        <h3 class="section-title">Recent Transactions</h3>
+      </div>
+      <div id="transactionsList">
+        <div class="transaction-item">
+          <div class="transaction-info"><div class="transaction-icon">💰</div>
+            <div><div class="transaction-name">Salary Deposit</div><div class="transaction-date">This Month</div></div>
+          </div>
+          <div class="transaction-amount amount-positive">+$8,500.00</div>
         </div>
-    </aside>
-    
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Header -->
-        <div class="dashboard-header">
-            <div class="welcome-section">
-                <div class="user-avatar">JD</div>
-                <div>
-                    <h2 style="margin-bottom: 0.25rem;">Welcome back, <span id="userName">John</span>!</h2>
-                    <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">Here's your financial overview</p>
-                </div>
-            </div>
-            
-            <div class="header-actions">
-                <button class="header-btn" onclick="window.location.href='transfer.html'">Send Money</button>
-                <button class="header-btn" style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
-                    Notifications
-                    <span style="display: inline-block; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; margin-left: 8px;"></span>
-                </button>
-            </div>
-        </div>
-        
-        <!-- Balance Cards -->
-        <div class="balance-cards">
-            <div class="balance-card">
-                <div class="balance-label">Total Balance</div>
-                <div class="balance-amount" id="totalBalance">$256,780.00</div>
-                <div class="balance-change change-positive">
-                    <span>↑</span>
-                    <span>+12.5% from last month</span>
-                </div>
-            </div>
-            
-            <div class="balance-card">
-                <div class="balance-label">Available Balance</div>
-                <div class="balance-amount" id="availableBalance">$221,540.20</div>
-                <div class="balance-change change-positive">
-                    <span>↑</span>
-                    <span>+8.3% from last month</span>
-                </div>
-            </div>
-            
-            <div class="balance-card">
-                <div class="balance-label">Investments</div>
-                <div class="balance-amount">$45,320.80</div>
-                <div class="balance-change change-positive">
-                    <span>↑</span>
-                    <span>+15.7% YTD</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <a href="transfer.html" class="quick-action">
-                <div class="action-icon">💸</div>
-                <div class="action-label">Transfer</div>
-            </a>
-            <a href="#" class="quick-action">
-                <div class="action-icon">📱</div>
-                <div class="action-label">Pay Bills</div>
-            </a>
-            <a href="#" class="quick-action">
-                <div class="action-icon">💳</div>
-                <div class="action-label">Cards</div>
-            </a>
-            <a href="#" class="quick-action">
-                <div class="action-icon">📊</div>
-                <div class="action-label">Invest</div>
-            </a>
-            <a href="#" class="quick-action">
-                <div class="action-icon">🎯</div>
-                <div class="action-label">Goals</div>
-            </a>
-            <a href="#" class="quick-action">
-                <div class="action-icon">📈</div>
-                <div class="action-label">Analytics</div>
-            </a>
-        </div>
-        
-        <!-- Recent Transactions -->
-        <div class="transactions-section">
-            <div class="section-header">
-                <h3 class="section-title">Recent Transactions</h3>
-                <a href="transaction-details.html" style="color: #667eea; text-decoration: none; font-weight: 600;">View All →</a>
-            </div>
-            
-            <div id="transactionsList">
-                <div class="transaction-item">
-                    <div class="transaction-info">
-                        <div class="transaction-icon">🛒</div>
-                        <div class="transaction-details">
-                            <div class="transaction-name">Amazon Purchase</div>
-                            <div class="transaction-date">Today, 2:30 PM</div>
-                        </div>
-                    </div>
-                    <div class="transaction-amount amount-negative">-$156.99</div>
-                </div>
-                
-                <div class="transaction-item">
-                    <div class="transaction-info">
-                        <div class="transaction-icon">💰</div>
-                        <div class="transaction-details">
-                            <div class="transaction-name">Salary Deposit</div>
-                            <div class="transaction-date">Dec 1, 2024</div>
-                        </div>
-                    </div>
-                    <div class="transaction-amount amount-positive">+$8,500.00</div>
-                </div>
-                
-                <div class="transaction-item">
-                    <div class="transaction-info">
-                        <div class="transaction-icon">🍔</div>
-                        <div class="transaction-details">
-                            <div class="transaction-name">Restaurant</div>
-                            <div class="transaction-date">Nov 30, 2024</div>
-                        </div>
-                    </div>
-                    <div class="transaction-amount amount-negative">-$45.20</div>
-                </div>
-                
-                <div class="transaction-item">
-                    <div class="transaction-info">
-                        <div class="transaction-icon">⚡</div>
-                        <div class="transaction-details">
-                            <div class="transaction-name">Utility Bill</div>
-                            <div class="transaction-date">Nov 28, 2024</div>
-                        </div>
-                    </div>
-                    <div class="transaction-amount amount-negative">-$120.00</div>
-                </div>
-            </div>
-        </div>
-    </main>
-    
-    <script>
-        // Check authentication
-        if (!Platform.isAuthenticated()) {
-            window.location.href = 'login.html';
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8Xj7geeXL3pi9vGHHBqoZIouYBhG2kpC34kupp2OfJzOQRWgq6Zh-yREpeqLXx3lM7w/exec";
+
+    // Check authentication
+    const sessionUser = JSON.parse(localStorage.getItem("bs-user") || "null");
+    if (!sessionUser || !sessionUser.isAuthenticated) {
+      window.location.href = "login.html";
+    }
+
+    // Fill user info
+    document.getElementById("userName").textContent = sessionUser.name;
+    document.querySelector(".user-avatar").textContent = (sessionUser.name || "U").split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2);
+
+    // Logout button
+    document.querySelector(".header-actions button:last-child").addEventListener("click", () => {
+      localStorage.removeItem("bs-user");
+      window.location.href = "login.html";
+    });
+
+    // Fetch balances from Google Sheet
+    async function loadBalances() {
+      try {
+        const res = await fetch(SCRIPT_URL);
+        const rows = await res.json();
+        const userRow = rows.find(r => r.email && r.email.toLowerCase() === sessionUser.email.toLowerCase());
+        if (userRow) {
+          const total = parseFloat(userRow.totalBalance || 0);
+          const available = parseFloat(userRow.baseAvailable || 0);
+          document.getElementById("totalBalance").textContent = total.toLocaleString("en-US",{style:"currency",currency:"USD"});
+          document.getElementById("availableBalance").textContent = available.toLocaleString("en-US",{style:"currency",currency:"USD"});
         }
-        
-        // Load user data
-        const user = Platform.getUser();
-        if (user) {
-            document.getElementById('userName').textContent = user.name || 'User';
-            
-            // Update avatar initials
-            const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
-            document.querySelector('.user-avatar').textContent = initials.slice(0, 2);
-        }
-        
-        // Load financial data
-        async function loadFinancialData() {
-            const financials = await Platform.fetchUserFinancials(user.email);
-            if (financials) {
-                document.getElementById('totalBalance').textContent = 
-                    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-                    .format(financials.totalBalance || 0);
-                
-                document.getElementById('availableBalance').textContent = 
-                    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-                    .format(financials.baseAvailable || 0);
-            }
-        }
-        
-        // Toggle sidebar on mobile
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
-        }
-        
-        // Initialize
-        loadFinancialData();
-        
-        // Animate balance cards on load
-        document.querySelectorAll('.balance-card').forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-                card.style.transition = 'all 0.5s ease';
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, index * 100);
-        });
-    </script>
+      } catch (err) {
+        console.error("Balance load error:", err);
+      }
+    }
+    loadBalances();
+  </script>
 </body>
 </html>

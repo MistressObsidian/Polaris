@@ -60,8 +60,9 @@
   <script>
 // Ensure SheetDB constants originate from common.js only
 (async function(){
-  const session = sessionStorage.getItem('loggedInUser');
-  let user=null; try{user=JSON.parse(session||'');}catch{}
+  // Migrate legacy sessionStorage key
+  try { if(!localStorage.getItem('bs-user')){ const legacy = sessionStorage.getItem('loggedInUser'); if(legacy){ localStorage.setItem('bs-user', legacy); sessionStorage.removeItem('loggedInUser'); } } } catch {}
+  let user=null; try{user=JSON.parse(localStorage.getItem('bs-user')||'null');}catch{}
   if(!user||user.isAuthenticated!==true){window.location.href='login.html';return;}
   // balances
   try{
@@ -144,10 +145,11 @@
   const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/3g36t35kn6po0';
 
     // Gate: only logged-in, authenticated users (set by login/register after SheetDB confirm)
-    const session = sessionStorage.getItem('loggedInUser');
+    // Read new auth key (with legacy migration)
+    try { if(!localStorage.getItem('bs-user')){ const legacy = sessionStorage.getItem('loggedInUser'); if(legacy){ localStorage.setItem('bs-user', legacy); sessionStorage.removeItem('loggedInUser'); } } } catch {}
     let user = null;
     try {
-      user = JSON.parse(session || '{}');
+      user = JSON.parse(localStorage.getItem('bs-user') || 'null');
       if (!user || user.isAuthenticated !== true) {
         window.location.href = 'index.html';
       }
@@ -191,7 +193,7 @@
   let txs = await loadTransfers();
       // Merge any locally initiated (session) that might not yet be in API/Sheet
       try {
-        const local = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');
+  const local = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');
         if(Array.isArray(local)){
           const existingRefs = new Set(txs.map(t=>t.reference));
           for(const l of local){ if(l && l.reference && !existingRefs.has(l.reference)) txs.unshift(l); }

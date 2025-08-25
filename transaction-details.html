@@ -64,56 +64,20 @@
 <body>
   <script src="common.js"></script>
   
-  <!-- Fixed header -->
-  <header>
-    <div class="container">
-      <nav>
-  <div class="logo" aria-label="Bank Swift Logo">
-    <span style="height:40px;width:40px;display:inline-flex;">
-      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#667eea"/>
-            <stop offset="60%" stop-color="#764ba2"/>
-            <stop offset="100%" stop-color="#8b5cf6"/>
-          </linearGradient>
-          <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#06b6d4"/>
-            <stop offset="100%" stop-color="#4facfe"/>
-          </linearGradient>
-          <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>
-            <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>
-          </linearGradient>
-        </defs>
-        <path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/>
-        <path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>
-        <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
-      </svg>
-    </span>
-    <span>Bank Swift</span>
-  </div>
-        <ul class="nav-links">
-          <li><a href="dashboard.html">Home</a></li>
-          <li><a href="transfer.html">Transfer</a></li>
-          <li><a href="#">Cards</a></li>
-          <li><a href="#">Support</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
+  <!-- Global header auto-injected by common.js -->
+  <div style="height:82px"></div>
 
   <!-- Main content -->
   <main>
     <div class="container">
-      <div class="page-header">
+  <div class="page-header animate-in">
         <div>
           <div class="page-title">Transaction details</div>
           <div class="subtitle">Confirmation and breakdown of your recent transaction</div>
         </div>
       </div>
 
-      <section class="card confirm" id="txContainer">
+  <section class="card confirm animate-in" style="animation-delay:.1s" id="txContainer">
         <div id="statusBanner" class="pending-banner">
           <div class="pending-icon">⏱</div>
           <div id="bannerText">Loading...</div>
@@ -333,11 +297,9 @@
 
     // Initialize
     window.addEventListener('DOMContentLoaded', async () => {
-      // Check authentication
-      if (!Platform.isAuthenticated()) {
-        window.location.href = 'login.html';
-        return;
-      }
+  // Auth migration
+  try { if(!localStorage.getItem('bs-user')){ const legacy = sessionStorage.getItem('loggedInUser'); if(legacy){ localStorage.setItem('bs-user', legacy); sessionStorage.removeItem('loggedInUser'); } } } catch {}
+  if (!Platform.isAuthenticated()) { window.location.href = 'login.html'; return; }
       
       // Get reference from URL
       const params = new URLSearchParams(location.search);

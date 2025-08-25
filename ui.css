@@ -34,6 +34,11 @@ body { font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
 .footer-inner { max-width:1400px; margin:0 auto; font-size:.8rem; text-align:center; }
 body.with-global-header { padding-top:82px; }
 
+/* Subtle entrance animation utility */
+/* Animations disabled per request */
+.animate-in { opacity:1 !important; transform:none !important; animation:none !important; }
+@keyframes fadeSlide { to { opacity:1; transform:translateY(0); } }
+
 /* Utility */
 .hidden{display:none !important;}
 

@@ -563,64 +563,32 @@
 <body>
     <script src="common.js"></script>
     
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <a href="dashboard.html" class="logo-inline" aria-label="Bank Swift Home">
-                <span style="display:flex;align-items:center;gap:.5rem;">
-                    <span style="height:42px;width:42px;display:inline-flex;">
-                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                            <defs>
-                                <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stop-color="#667eea"/>
-                                    <stop offset="60%" stop-color="#764ba2"/>
-                                    <stop offset="100%" stop-color="#8b5cf6"/>
-                                </linearGradient>
-                                <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stop-color="#06b6d4"/>
-                                    <stop offset="100%" stop-color="#4facfe"/>
-                                </linearGradient>
-                                <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
-                                    <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>
-                                    <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>
-                                </linearGradient>
-                            </defs>
-                            <path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/>
-                            <path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>
-                            <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
-                        </svg>
-                    </span>
-                    <span>Bank Swift</span>
-                </span>
-            </a>
-            <h1 class="page-title" style="flex:1;">Transfer Money</h1>
-            <a href="dashboard.html" class="back-btn" style="margin-left:auto;">← Dashboard</a>
-        </div>
-    </header>
+    <!-- Global header auto-injected by common.js -->
+    <div style="height:82px"></div>
     
     <!-- Balance Display -->
-    <div class="balance-display">
+    <div class="balance-display animate-in">
         <div class="balance-label">Available Balance</div>
         <div class="balance-amount" id="availableBalance">$221,540.20</div>
     </div>
     
     <!-- Transfer Container -->
-    <div class="transfer-container">
+    <div class="transfer-container animate-in" style="animation-delay:.1s;">
         <!-- Transfer Methods -->
         <div class="transfer-methods">
-            <div class="method-card" onclick="selectMethod('wire')">
+            <div class="method-card animate-in" onclick="selectMethod('wire')" style="animation-delay:.05s;">
                 <div class="method-icon">💸</div>
                 <div class="method-name">Wire Transfer</div>
             </div>
-            <div class="method-card" onclick="selectMethod('ach')">
+            <div class="method-card animate-in" onclick="selectMethod('ach')" style="animation-delay:.1s;">
                 <div class="method-icon">🏦</div>
                 <div class="method-name">ACH Transfer</div>
             </div>
-            <div class="method-card" onclick="selectMethod('instant')">
+            <div class="method-card animate-in" onclick="selectMethod('instant')" style="animation-delay:.15s;">
                 <div class="method-icon">⚡</div>
                 <div class="method-name">Instant Transfer</div>
             </div>
-            <div class="method-card" onclick="selectMethod('international')">
+            <div class="method-card animate-in" onclick="selectMethod('international')" style="animation-delay:.2s;">
                 <div class="method-icon">🌍</div>
                 <div class="method-name">International</div>
             </div>
@@ -736,10 +704,9 @@
     </div>
     
     <script>
-        // Check authentication
-        if (!Platform.isAuthenticated()) {
-            window.location.href = 'login.html';
-        }
+    // Auth migration (legacy sessionStorage -> localStorage)
+    try { if(!localStorage.getItem('bs-user')){ const legacy = sessionStorage.getItem('loggedInUser'); if(legacy){ localStorage.setItem('bs-user', legacy); sessionStorage.removeItem('loggedInUser'); } } } catch {}
+    if (!Platform.isAuthenticated()) { window.location.href = 'login.html'; }
         
         // Load available balance
         async function loadBalance() {

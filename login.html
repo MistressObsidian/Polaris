@@ -1,149 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login • Bank Swift</title>
-    <link rel="stylesheet" href="ui.css" />
-    <link rel="icon" href="bank-swift.png" type="image/png" />
-    <link rel="apple-touch-icon" href="bank-swift.png" />
-    <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>/* Minor page tweak */ .auth-wrapper{padding-top:120px;} </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login • Bank Swift</title>
+  <link rel="stylesheet" href="ui.css" />
+  <link rel="icon" href="bank-swift.png" type="image/png" />
+  <link rel="apple-touch-icon" href="bank-swift.png" />
+  <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>.auth-wrapper{padding-top:120px;}</style>
 </head>
 <body>
-    <script src="common.js"></script>
-    
-        <div class="hero-background"></div>
-        <div class="particles" id="particles"></div>
-        <main class="auth-wrapper">
-            <section class="auth-card" aria-labelledby="loginTitle">
-                <div class="auth-head">
-                    <div class="auth-logo" aria-hidden="true">
-                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#667eea"/><stop offset="60%" stop-color="#764ba2"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient><linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#4facfe"/></linearGradient><linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/><stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/></linearGradient></defs><path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/><path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/><path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/></svg>
-                    </div>
-                    <h1 class="auth-title" id="loginTitle">Welcome Back</h1>
-                    <p class="auth-sub">Sign in to your Bank Swift account</p>
-                </div>
-                <div id="loginAlert" class="alert-auth" role="alert"></div>
-                <form id="loginForm" class="form-grid" novalidate>
-                    <div class="field">
-                        <label for="email">Email Address</label>
-                        <input class="input-base" type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" required />
-                    </div>
-                                <div class="field">
-                                    <label for="password">Password</label>
-                                    <div class="pw-wrap">
-                                        <input class="input-base" type="password" id="password" name="password" placeholder="••••••••" required />
-                                        <button type="button" class="pw-toggle" id="pwToggleLogin" aria-label="Show password">Show</button>
-                                    </div>
-                                </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; font-size:.7rem;">
-                        <label style="display:flex; align-items:center; gap:.45rem; cursor:pointer; color:rgba(255,255,255,.7);"><input type="checkbox" id="remember" style="accent-color:#667eea; width:16px; height:16px;"> Remember me</label>
-                        <a href="#" style="color:#667eea; text-decoration:none; font-weight:600;">Forgot password?</a>
-                    </div>
-                    <button type="submit" class="btn-full" id="loginBtn">Sign In</button>
-                </form>
-                <div class="divider-auth"><span>OR</span></div>
-                <div class="social-row">
-                    <a class="social-btn-shared" href="#" aria-label="Sign in with Google">🌐 <span>Google</span></a>
-                    <a class="social-btn-shared" href="#" aria-label="Sign in with Apple">🍎 <span>Apple</span></a>
-                    <a class="social-btn-shared" href="#" aria-label="Sign in with Facebook">📘 <span>Facebook</span></a>
-                </div>
-                <div class="auth-alt">Don't have an account? <a href="register.html">Sign up</a></div>
-            </section>
-        </main>
-    
-    <script>
-        // Clear form on load
-                document.addEventListener('DOMContentLoaded', () => {
-                        const emailInput = document.getElementById('email');
-                        const pwInput = document.getElementById('password');
-                        if(emailInput) {
-                            try {
-                                const last = localStorage.getItem('bs-last-registered-email');
-                                if(last) emailInput.value = last;
-                            } catch {}
-                        }
-                        if(pwInput) pwInput.value='';
-                        // Flash message from registration
-                        try {
-                            const flash = sessionStorage.getItem('bs-flash');
-                            if(flash){
-                                const alert = document.getElementById('loginAlert');
-                                if(alert){ alert.className='alert-auth success show'; alert.textContent=flash; }
-                                sessionStorage.removeItem('bs-flash');
-                            }
-                        } catch {}
-                });
+  <div class="hero-background"></div>
+  <div class="particles" id="particles"></div>
+  <main class="auth-wrapper">
+    <section class="auth-card" aria-labelledby="loginTitle">
+      <div class="auth-head">
+        <div class="auth-logo" aria-hidden="true">
+          <!-- same gradient logo -->
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#667eea"/><stop offset="60%" stop-color="#764ba2"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient><linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#4facfe"/></linearGradient><linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/><stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/></linearGradient></defs><path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/><path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/><path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/></svg>
+        </div>
+        <h1 class="auth-title" id="loginTitle">Welcome Back</h1>
+        <p class="auth-sub">Sign in to your Bank Swift account</p>
+      </div>
+      <div id="loginAlert" class="alert-auth" role="alert"></div>
+      <form id="loginForm" class="form-grid" novalidate>
+        <div class="field">
+          <label for="email">Email Address</label>
+          <input class="input-base" type="email" id="email" name="email" placeholder="you@example.com" required />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="pw-wrap">
+            <input class="input-base" type="password" id="password" name="password" placeholder="••••••••" required />
+            <button type="button" class="pw-toggle" id="pwToggleLogin">Show</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; font-size:.7rem;">
+          <label style="display:flex; align-items:center; gap:.45rem; cursor:pointer; color:rgba(255,255,255,.7);">
+            <input type="checkbox" id="remember" style="accent-color:#667eea; width:16px; height:16px;"> Remember me
+          </label>
+          <a href="#" style="color:#667eea; text-decoration:none; font-weight:600;">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn-full" id="loginBtn">Sign In</button>
+      </form>
+      <div class="divider-auth"><span>OR</span></div>
+      <div class="social-row">
+        <a class="social-btn-shared" href="#">🌐 <span>Google</span></a>
+        <a class="social-btn-shared" href="#">🍎 <span>Apple</span></a>
+        <a class="social-btn-shared" href="#">📘 <span>Facebook</span></a>
+      </div>
+      <div class="auth-alt">Don't have an account? <a href="register.html">Sign up</a></div>
+    </section>
+  </main>
 
-        // Form submission
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const btn = document.getElementById('loginBtn');
-            const alert = document.getElementById('loginAlert');
-            const email = document.getElementById('email').value.trim().toLowerCase();
-            const passwordInput = document.getElementById('password');
-            const password = passwordInput.value;
-            
-            // Reset alert
-            alert.className = 'alert-auth';
-            alert.textContent = '';
-            
-            // Show loading state
-            btn.disabled = true;
-            btn.innerHTML = 'Signing in<span class="spinner"></span>';
-            
-            try {
-                // Search for user in SheetDB
-                const rows = await Platform.sheetSearch({
-                    formType: 'Registration',
-                    email: email
-                });
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8Xj7geeXL3pi9vGHHBqoZIouYBhG2kpC34kupp2OfJzOQRWgq6Zh-yREpeqLXx3lM7w/exec";
 
-                if (!Array.isArray(rows) || rows.length === 0) {
-                    throw new Error('Invalid email or password');
-                }
+    // Prefill email from registration + flash messages
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        const last = localStorage.getItem('bs-last-registered-email');
+        if(last) document.getElementById('email').value = last;
+      } catch {}
+      try {
+        const flash = sessionStorage.getItem('bs-flash');
+        if(flash){
+          const alert = document.getElementById('loginAlert');
+          alert.className='alert-auth success show';
+          alert.textContent=flash;
+          sessionStorage.removeItem('bs-flash');
+        }
+      } catch {}
+    });
 
-                const user = rows[0];
-                
-                // Verify password
-                if (user.password !== password) {
-                    throw new Error('Invalid email or password');
-                }
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-                // Create session
-                const sessionUser = {
-                    name: user.fullname || user.name || 'User',
-                    email: user.email,
-                    phone: user.phone || '',
-                    isAuthenticated: true,
-                    loginTime: new Date().toISOString()
-                };
+      const btn = document.getElementById('loginBtn');
+      const alert = document.getElementById('loginAlert');
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      const password = document.getElementById('password').value;
 
-                Platform.setUser(sessionUser);
-                
-                // Show success message
-                alert.className = 'alert-auth success show';
-                alert.textContent = 'Login successful! Redirecting...';
-                
-                // Redirect to dashboard
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1000);
+      alert.className = 'alert-auth';
+      alert.textContent = '';
+      btn.disabled = true;
+      btn.innerHTML = 'Signing in <span class="spinner"></span>';
 
-            } catch (err) {
-                alert.className = 'alert-auth error show';
-                alert.textContent = err.message || 'Login failed. Please try again.';
-                btn.disabled = false;
-        btn.textContent = 'Sign In';
-            }
-        });
-    // Password visibility toggle
-    (function(){ const btn=document.getElementById('pwToggleLogin'); const input=document.getElementById('password'); if(!btn||!input) return; btn.addEventListener('click',()=>{ const type=input.getAttribute('type')==='password'?'text':'password'; input.setAttribute('type', type); btn.textContent= type==='password'?'Show':'Hide'; btn.setAttribute('aria-label', (type==='password'?'Show':'Hide')+ ' password'); }); })();
-        // Particles generation
-        (function makeParticles(){ const c=document.getElementById('particles'); if(!c) return; for(let i=0;i<40;i++){ const p=document.createElement('span'); p.className='particle'; p.style.left=Math.random()*100+'%'; p.style.animationDelay=(Math.random()*16)+'s'; p.style.opacity=Math.random().toString(); c.appendChild(p);} })();
-    </script>
+      try {
+        // Fetch all rows from the sheet
+        const res = await fetch(SCRIPT_URL);
+        const rows = await res.json();
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+          throw new Error("No users found.");
+        }
+
+        // Find matching user
+        const user = rows.find(r => r.email && r.email.toLowerCase() === email);
+
+        if (!user || user.password !== password) {
+          throw new Error("Invalid email or password.");
+        }
+
+        // Save session
+        const sessionUser = {
+          name: user.fullname || "User",
+          email: user.email,
+          phone: user.phone || "",
+          isAuthenticated: true,
+          loginTime: new Date().toISOString()
+        };
+        localStorage.setItem("bs-user", JSON.stringify(sessionUser));
+
+        // Success UI
+        alert.className = "alert-auth success show";
+        alert.textContent = "Login successful! Redirecting...";
+        setTimeout(() => window.location.href = "dashboard.html", 1200);
+
+      } catch(err) {
+        alert.className = "alert-auth error show";
+        alert.textContent = err.message || "Login failed. Please try again.";
+        btn.disabled = false;
+        btn.textContent = "Sign In";
+      }
+    });
+
+    // Password toggle
+    (function(){
+      const btn=document.getElementById('pwToggleLogin');
+      const input=document.getElementById('password');
+      if(!btn||!input) return;
+      btn.addEventListener('click',()=>{
+        const type=input.getAttribute('type')==='password'?'text':'password';
+        input.setAttribute('type', type);
+        btn.textContent= type==='password'?'Show':'Hide';
+      });
+    })();
+
+    // Particles background
+    (function makeParticles(){
+      const c=document.getElementById('particles');
+      if(!c) return;
+      for(let i=0;i<40;i++){
+        const p=document.createElement('span');
+        p.className='particle';
+        p.style.left=Math.random()*100+'%';
+        p.style.animationDelay=(Math.random()*16)+'s';
+        p.style.opacity=Math.random().toString();
+        c.appendChild(p);
+      }
+    })();
+  </script>
 </body>
 </html>

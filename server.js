@@ -28,6 +28,75 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SHEETDB_URL = process.env.SHEETDB_URL || 'https://sheetdb.io/api/v1/3g36t35kn6po0';
 const SHEETDB_TOKEN = process.env.SHEETDB_TOKEN || 'bdqkosnudoi2kv7ilujkh192vndz3osnqkvh2mw3';
 
+// --- Serialized registration write queue to avoid 429 rate limits ---
+const registrationQueue = [];
+let regProcessing = false;
+
+async function writeRegistrationToSheet(row){
+  const payload = { data: [ {
+    formType: 'Registration',
+    date: new Date().toISOString(),
+    fullname: row.fullname,
+    email: String(row.email||'').toLowerCase(),
+    phone: row.phone || '',
+    password: row.password || '',
+    baseAvailable: 0,
+    totalBalance: 0
+  } ]};
+  let attempt=0;
+  while(attempt < 5){
+    attempt++;
+    try {
+      const res = await fetch(SHEETDB_URL, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${SHEETDB_TOKEN}` },
+        body: JSON.stringify(payload)
+      });
+      if(res.status === 429){
+        const wait = Math.min(8000, 600 * Math.pow(2, attempt-1)) + Math.random()*400;
+        await new Promise(r=>setTimeout(r, wait));
+        continue;
+      }
+      if(!res.ok){
+        let t='';
+        try { t = (await res.text()).slice(0,160); } catch {}
+        throw new Error(`SheetDB status ${res.status}${t?': '+t:''}`);
+      }
+      return; // success
+    } catch(err){
+      if(attempt >=5) throw err;
+      const wait = Math.min(8000, 500 * Math.pow(2, attempt-1)) + Math.random()*300;
+      await new Promise(r=>setTimeout(r, wait));
+    }
+  }
+}
+
+function processRegistrationQueue(){
+  if(regProcessing) return;
+  regProcessing = true;
+  (async function loop(){
+    while(registrationQueue.length){
+      const job = registrationQueue.shift();
+      try {
+        await writeRegistrationToSheet(job.data);
+        job.resolve({ ok:true });
+      } catch(e){
+        job.reject(e);
+      }
+      // small spacing to reduce burstiness
+      await new Promise(r=>setTimeout(r, 250));
+    }
+    regProcessing = false;
+  })();
+}
+
+function enqueueRegistration(data){
+  return new Promise((resolve,reject)=>{
+    registrationQueue.push({ data, resolve, reject });
+    processRegistrationQueue();
+  });
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -184,6 +253,18 @@ async function emitWebhook(event, data) {
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'banking-sim', time: new Date().toISOString() });
+});
+
+// Serialized registration proxy endpoint (public)
+app.post('/api/proxy/register', async (req,res) => {
+  const { fullname, email, phone, password } = req.body || {};
+  if(!fullname || !email || !password) return res.status(400).json({ error:'missing_fields' });
+  try {
+    await enqueueRegistration({ fullname, email, phone, password });
+    res.status(201).json({ ok:true });
+  } catch(e){
+    res.status(502).json({ ok:false, error: e.message });
+  }
 });
 
 // Public (demo) endpoint: get user public balances (would normally require auth)

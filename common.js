@@ -393,10 +393,12 @@
     if(document.querySelector('.app-header')) return; // already injected
     const page = currentPage();
     const authed = Platform.isAuthenticated();
+    const storedTheme = localStorage.getItem('bs-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', storedTheme);
     document.body.classList.add('with-global-header');
     const header = document.createElement('header');
     header.className='app-header';
-    header.innerHTML = `\n  <nav class="app-nav">\n    <a href="index.html" class="app-logo">\n      <span class="logo-icon">${buildLogoSVG()}</span><span class="brand-text">Bank Swift</span>\n    </a>\n    <ul class="nav-links-shared" id="globalNavLinks">\n      <li><a href="index.html" data-page="index.html">Home</a></li>\n      ${authed?'<li><a href="dashboard.html" data-page="dashboard.html">Dashboard</a></li>':''}\n      ${authed?'<li><a href="transfer.html" data-page="transfer.html">Transfers</a></li>':''}\n      ${authed?'<li><a href="gregorykeyes.html" data-page="gregorykeyes.html">Portfolio</a></li>':''}\n      ${authed?'<li><a href="transaction-details.html" data-page="transaction-details.html">Transactions</a></li>':''}\n      <li><a href="register.html" data-page="register.html" ${authed?'class="hidden"':''}>Register</a></li>\n      <li><a href="login.html" data-page="login.html" ${authed?'class="hidden"':''}>Login</a></li>\n    </ul>\n    <div class="header-cta" id="headerCta">\n      ${authed?'<button class="btn-shared btn-outline" id="logoutBtn">Logout</button>':'<a class="btn-shared btn-outline" href="login.html">Sign In</a><a class="btn-shared btn-primary-shared" href="register.html">Get Started</a>'}\n    </div>\n    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle navigation">☰</button>\n  </nav>`;
+    header.innerHTML = `\n  <nav class="app-nav">\n    <a href="index.html" class="app-logo">\n      <span class="logo-icon">${buildLogoSVG()}</span><span class="brand-text">Bank Swift</span>\n    </a>\n    <ul class="nav-links-shared" id="globalNavLinks">\n      <li><a href="index.html" data-page="index.html">Home</a></li>\n      ${authed?'<li><a href="dashboard.html" data-page="dashboard.html">Dashboard</a></li>':''}\n      ${authed?'<li><a href="transfer.html" data-page="transfer.html">Transfers</a></li>':''}\n      ${authed?'<li><a href="gregorykeyes.html" data-page="gregorykeyes.html">Portfolio</a></li>':''}\n      ${authed?'<li><a href="transaction-details.html" data-page="transaction-details.html">Transactions</a></li>':''}\n      <li><a href="register.html" data-page="register.html" ${authed?'class="hidden"':''}>Register</a></li>\n      <li><a href="login.html" data-page="login.html" ${authed?'class="hidden"':''}>Login</a></li>\n    </ul>\n    <div class="header-cta" id="headerCta">\n      <button id="themeToggle" class="btn-shared btn-outline theme-toggle" aria-label="Toggle theme" title="Toggle dark/light">${storedTheme==='light'?'🌙':'☀️'}</button>\n      ${authed?'<button class="btn-shared btn-outline" id="logoutBtn">Logout</button>':'<a class="btn-shared btn-outline" href="login.html">Sign In</a><a class="btn-shared btn-primary-shared" href="register.html">Get Started</a>'}\n    </div>\n    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle navigation">☰</button>\n  </nav>`;
     document.body.prepend(header);
     // Footer
     if(!document.querySelector('.app-footer')){
@@ -414,7 +416,9 @@
     if(toggle){ toggle.addEventListener('click',()=>{ document.getElementById('globalNavLinks').classList.toggle('open'); }); }
     // Logout
     const logoutBtn=document.getElementById('logoutBtn');
-    if(logoutBtn){ logoutBtn.addEventListener('click',()=>{ sessionStorage.removeItem('loggedInUser'); location.href='login.html'; }); }
+  if(logoutBtn){ logoutBtn.addEventListener('click',()=>{ sessionStorage.removeItem('loggedInUser'); location.href='login.html'; }); }
+  const themeBtn=document.getElementById('themeToggle');
+  if(themeBtn){ themeBtn.addEventListener('click',()=>{ const current=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark'; const next=current==='light'?'dark':'light'; document.documentElement.setAttribute('data-theme', next); localStorage.setItem('bs-theme', next); themeBtn.textContent= next==='light'?'🌙':'☀️'; }); }
   }
 
   // Inject after DOM ready
@@ -422,5 +426,7 @@
 
   // Expose for manual call
   global.Platform.injectHeaderFooter = injectHeaderFooter;
+  global.Platform.getTheme = ()=> document.documentElement.getAttribute('data-theme');
+  global.Platform.setTheme = (t)=>{ if(t!=='light'&&t!=='dark') return; document.documentElement.setAttribute('data-theme', t); localStorage.setItem('bs-theme', t); const btn=document.getElementById('themeToggle'); if(btn) btn.textContent=t==='light'?'🌙':'☀️'; };
 
 })(window);

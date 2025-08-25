@@ -42,7 +42,10 @@
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <input class="input-base" type="password" id="password" name="password" minlength="6" placeholder="Minimum 6 characters" required />
+          <div class="pw-wrap">
+            <input class="input-base" type="password" id="password" name="password" minlength="6" placeholder="Minimum 6 characters" required />
+            <button type="button" class="pw-toggle" id="pwToggleRegister" aria-label="Show password">Show</button>
+          </div>
         </div>
         <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
       </form>
@@ -74,7 +77,8 @@
       const fullname = document.getElementById('fullname').value.trim();
       const phone = document.getElementById('phone').value.trim();
       const email = document.getElementById('email').value.trim().toLowerCase();
-      const password = document.getElementById('password').value;
+  const passwordInput = document.getElementById('password');
+  const password = passwordInput.value;
 
       // Basic validation
       if (!fullname || !email || !password) {
@@ -166,6 +170,8 @@
         btn.textContent = originalText;
       }
     });
+    // Password visibility toggle
+    (function(){ const btn=document.getElementById('pwToggleRegister'); const input=document.getElementById('password'); if(!btn||!input) return; btn.addEventListener('click',()=>{ const type=input.getAttribute('type')==='password'?'text':'password'; input.setAttribute('type', type); btn.textContent= type==='password'?'Show':'Hide'; btn.setAttribute('aria-label', (type==='password'?'Show':'Hide')+ ' password'); }); })();
     // Particles creation
     (function makeParticles(){ const c=document.getElementById('particles'); if(!c) return; for(let i=0;i<48;i++){ const p=document.createElement('span'); p.className='particle'; p.style.left=Math.random()*100+'%'; p.style.animationDelay=(Math.random()*16)+'s'; p.style.opacity=Math.random().toString(); c.appendChild(p);} })();
   </script>

@@ -31,10 +31,13 @@
                         <label for="email">Email Address</label>
                         <input class="input-base" type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" required />
                     </div>
-                    <div class="field">
-                        <label for="password">Password</label>
-                        <input class="input-base" type="password" id="password" name="password" placeholder="••••••••" required />
-                    </div>
+                                <div class="field">
+                                    <label for="password">Password</label>
+                                    <div class="pw-wrap">
+                                        <input class="input-base" type="password" id="password" name="password" placeholder="••••••••" required />
+                                        <button type="button" class="pw-toggle" id="pwToggleLogin" aria-label="Show password">Show</button>
+                                    </div>
+                                </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; font-size:.7rem;">
                         <label style="display:flex; align-items:center; gap:.45rem; cursor:pointer; color:rgba(255,255,255,.7);"><input type="checkbox" id="remember" style="accent-color:#667eea; width:16px; height:16px;"> Remember me</label>
                         <a href="#" style="color:#667eea; text-decoration:none; font-weight:600;">Forgot password?</a>
@@ -65,7 +68,8 @@
             const btn = document.getElementById('loginBtn');
             const alert = document.getElementById('loginAlert');
             const email = document.getElementById('email').value.trim().toLowerCase();
-            const password = document.getElementById('password').value;
+            const passwordInput = document.getElementById('password');
+            const password = passwordInput.value;
             
             // Reset alert
             alert.className = 'alert-auth';
@@ -117,9 +121,11 @@
                 alert.className = 'alert-auth error show';
                 alert.textContent = err.message || 'Login failed. Please try again.';
                 btn.disabled = false;
-                btn.textContent = 'Sign In';
+        btn.textContent = 'Sign In';
             }
         });
+    // Password visibility toggle
+    (function(){ const btn=document.getElementById('pwToggleLogin'); const input=document.getElementById('password'); if(!btn||!input) return; btn.addEventListener('click',()=>{ const type=input.getAttribute('type')==='password'?'text':'password'; input.setAttribute('type', type); btn.textContent= type==='password'?'Show':'Hide'; btn.setAttribute('aria-label', (type==='password'?'Show':'Hide')+ ' password'); }); })();
         // Particles generation
         (function makeParticles(){ const c=document.getElementById('particles'); if(!c) return; for(let i=0;i<40;i++){ const p=document.createElement('span'); p.className='particle'; p.style.left=Math.random()*100+'%'; p.style.animationDelay=(Math.random()*16)+'s'; p.style.opacity=Math.random().toString(); c.appendChild(p);} })();
     </script>

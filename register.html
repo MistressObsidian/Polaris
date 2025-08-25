@@ -52,6 +52,18 @@
       <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
     </section>
   </main>
+  <!-- Success Modal -->
+  <div id="successModal" class="modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-shell" role="document">
+      <div class="modal-icon" aria-hidden="true">✅</div>
+      <h2 class="modal-title">Account Created</h2>
+      <p class="modal-text">Your account was created successfully. You can now log in to start using Bank Swift.</p>
+      <div class="modal-actions">
+        <button id="modalLoginBtn" class="modal-btn primary">Log in to your account</button>
+        <button id="modalCloseBtn" class="modal-btn ghost" type="button">Close</button>
+      </div>
+    </div>
+  </div>
 
   <script>
   function showAlert(msg, type = 'error') { const el = document.getElementById('regAlert'); el.textContent = msg; el.className = `alert-auth ${type} show`; }
@@ -145,22 +157,10 @@
         // Clear any existing transaction data just in case
         sessionStorage.removeItem('initiatedTransactions');
 
-        // Enhanced success alert with immediate action button + fallback auto redirect
-        (function(){
-          const el = document.getElementById('regAlert');
-          el.className = 'alert-auth success show';
-          // Allow HTML only in this controlled success branch
-          el.innerHTML = 'Account created! <button type="button" id="goLoginNow" class="go-login-btn">Go to Login now</button>';
-          // Attach handler
-          const goBtn = document.getElementById('goLoginNow');
-          if(goBtn){ goBtn.addEventListener('click', ()=>{ window.location.href='login.html'; }); }
-          // Fallback auto redirect after 5s if user doesn\'t click
-          setTimeout(()=>{ if(document.body.contains(el)) window.location.href='login.html'; }, 5000);
-        })();
-
-        // Re-enable button (optional) and reset text so user can\'t resubmit accidentally
-        btn.disabled = true; // keep disabled to prevent duplicate submissions after success
-        btn.textContent = 'Account Created';
+  // Show success modal (manual login required)
+  openSuccessModal();
+  btn.disabled = true;
+  btn.textContent = 'Account Created';
 
       } catch (err) {
         console.error('Registration error:', err);
@@ -169,12 +169,35 @@
         btn.textContent = originalText;
       }
     });
-    // Style for inline success button (scoped injection)
+    // Modal styling injection (scoped)
     (function(){
-      const styleTag = document.createElement('style');
-      styleTag.textContent = `.go-login-btn{margin-left:.75rem;background:transparent;border:1px solid rgba(255,255,255,.4);color:inherit;padding:4px 10px;border-radius:6px;font-size:.7rem;font-weight:600;cursor:pointer;transition:.25s;background:rgba(255,255,255,.08);} .go-login-btn:hover{background:rgba(255,255,255,.15);}`;
-      document.head.appendChild(styleTag);
+      const css = `#successModal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.65);backdrop-filter:blur(6px);padding:1.5rem;z-index:500;opacity:0;pointer-events:none;transition:opacity .3s ease;}#successModal.show{opacity:1;pointer-events:auto;}#successModal .modal-shell{max-width:420px;width:100%;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:2.25rem 2rem;position:relative;box-shadow:0 20px 50px -10px rgba(0,0,0,.6);} .modal-icon{font-size:2.4rem;line-height:1;margin-bottom:.75rem;filter:drop-shadow(0 4px 10px rgba(16,185,129,.35));} .modal-title{margin:0 0 .5rem;font-size:1.45rem;font-weight:700;letter-spacing:.5px;} .modal-text{margin:0 0 1.5rem;font-size:.95rem;line-height:1.45;color:rgba(255,255,255,.8);} .modal-actions{display:flex;gap:.75rem;flex-wrap:wrap;} .modal-btn{flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;padding:.75rem 1rem;font-size:.85rem;font-weight:600;border-radius:10px;border:none;cursor:pointer;transition:.25s;letter-spacing:.25px;} .modal-btn.primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;box-shadow:0 4px 15px -3px rgba(102,126,234,.45);} .modal-btn.primary:hover{transform:translateY(-2px);box-shadow:0 8px 22px -6px rgba(102,126,234,.55);} .modal-btn.ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.18);} .modal-btn.ghost:hover{background:rgba(255,255,255,.2);} @media (max-width:480px){#successModal .modal-shell{padding:1.75rem 1.25rem;border-radius:20px;}}
+      `;
+      const style = document.createElement('style');
+      style.textContent = css;
+      document.head.appendChild(style);
     })();
+
+    function openSuccessModal(){
+      const modal = document.getElementById('successModal');
+      if(!modal) return;
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
+      const loginBtn = document.getElementById('modalLoginBtn');
+      const closeBtn = document.getElementById('modalCloseBtn');
+      if(loginBtn){ loginBtn.textContent='Log in to your account'; loginBtn.addEventListener('click', ()=>{ window.location.href='login.html'; }); setTimeout(()=>loginBtn.focus(),40); }
+      if(closeBtn){ closeBtn.addEventListener('click', ()=>{ closeSuccessModal(); }); }
+      // ESC key handler
+      document.addEventListener('keydown', escHandler);
+    }
+    function escHandler(e){ if(e.key==='Escape'){ closeSuccessModal(); } }
+    function closeSuccessModal(){
+      const modal = document.getElementById('successModal');
+      if(!modal) return;
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+      document.removeEventListener('keydown', escHandler);
+    }
     // Password visibility toggle
     (function(){ const btn=document.getElementById('pwToggleRegister'); const input=document.getElementById('password'); if(!btn||!input) return; btn.addEventListener('click',()=>{ const type=input.getAttribute('type')==='password'?'text':'password'; input.setAttribute('type', type); btn.textContent= type==='password'?'Show':'Hide'; btn.setAttribute('aria-label', (type==='password'?'Show':'Hide')+ ' password'); }); })();
     // Particles creation

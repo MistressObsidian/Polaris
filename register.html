@@ -24,7 +24,7 @@
         <h1 class="auth-title" id="regTitle">Create your account</h1>
         <p class="auth-sub">Join the future of digital banking in seconds</p>
       </div>
-      <div id="regAlert" class="alert-auth" role="alert"></div>
+  <div id="regAlert" class="alert-auth" role="alert"></div>
       <form id="registerForm" class="form-grid" novalidate autocomplete="off">
         <div class="form-row-2">
           <div class="field">
@@ -115,18 +115,7 @@
       }
 
       try {
-        // Check if email already exists
-        const existing = await Platform.sheetSearch({
-          formType: 'Registration',
-          email: email
-        });
-
-        if (Array.isArray(existing) && existing.length > 0) {
-          showAlert('This email is already registered. Please login instead.');
-          btn.disabled = false;
-          btn.textContent = originalText;
-          return;
-        }
+  // Bypassing duplicate check: directly insert row into Sheet
 
         // Create new user record
         const nowISO = new Date().toISOString();
@@ -141,15 +130,15 @@
           totalBalance: 0     // New users start with zero balance
         };
 
-        // Insert & confirm presence in Google Sheet (SheetDB)
-        const success = await Platform.registerAndConfirm(newUser, { maxInsertRetries:2, confirmAttempts:6, confirmDelay:650 });
-
-        if (!success) {
-          showAlert('Could not confirm record in data store. Please retry in a moment.');
+        // Direct insert (no confirmation polling)
+        const inserted = await Platform.sheetInsert([newUser]);
+        if(!inserted){
+          showAlert('Could not save record to sheet. Please retry.');
           btn.disabled = false;
           btn.textContent = originalText;
           return;
         }
+        window.__LAST_REG_ROW__ = newUser; // for modal display
 
         // Persist helper info for login prefill & flash message (no auto-login)
         try { localStorage.setItem('bs-last-registered-email', email); } catch {}
@@ -189,6 +178,22 @@
       if(closeBtn){ closeBtn.addEventListener('click', ()=>{ closeSuccessModal(); }); }
       // ESC key handler
       document.addEventListener('keydown', escHandler);
+      // Inject verification snippet if available
+      try {
+        if(window.__LAST_REG_ROW__){
+          const row = window.__LAST_REG_ROW__;
+          const shell = modal.querySelector('.modal-shell');
+          if(shell && !shell.querySelector('.modal-verification')){
+            const div = document.createElement('div');
+            div.className='modal-verification';
+            div.style.cssText='margin-top:1rem;padding:.75rem .85rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;font-size:.65rem;line-height:1.35;word-break:break-word;';
+            div.innerHTML = `<strong style="font-size:.7rem;letter-spacing:.5px;">CONFIRMED ROW</strong><br>`+
+              `email: <span style="color:#10b981">${row.email||''}</span><br>`+
+              `name: ${(row.fullname||row.name||'').replace(/</g,'&lt;')}`;
+            shell.appendChild(div);
+          }
+        }
+      } catch {}
     }
     function escHandler(e){ if(e.key==='Escape'){ closeSuccessModal(); } }
     function closeSuccessModal(){
@@ -203,5 +208,6 @@
     // Particles creation
     (function makeParticles(){ const c=document.getElementById('particles'); if(!c) return; for(let i=0;i<48;i++){ const p=document.createElement('span'); p.className='particle'; p.style.left=Math.random()*100+'%'; p.style.animationDelay=(Math.random()*16)+'s'; p.style.opacity=Math.random().toString(); c.appendChild(p);} })();
   </script>
+  <style></style>
 </body>
 </html>

@@ -78,17 +78,31 @@
    * Insert a single registration row then verify it exists; retries insert if confirmation fails.
    */
   async function registerAndConfirm(user, options={}){
-    const { maxInsertRetries=2, confirmAttempts=5, confirmDelay=700 } = options;
-    if(!user || !user.email) return false;
+    const { maxInsertRetries=2, confirmAttempts=5, confirmDelay=700, returnMeta=false, debug=false } = options;
+    if(!user || !user.email) return returnMeta ? { ok:false, message:'missing user/email' } : false;
+    const email = user.email;
+    const logs = [];
     for(let attempt=0; attempt<=maxInsertRetries; attempt++){
-      const inserted = await sheetInsert([user]);
-      // Even if insert says false, record may already exist; confirmation handles it.
-      const confirmed = await confirmRegistration(user.email, confirmAttempts, confirmDelay);
-      if(confirmed) return true;
-      // Wait a bit longer before retrying insert
+      let inserted=false; let confirm=false; let searchCount=0; let insertError=null;
+      try { inserted = await sheetInsert([user]); } catch(e){ insertError=e&&e.message; }
+      // Poll with inline logic so we can count rows per poll
+      for(let c=0;c<confirmAttempts;c++){
+        try {
+          const rows = await sheetSearch({ formType:'Registration', email });
+          searchCount = Array.isArray(rows)? rows.length : 0;
+          if(searchCount>0){ confirm=true; break; }
+        } catch {}
+        if(c < confirmAttempts-1) await new Promise(r=>setTimeout(r, confirmDelay));
+      }
+      logs.push({ attempt, inserted, confirm, searchCount, insertError });
+      if(confirm){
+        const result = { ok:true, confirmed:true, attempts:attempt+1, pollsPerAttempt:confirmAttempts, logs };
+        return returnMeta ? result : true;
+      }
       await new Promise(r=>setTimeout(r, confirmDelay * 1.5));
     }
-    return false;
+    const failMeta = { ok:false, confirmed:false, attempts:logs.length, message:'confirmation_timeout', logs };
+    return returnMeta ? failMeta : false;
   }
 
   async function sheetPatch(reference, fields) {

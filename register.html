@@ -129,11 +129,11 @@
           totalBalance: 0     // New users start with zero balance
         };
 
-        // Insert to SheetDB
-        const success = await Platform.sheetInsert([newUser]);
+        // Insert & confirm presence in Google Sheet (SheetDB)
+        const success = await Platform.registerAndConfirm(newUser, { maxInsertRetries:2, confirmAttempts:6, confirmDelay:650 });
 
         if (!success) {
-          showAlert('Registration failed. Please try again.');
+          showAlert('Could not confirm record in data store. Please retry in a moment.');
           btn.disabled = false;
           btn.textContent = originalText;
           return;

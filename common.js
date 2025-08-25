@@ -58,6 +58,39 @@
     }
   }
 
+  /**
+   * Confirm a registration row (formType: 'Registration') has propagated to Google Sheet via SheetDB.
+   * Polls the SheetDB search endpoint for the given email until found or attempts exhausted.
+   */
+  async function confirmRegistration(email, attempts = 5, delayMs = 700){
+    if(!email) return false;
+    for(let i=0;i<attempts;i++){
+      try {
+        const rows = await sheetSearch({ formType:'Registration', email });
+        if(Array.isArray(rows) && rows.length>0) return true;
+      } catch {}
+      if(i < attempts-1) await new Promise(r=>setTimeout(r, delayMs));
+    }
+    return false;
+  }
+
+  /**
+   * Insert a single registration row then verify it exists; retries insert if confirmation fails.
+   */
+  async function registerAndConfirm(user, options={}){
+    const { maxInsertRetries=2, confirmAttempts=5, confirmDelay=700 } = options;
+    if(!user || !user.email) return false;
+    for(let attempt=0; attempt<=maxInsertRetries; attempt++){
+      const inserted = await sheetInsert([user]);
+      // Even if insert says false, record may already exist; confirmation handles it.
+      const confirmed = await confirmRegistration(user.email, confirmAttempts, confirmDelay);
+      if(confirmed) return true;
+      // Wait a bit longer before retrying insert
+      await new Promise(r=>setTimeout(r, confirmDelay * 1.5));
+    }
+    return false;
+  }
+
   async function sheetPatch(reference, fields) {
     if (!reference) return false;
     try {
@@ -352,6 +385,8 @@
     sheetInsert,
     sheetPatch,
     sheetAuthHeaders,
+  confirmRegistration,
+  registerAndConfirm,
     
     // User session
     getUser,

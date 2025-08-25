@@ -131,8 +131,14 @@
             transform: scale(1.05);
         }
 
-    .logo-icon { width:48px; height:48px; display:flex; align-items:center; justify-content:center; }
-    .logo-icon img { width:100%; height:100%; object-fit:contain; display:block; }
+    .logo-icon { width:52px; height:52px; display:flex; align-items:center; justify-content:center; position:relative; }
+    .logo-icon svg { width:100%; height:100%; display:block; }
+    .logo-icon svg .g1 { fill:url(#logoGrad1); }
+    .logo-icon svg .g2 { fill:url(#logoGrad2); }
+    .logo-icon svg .g3 { fill:url(#logoGrad3); mix-blend-mode:overlay; }
+    .logo-container:hover .logo-icon { animation: floatLogo 3s ease-in-out infinite; }
+    @keyframes floatLogo { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-4px); } }
+    @media (prefers-reduced-motion: reduce){ .logo-container:hover .logo-icon { animation:none; } }
 
         .logo-text {
             font-size: 1.5rem;
@@ -693,9 +699,28 @@
     <!-- Header -->
     <header id="header">
         <nav>
-            <div class="logo-container">
-                <div class="logo-icon">
-                    <img src="bank-swift.png" alt="Bank Swift Logo" loading="lazy" />
+            <div class="logo-container" aria-label="Bank Swift Home">
+                <div class="logo-icon" role="img" aria-hidden="true">
+                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#667eea"/>
+                                <stop offset="60%" stop-color="#764ba2"/>
+                                <stop offset="100%" stop-color="#8b5cf6"/>
+                            </linearGradient>
+                            <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#06b6d4"/>
+                                <stop offset="100%" stop-color="#4facfe"/>
+                            </linearGradient>
+                            <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>
+                                <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>
+                            </linearGradient>
+                        </defs>
+                        <path class="g1" d="M6 10 L34 32 L6 54 Z"/>
+                        <path class="g2" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>
+                        <path class="g3" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
+                    </svg>
                 </div>
                 <span class="logo-text">Bank Swift</span>
             </div>

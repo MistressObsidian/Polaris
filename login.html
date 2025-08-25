@@ -4,535 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login • Bank Swift</title>
+    <link rel="stylesheet" href="ui.css" />
     <link rel="icon" href="bank-swift.png" type="image/png" />
     <link rel="apple-touch-icon" href="bank-swift.png" />
     <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css" />
-    <style>
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1e40af;
-            --secondary: #7c3aed;
-            --accent: #06b6d4;
-            --success: #10b981;
-            --danger: #ef4444;
-            --dark: #0f172a;
-            --glass: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow-x: hidden;
-            overflow-y: auto;
-            position: relative;
-            padding: 2rem 0;
-        }
-
-        /* Animated Background */
-    .logo-icon { width: 90px; height: 90px; margin: 0 auto 1.25rem; }
-    .logo-icon img { width:100%; height:100%; object-fit:contain; display:block; }
-
-        .orb2 {
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(240, 147, 251, 0.8), transparent);
-            bottom: -150px;
-            right: -150px;
-            animation-delay: 5s;
-        }
-
-        .orb3 {
-            width: 350px;
-            height: 350px;
-            background: radial-gradient(circle, rgba(245, 87, 108, 0.8), transparent);
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            animation-delay: 10s;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(30px, -30px) scale(1.1); }
-            66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-
-        /* Login Container */
-        .login-container {
-            position: relative;
-            z-index: 10;
-            width: 90%;
-            max-width: 480px;
-            animation: slideIn 0.8s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Glass Card */
-        .glass-card {
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 3rem;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Logo Section */
-        .logo-section {
-            text-align: center;
-            margin-bottom: 2.5rem;
-        }
-
-        .logo-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .logo-icon::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transform: rotate(45deg);
-            animation: shine 3s infinite;
-        }
-
-        @keyframes shine {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-        }
-
-        .logo-icon svg {
-            width: 45px;
-            height: 45px;
-            fill: white;
-            z-index: 1;
-            position: relative;
-        }
-
-        h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #fff, #e0e7ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
-        }
-
-        .subtitle {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 1rem;
-        }
-
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        label {
-            display: block;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .input-wrapper {
-            position: relative;
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 1.2rem;
-        }
-
-        input {
-            width: 100%;
-            padding: 1rem 1rem 1rem 3rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: white;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        input:focus {
-            outline: none;
-            background: rgba(255, 255, 255, 0.08);
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
-        }
-
-        /* Checkbox */
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1.5rem;
-        }
-
-        .checkbox-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .checkbox-wrapper input[type="checkbox"] {
-            width: auto;
-            margin: 0;
-            padding: 0;
-        }
-
-        .checkbox-wrapper label {
-            margin: 0;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9rem;
-        }
-
-        .forgot-link {
-            color: #667eea;
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: color 0.3s ease;
-        }
-
-        .forgot-link:hover {
-            color: #764ba2;
-        }
-
-        /* Submit Button */
-        .submit-btn {
-            width: 100%;
-            padding: 1rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .submit-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .submit-btn:hover::before {
-            left: 100%;
-        }
-
-        .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
-        }
-
-        .submit-btn:active {
-            transform: translateY(0);
-        }
-
-        .submit-btn.loading {
-            background: linear-gradient(135deg, #6c757d, #5a6268);
-            cursor: not-allowed;
-        }
-
-        /* Divider */
-        .divider {
-            text-align: center;
-            margin: 2rem 0;
-            position: relative;
-        }
-
-        .divider::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .divider span {
-            background: rgba(15, 23, 42, 0.8);
-            padding: 0 1rem;
-            color: rgba(255, 255, 255, 0.5);
-            position: relative;
-            font-size: 0.9rem;
-        }
-
-        /* Social Login */
-        .social-login {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .social-btn {
-            flex: 1;
-            padding: 0.75rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-
-        .social-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-2px);
-        }
-
-        /* Sign Up Link */
-        .signup-link {
-            text-align: center;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9rem;
-        }
-
-        .signup-link a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.3s ease;
-        }
-
-        .signup-link a:hover {
-            color: #764ba2;
-        }
-
-        /* Alert Messages */
-        .alert {
-            padding: 1rem;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-            display: none;
-            animation: slideDown 0.3s ease;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .alert.show {
-            display: block;
-        }
-
-        .alert.error {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #fca5a5;
-        }
-
-        .alert.success {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #86efac;
-        }
-
-        /* Loading Spinner */
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-left: 10px;
-            vertical-align: middle;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Responsive */
-    @media (max-width: 600px) { .glass-card { padding:2rem 1.5rem; } h1 { font-size:1.55rem; } .social-login { flex-direction:column; } }
-    @media (max-height: 680px) { .logo-icon { height:70px; width:70px; margin-bottom:.75rem; } .glass-card { padding:2rem 1.25rem; } }
-    </style>
+    <style>/* Minor page tweak */ .auth-wrapper{padding-top:120px;} </style>
 </head>
-<body class="theme-bank">
+<body>
     <script src="common.js"></script>
     
-    <!-- Animated Background -->
-    <div class="animated-bg"></div>
-    <div class="orb orb1"></div>
-    <div class="orb orb2"></div>
-    <div class="orb orb3"></div>
-    
-    <!-- Login Container -->
-    <div class="login-container">
-        <div class="glass-card">
-            <!-- Logo Section -->
-            <div class="logo-section">
-                <div class="logo-icon" role="img" aria-label="Bank Swift Logo">
-                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#667eea"/>
-                                <stop offset="60%" stop-color="#764ba2"/>
-                                <stop offset="100%" stop-color="#8b5cf6"/>
-                            </linearGradient>
-                            <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stop-color="#06b6d4"/>
-                                <stop offset="100%" stop-color="#4facfe"/>
-                            </linearGradient>
-                            <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
-                                <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>
-                                <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>
-                            </linearGradient>
-                        </defs>
-                        <path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/>
-                        <path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>
-                        <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
-                    </svg>
-                </div>
-                <h1>Welcome Back</h1>
-                <p class="subtitle">Sign in to your Bank Swift account</p>
-            </div>
-            
-            <!-- Alert Message -->
-            <div id="loginAlert" class="alert"></div>
-            
-            <!-- Login Form -->
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">📧</span>
-                        <input 
-                            type="email" 
-                            id="email" 
-                            name="email" 
-                            placeholder="Enter your email"
-                            required
-                        >
+        <div class="hero-background"></div>
+        <div class="particles" id="particles"></div>
+        <main class="auth-wrapper">
+            <section class="auth-card" aria-labelledby="loginTitle">
+                <div class="auth-head">
+                    <div class="auth-logo" aria-hidden="true">
+                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#667eea"/><stop offset="60%" stop-color="#764ba2"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient><linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#4facfe"/></linearGradient><linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/><stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/></linearGradient></defs><path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/><path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/><path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/></svg>
                     </div>
+                    <h1 class="auth-title" id="loginTitle">Welcome Back</h1>
+                    <p class="auth-sub">Sign in to your Bank Swift account</p>
                 </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">🔒</span>
-                        <input 
-                            type="password" 
-                            id="password" 
-                            name="password" 
-                            placeholder="Enter your password"
-                            required
-                        >
+                <div id="loginAlert" class="alert-auth" role="alert"></div>
+                <form id="loginForm" class="form-grid" novalidate>
+                    <div class="field">
+                        <label for="email">Email Address</label>
+                        <input class="input-base" type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" required />
                     </div>
-                </div>
-                
-                <div class="checkbox-group">
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="remember" name="remember">
-                        <label for="remember">Remember me</label>
+                    <div class="field">
+                        <label for="password">Password</label>
+                        <input class="input-base" type="password" id="password" name="password" placeholder="••••••••" required />
                     </div>
-                    <a href="#" class="forgot-link">Forgot password?</a>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; font-size:.7rem;">
+                        <label style="display:flex; align-items:center; gap:.45rem; cursor:pointer; color:rgba(255,255,255,.7);"><input type="checkbox" id="remember" style="accent-color:#667eea; width:16px; height:16px;"> Remember me</label>
+                        <a href="#" style="color:#667eea; text-decoration:none; font-weight:600;">Forgot password?</a>
+                    </div>
+                    <button type="submit" class="btn-full" id="loginBtn">Sign In</button>
+                </form>
+                <div class="divider-auth"><span>OR</span></div>
+                <div class="social-row">
+                    <a class="social-btn-shared" href="#" aria-label="Sign in with Google">🌐 <span>Google</span></a>
+                    <a class="social-btn-shared" href="#" aria-label="Sign in with Apple">🍎 <span>Apple</span></a>
+                    <a class="social-btn-shared" href="#" aria-label="Sign in with Facebook">📘 <span>Facebook</span></a>
                 </div>
-                
-                <button type="submit" class="submit-btn" id="loginBtn">
-                    Sign In
-                </button>
-            </form>
-            
-            <!-- Divider -->
-            <div class="divider">
-                <span>Or continue with</span>
-            </div>
-            
-            <!-- Social Login -->
-            <div class="social-login">
-                <a href="#" class="social-btn">
-                    <span>🌐</span>
-                    <span>Google</span>
-                </a>
-                <a href="#" class="social-btn">
-                    <span>🍎</span>
-                    <span>Apple</span>
-                </a>
-                <a href="#" class="social-btn">
-                    <span>📘</span>
-                    <span>Facebook</span>
-                </a>
-            </div>
-            
-            <!-- Sign Up Link -->
-            <div class="signup-link">
-                Don't have an account? <a href="register.html">Sign up now</a>
-            </div>
-        </div>
-    </div>
+                <div class="auth-alt">Don't have an account? <a href="register.html">Sign up</a></div>
+            </section>
+        </main>
     
     <script>
         // Clear form on load
@@ -551,7 +68,7 @@
             const password = document.getElementById('password').value;
             
             // Reset alert
-            alert.className = 'alert';
+            alert.className = 'alert-auth';
             alert.textContent = '';
             
             // Show loading state
@@ -588,7 +105,7 @@
                 Platform.setUser(sessionUser);
                 
                 // Show success message
-                alert.className = 'alert success show';
+                alert.className = 'alert-auth success show';
                 alert.textContent = 'Login successful! Redirecting...';
                 
                 // Redirect to dashboard
@@ -597,12 +114,14 @@
                 }, 1000);
 
             } catch (err) {
-                alert.className = 'alert error show';
+                alert.className = 'alert-auth error show';
                 alert.textContent = err.message || 'Login failed. Please try again.';
                 btn.disabled = false;
                 btn.textContent = 'Sign In';
             }
         });
+        // Particles generation
+        (function makeParticles(){ const c=document.getElementById('particles'); if(!c) return; for(let i=0;i<40;i++){ const p=document.createElement('span'); p.className='particle'; p.style.left=Math.random()*100+'%'; p.style.animationDelay=(Math.random()*16)+'s'; p.style.opacity=Math.random().toString(); c.appendChild(p);} })();
     </script>
 </body>
 </html>

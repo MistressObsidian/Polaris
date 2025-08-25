@@ -4,132 +4,55 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Register • Bank Swift</title>
+  <link rel="stylesheet" href="ui.css" />
   <link rel="icon" href="bank-swift.png" type="image/png" />
   <link rel="apple-touch-icon" href="bank-swift.png" />
   <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
-  <link rel="stylesheet" href="styles.css" />
-  <style>
-    :root{ --brand:#1e3c72; --brand2:#2a5298; }
-    *{ box-sizing:border-box; }
-    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(135deg,var(--brand),var(--brand2)); min-height:100vh; display:grid; place-items:center; color:#111; }
-    .card{ width:min(540px,92vw); background:#fff; border-radius:16px; padding:28px 22px 22px; box-shadow:0 10px 30px rgba(0,0,0,.15); }
-    .brand{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-    .brand h1{ margin:0; font-size:22px; color:#1e3c72 }
-    .brand a{ color:#1e3c72; text-decoration:none; font-weight:600 }
-    h2{ margin:8px 0 16px; color:#1e3c72 }
-    .form-row{ display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:12px; }
-    @media (min-width:680px){ .form-row.two{ grid-template-columns:1fr 1fr; } }
-    .form-group{ display:flex; flex-direction:column; }
-    label{ font-weight:600; margin:0 0 6px; }
-    input{
-      width:100%; padding:12px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:16px;
-      transition:border-color .2s;
-    }
-    input:focus{ outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,.15) }
-    .btn{
-      width:100%; padding:12px 16px; border:none; border-radius:10px;
-      background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; font-weight:700; cursor:pointer;
-      transition:filter .2s; position:relative; margin-top:12px;
-    }
-    .btn:hover:not(:disabled){ filter:brightness(1.05) }
-    .btn:disabled{ opacity:.7; cursor:not-allowed }
-    .spinner {
-      display:inline-block; width:18px; height:18px; vertical-align:middle; margin-left:8px;
-      border:2px solid #fff; border-top:2px solid #667eea; border-radius:50%; animation:spin .8s linear infinite;
-    }
-    @keyframes spin { to{ transform:rotate(360deg)} }
-    .alert{ display:none; margin:10px 0; padding:10px 12px; border-radius:8px; font-size:14px; }
-    .alert.show{ display:block; }
-    .alert.error{ background:#fde8e8; color:#b91c1c; border:1px solid #fecaca; }
-    .alert.success{ background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
-    .links{ display:flex; gap:12px; justify-content:space-between; margin-top:12px }
-    .links a{ color:#1e3c72; text-decoration:none; font-weight:600 }
-    .links a:hover{ text-decoration:underline }
-  </style>
+  <style>/* Minor page tweak */ .auth-wrapper{padding-top:120px;} </style>
 </head>
-<body class="theme-bank">
+<body>
   <script src="common.js"></script>
   
-  <main class="card">
-    <div class="brand" style="flex-wrap:wrap; gap:12px;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <div class="logo-icon" style="height:50px;width:50px;display:flex;align-items:center;justify-content:center;" role="img" aria-label="Bank Swift Logo">
-          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#667eea"/>
-                <stop offset="60%" stop-color="#764ba2"/>
-                <stop offset="100%" stop-color="#8b5cf6"/>
-              </linearGradient>
-              <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#06b6d4"/>
-                <stop offset="100%" stop-color="#4facfe"/>
-              </linearGradient>
-              <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>
-                <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>
-              </linearGradient>
-            </defs>
-            <path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/>
-            <path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>
-            <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
-          </svg>
+  <div class="hero-background"></div>
+  <div class="particles" id="particles"></div>
+  <main class="auth-wrapper">
+    <section class="auth-card" aria-labelledby="regTitle">
+      <div class="auth-head">
+        <div class="auth-logo" aria-hidden="true">
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#667eea"/><stop offset="60%" stop-color="#764ba2"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient><linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#4facfe"/></linearGradient><linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/><stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/></linearGradient></defs><path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/><path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/><path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/></svg>
         </div>
-        <h1 style="margin:0;">Bank Swift</h1>
+        <h1 class="auth-title" id="regTitle">Create your account</h1>
+        <p class="auth-sub">Join the future of digital banking in seconds</p>
       </div>
-      <a href="index.html" style="font-size:14px;">← Back to Home</a>
-    </div>
-    <h2>Create your account</h2>
-
-    <div id="regAlert" class="alert"></div>
-
-    <form id="registerForm" autocomplete="off" novalidate>
-      <div class="form-row two">
-        <div class="form-group">
-          <label for="fullname">Full name</label>
-          <input id="fullname" name="fullname" required />
+      <div id="regAlert" class="alert-auth" role="alert"></div>
+      <form id="registerForm" class="form-grid" novalidate autocomplete="off">
+        <div class="form-row-2">
+          <div class="field">
+            <label for="fullname">Full Name</label>
+            <input class="input-base" id="fullname" name="fullname" placeholder="Jane Doe" required />
+          </div>
+          <div class="field">
+            <label for="phone">Phone (optional)</label>
+            <input class="input-base" id="phone" name="phone" inputmode="tel" placeholder="+1 555 123 4567" />
+          </div>
         </div>
-        <div class="form-group">
-          <label for="phone">Phone (optional)</label>
-          <input id="phone" name="phone" inputmode="tel" />
+        <div class="field">
+          <label for="email">Email</label>
+          <input class="input-base" type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required />
         </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label for="email">Email address</label>
-          <input type="email" id="email" name="email" autocomplete="email" inputmode="email" required />
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
+        <div class="field">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" minlength="6" required />
+          <input class="input-base" type="password" id="password" name="password" minlength="6" placeholder="Minimum 6 characters" required />
         </div>
-      </div>
-
-      <button type="submit" class="btn" id="registerBtn">Create account</button>
-    </form>
-
-    <div class="links">
-      <span>Already have an account?</span>
-      <a href="login.html">Login</a>
-    </div>
+        <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
+      </form>
+      <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
+    </section>
   </main>
 
   <script>
-    function showAlert(msg, type = 'error') {
-      const el = document.getElementById('regAlert');
-      el.textContent = msg;
-      el.className = `alert ${type} show`;
-    }
-    
-    function clearAlert() {
-      const el = document.getElementById('regAlert');
-      el.textContent = '';
-      el.className = 'alert';
-    }
+  function showAlert(msg, type = 'error') { const el = document.getElementById('regAlert'); el.textContent = msg; el.className = `alert-auth ${type} show`; }
+  function clearAlert() { const el = document.getElementById('regAlert'); el.textContent=''; el.className='alert-auth'; }
 
     // Clear form on load
     document.addEventListener('DOMContentLoaded', () => {
@@ -229,7 +152,7 @@
         Platform.setUser(sessionUser);
         
         // Show success message
-        showAlert('Account created successfully! Redirecting...', 'success');
+  showAlert('Account created successfully! Redirecting...', 'success');
         
         // Redirect to dashboard
         setTimeout(() => {
@@ -238,11 +161,13 @@
 
       } catch (err) {
         console.error('Registration error:', err);
-        showAlert('Could not complete registration. Please try again.');
+  showAlert('Could not complete registration. Please try again.');
         btn.disabled = false;
         btn.textContent = originalText;
       }
     });
+    // Particles creation
+    (function makeParticles(){ const c=document.getElementById('particles'); if(!c) return; for(let i=0;i<48;i++){ const p=document.createElement('span'); p.className='particle'; p.style.left=Math.random()*100+'%'; p.style.animationDelay=(Math.random()*16)+'s'; p.style.opacity=Math.random().toString(); c.appendChild(p);} })();
   </script>
 </body>
 </html>

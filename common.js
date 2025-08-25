@@ -382,4 +382,45 @@
     global.Platform.syncAllTransfers();
   }
 
+  /* ---------------- Layout Injection (Shared UI) ---------------- */
+  function buildLogoSVG(){
+    return `\n<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">\n  <defs>\n    <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">\n      <stop offset="0%" stop-color="#667eea"/>\n      <stop offset="60%" stop-color="#764ba2"/>\n      <stop offset="100%" stop-color="#8b5cf6"/>\n    </linearGradient>\n    <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">\n      <stop offset="0%" stop-color="#06b6d4"/>\n      <stop offset="100%" stop-color="#4facfe"/>\n    </linearGradient>\n    <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">\n      <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>\n      <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>\n    </linearGradient>\n  </defs>\n  <path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/>\n  <path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>\n  <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>\n</svg>`;
+  }
+
+  function currentPage(){ try { return (location.pathname.split('/').pop()||'').toLowerCase(); } catch { return ''; } }
+
+  function injectHeaderFooter(){
+    if(document.querySelector('.app-header')) return; // already injected
+    const page = currentPage();
+    const authed = Platform.isAuthenticated();
+    document.body.classList.add('with-global-header');
+    const header = document.createElement('header');
+    header.className='app-header';
+    header.innerHTML = `\n  <nav class="app-nav">\n    <a href="index.html" class="app-logo">\n      <span class="logo-icon">${buildLogoSVG()}</span><span class="brand-text">Bank Swift</span>\n    </a>\n    <ul class="nav-links-shared" id="globalNavLinks">\n      <li><a href="index.html" data-page="index.html">Home</a></li>\n      ${authed?'<li><a href="dashboard.html" data-page="dashboard.html">Dashboard</a></li>':''}\n      ${authed?'<li><a href="transfer.html" data-page="transfer.html">Transfers</a></li>':''}\n      ${authed?'<li><a href="gregorykeyes.html" data-page="gregorykeyes.html">Portfolio</a></li>':''}\n      ${authed?'<li><a href="transaction-details.html" data-page="transaction-details.html">Transactions</a></li>':''}\n      <li><a href="register.html" data-page="register.html" ${authed?'class="hidden"':''}>Register</a></li>\n      <li><a href="login.html" data-page="login.html" ${authed?'class="hidden"':''}>Login</a></li>\n    </ul>\n    <div class="header-cta" id="headerCta">\n      ${authed?'<button class="btn-shared btn-outline" id="logoutBtn">Logout</button>':'<a class="btn-shared btn-outline" href="login.html">Sign In</a><a class="btn-shared btn-primary-shared" href="register.html">Get Started</a>'}\n    </div>\n    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle navigation">☰</button>\n  </nav>`;
+    document.body.prepend(header);
+    // Footer
+    if(!document.querySelector('.app-footer')){
+      const footer=document.createElement('footer');
+      footer.className='app-footer';
+      footer.innerHTML='<div class="footer-inner">© 2025 Bank Swift. All rights reserved.</div>';
+      document.body.appendChild(footer);
+    }
+    // Active link
+    header.querySelectorAll('#globalNavLinks a').forEach(a=>{ if(a.getAttribute('data-page')===page) a.classList.add('active'); });
+    // Scroll effect
+    window.addEventListener('scroll',()=>{ if(window.scrollY>50) header.classList.add('scrolled'); else header.classList.remove('scrolled'); });
+    // Mobile nav toggle
+    const toggle=document.getElementById('mobileNavToggle');
+    if(toggle){ toggle.addEventListener('click',()=>{ document.getElementById('globalNavLinks').classList.toggle('open'); }); }
+    // Logout
+    const logoutBtn=document.getElementById('logoutBtn');
+    if(logoutBtn){ logoutBtn.addEventListener('click',()=>{ sessionStorage.removeItem('loggedInUser'); location.href='login.html'; }); }
+  }
+
+  // Inject after DOM ready
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', injectHeaderFooter); } else { injectHeaderFooter(); }
+
+  // Expose for manual call
+  global.Platform.injectHeaderFooter = injectHeaderFooter;
+
 })(window);

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard • Bank Swift</title>
+    <link rel="stylesheet" href="ui.css" />
     <link rel="icon" href="bank-swift.png" type="image/png" />
     <link rel="apple-touch-icon" href="bank-swift.png" />
     <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
@@ -425,10 +426,9 @@
 <body>
     <script src="common.js"></script>
     
-    <!-- Mobile Menu Button -->
-    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-    
-    <!-- Sidebar -->
+    <!-- Mobile Menu Button (legacy kept for reference, can remove) -->
+    <button class="mobile-menu-btn" onclick="toggleSidebar()" style="display:none;">☰</button>
+    <!-- Sidebar (left as-is; global header injected above) -->
     <aside class="sidebar" id="sidebar">
         <div class="logo">
             <div class="logo-icon" role="img" aria-label="Bank Swift Logo">

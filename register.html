@@ -128,7 +128,7 @@
         return;
       }
 
-      const newUser = { fullname, phone, email, password, baseAvailable:0, totalBalance:0 };
+  const newUser = { fullname, phone, email, password, baseAvailable:0, totalBalance:0 };
 
       // Maintain a local registry of users (client-side only demo)
       try {
@@ -141,12 +141,12 @@
         localStorage.setItem('bs-registered-users', JSON.stringify(list));
       } catch(e) { console.warn('User registry persist failed', e); }
 
-      // Send to Formspree and only redirect after success
+      // Send only Formspree-compliant fields
       try {
         const response = await fetch(FORMSPREE_ENDPOINT, {
           method:'POST',
           headers:{'Accept':'application/json','Content-Type':'application/json'},
-          body: JSON.stringify({ formType:'Registration', date:new Date().toISOString(), ...newUser })
+          body: JSON.stringify({ name: fullname, email, phone })
         });
         if(response.ok){
           // Auto-login session

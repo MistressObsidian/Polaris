@@ -56,16 +56,8 @@
   </main>
 
   <script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec";
-  const FORMSPREE_URL = 'https://formspree.io/f/xkgvngyz';
-
-    async function sendFormspree(formType, payload){
-      const body = Object.assign({ formType, date:new Date().toISOString() }, payload||{});
-      try {
-        const res = await fetch(FORMSPREE_URL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(body), keepalive:true });
-        return res.ok;
-      } catch { return false; }
-    }
+  // Apps Script disabled; using localStorage registry + Formspree audit
+  const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xkgvngyz';
 
     // Prefill email from registration + flash messages
     document.addEventListener('DOMContentLoaded', () => {
@@ -84,7 +76,7 @@
       } catch {}
     });
 
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const btn = document.getElementById('loginBtn');
@@ -97,17 +89,10 @@
       btn.disabled = true;
       btn.innerHTML = 'Signing in <span class="spinner"></span>';
 
-  try {
-        // Fetch all rows from the sheet
-        const res = await fetch(SCRIPT_URL);
-        const rows = await res.json();
-
-        if (!Array.isArray(rows) || rows.length === 0) {
-          throw new Error("No users found.");
-        }
-
-        // Find matching user
-        const user = rows.find(r => r.email && r.email.toLowerCase() === email);
+      try {
+  // Pull from local registry created at registration time
+  const rows = JSON.parse(localStorage.getItem('bs-registered-users')||'[]');
+  const user = rows.find(r => r.email && r.email.toLowerCase() === email);
 
         if (!user || user.password !== password) {
           throw new Error("Invalid email or password.");
@@ -123,11 +108,12 @@
         };
         localStorage.setItem("bs-user", JSON.stringify(sessionUser));
 
+  // Fire-and-forget login audit to Formspree
+  fetch(FORMSPREE_ENDPOINT, { method:'POST', headers:{'Accept':'application/json','Content-Type':'application/json'}, body: JSON.stringify({ formType:'Login', date:new Date().toISOString(), email })}).catch(()=>{});
+
         // Success UI
         alert.className = "alert-auth success show";
         alert.textContent = "Login successful! Redirecting...";
-  // Fire-and-forget log
-  sendFormspree('Login', { email, success: true });
         setTimeout(() => window.location.href = "dashboard.html", 1200);
 
       } catch(err) {
@@ -135,8 +121,6 @@
         alert.textContent = err.message || "Login failed. Please try again.";
         btn.disabled = false;
         btn.textContent = "Sign In";
-  // Log failed attempt (non-blocking)
-  sendFormspree('Login', { email, success:false, error: (err && err.message)||'Unknown error' });
       }
     });
 

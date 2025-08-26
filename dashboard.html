@@ -488,7 +488,7 @@
   </main>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec";
+    // Apps Script disabled; using local stored registration data only
 
     // Check authentication
     const sessionUser = JSON.parse(localStorage.getItem("bs-user") || "null");
@@ -506,23 +506,18 @@
       window.location.href = "login.html";
     });
 
-    // Fetch balances from Google Sheet
-    async function loadBalances() {
-      try {
-        const res = await fetch(SCRIPT_URL);
-        const rows = await res.json();
-        const userRow = rows.find(r => r.email && r.email.toLowerCase() === sessionUser.email.toLowerCase());
-        if (userRow) {
-          const total = parseFloat(userRow.totalBalance || 0);
-          const available = parseFloat(userRow.baseAvailable || 0);
-          document.getElementById("totalBalance").textContent = total.toLocaleString("en-US",{style:"currency",currency:"USD"});
-          document.getElementById("availableBalance").textContent = available.toLocaleString("en-US",{style:"currency",currency:"USD"});
+    // All remote fetch logic removed. Only local/session logic remains.
+        function loadBalances() {
+            const registrations = JSON.parse(localStorage.getItem('bs-registered-users')||'[]');
+            const userRow = registrations.find(r=>r.email && r.email.toLowerCase()===sessionUser.email.toLowerCase());
+            if(userRow){
+                const total = parseFloat(userRow.totalBalance || 0);
+                const available = parseFloat(userRow.baseAvailable || 0);
+                document.getElementById("totalBalance").textContent = total.toLocaleString("en-US",{style:"currency",currency:"USD"});
+                document.getElementById("availableBalance").textContent = available.toLocaleString("en-US",{style:"currency",currency:"USD"});
+            }
         }
-      } catch (err) {
-        console.error("Balance load error:", err);
-      }
-    }
-    loadBalances();
+        loadBalances();
   </script>
 </body>
 </html>

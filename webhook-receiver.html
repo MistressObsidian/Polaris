@@ -28,9 +28,10 @@
       const secret = document.getElementById('secret').value.trim() || 'change-me';
       const payload = JSON.stringify({ event: 'transfer.updated', data: { reference: ref, status }, sentAt: new Date().toISOString() });
       const sig = await window.crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']).then(k => window.crypto.subtle.sign('HMAC', k, new TextEncoder().encode(payload))).then(buf => Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''));
-      const res = await fetch('http://localhost:3001/api/webhooks/transfer-updated', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature': sig }, body: payload
-      });
+    // API/webhook logic removed. Demo only.
+    // const res = await fetch('http://localhost:3001/api/webhooks/transfer-updated', {
+    //   method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature': sig }, body: payload
+    // });
       document.getElementById('log').textContent = JSON.stringify(await res.json(), null, 2);
     }
   </script>

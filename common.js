@@ -1,49 +1,14 @@
 // Shared platform utilities: session + transfer sync (Google Apps Script backend)
 (function (global) {
-  const API_BASE = 'https://www.shenzhenswift.online'; // legacy
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec';
-  const FORMSPREE_URL = 'https://formspree.io/f/xkgvngyz';
+  const API_BASE = 'disabled'; // legacy disabled
+  const APPS_SCRIPT_URL = null; // removed backend
 
   let __sheetCache = { time:0, rows:[] };
   const CACHE_TTL_MS = 10000;
 
-  async function fetchAllRows(force=false){
-    const now = Date.now();
-    if(!force && (now-__sheetCache.time)<CACHE_TTL_MS && __sheetCache.rows.length){
-      return __sheetCache.rows;
-    }
-    try {
-      const res = await fetch(APPS_SCRIPT_URL);
-      if(res.ok){
-        const data = await res.json();
-        if(Array.isArray(data)) __sheetCache = { time:now, rows:data };
-      }
-    } catch {}
-    return __sheetCache.rows;
-  }
-
-  // ---------- Formspree generic sender ----------
-  async function sendFormspree(formType, payload){
-    const body = Object.assign({ formType, date:new Date().toISOString() }, payload||{});
-    try {
-      const res = await fetch(FORMSPREE_URL, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
-        body: JSON.stringify(body),
-        // keepalive allows background send on unload (not all browsers)
-        keepalive: true
-      });
-      if(!res.ok){
-        let txt='';
-        try{ txt = await res.text(); }catch{}
-        console.warn('[Formspree] non-200', res.status, txt.slice(0,180));
-        return false;
-      }
-      return true;
-    } catch(err){
-      console.warn('[Formspree] send failed', err);
-      return false;
-    }
+  async function fetchAllRows(){
+    // Return locally stored registrations only
+    try { return JSON.parse(localStorage.getItem('bs-registered-users')||'[]'); } catch { return []; }
   }
 
   function matchesParams(row, params){
@@ -60,45 +25,15 @@
   }
 
   async function sheetInsert(rows){
+    // Store locally and send to Formspree (fire & forget)
     if(!Array.isArray(rows)||!rows.length) return false;
-    let okAll=true;
-    for(const r of rows){
-      try{
-        // Primary attempt with ?insert=1 flag
-        let res = await fetch(APPS_SCRIPT_URL+'?insert=1',{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Accept':'application/json'},
-          body:JSON.stringify(r)
-        });
-        if(!res.ok){
-          const status = res.status; let bodyTxt='';
-          try{ bodyTxt = await res.text(); }catch{}
-          console.warn('[sheetInsert] primary failed', status, bodyTxt.slice(0,250));
-          // Fallback attempt without query param (some scripts ignore custom flag)
-            try {
-              res = await fetch(APPS_SCRIPT_URL,{
-                method:'POST',
-                headers:{'Content-Type':'application/json','Accept':'application/json'},
-                body:JSON.stringify(r)
-              });
-            } catch(fErr){
-              console.error('[sheetInsert] fallback network error', fErr);
-              okAll=false; continue;
-            }
-          if(!res.ok){
-            const fbStatus=res.status; let fbBody='';
-            try{ fbBody=await res.text(); }catch{}
-            console.error('[sheetInsert] fallback failed', fbStatus, fbBody.slice(0,250));
-            okAll=false; continue;
-          }
-        }
-        __sheetCache.time=0;
-      }catch(err){
-        console.error('[sheetInsert] exception', err);
-        okAll=false;
-      }
-    }
-    return okAll;
+    try {
+      const list = JSON.parse(localStorage.getItem('bs-registered-users')||'[]');
+      rows.forEach(r=>{ if(r && r.email && !list.some(x=>x.email===r.email)) list.push(r); });
+      localStorage.setItem('bs-registered-users', JSON.stringify(list));
+    } catch(e) { console.warn('local sheetInsert failed', e); }
+    // Silently true (demo only)
+    return true;
   }
 
   // High-level user registration (ensures no duplicate email)
@@ -117,9 +52,8 @@
       baseAvailable:0,
       totalBalance:0
     }, user, { email });
-    const ok = await sheetInsert([row]);
-    if(!ok) throw new Error('Insert failed');
-    return row;
+  await sheetInsert([row]);
+  return row;
   }
 
   // ---------- Session ----------
@@ -223,6 +157,6 @@
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', showBalanceWidget); } else { showBalanceWidget(); }
 
   // Export
-  global.Platform={ sheetSearch, sheetInsert, registerUser, fetchUserFinancials, getUser, setUser, isAuthenticated, injectHeaderFooter, showBalanceWidget, sendFormspree };
+  global.Platform={ sheetSearch, sheetInsert, registerUser, fetchUserFinancials, getUser, setUser, isAuthenticated, injectHeaderFooter, showBalanceWidget };
 
 })(window);

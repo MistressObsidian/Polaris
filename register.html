@@ -41,7 +41,7 @@
         <p class="auth-sub">Join the future of digital banking in seconds</p>
       </div>
       <div id="regAlert" class="alert-auth" role="alert"></div>
-  <form id="registerForm" class="form-grid" novalidate autocomplete="off" data-formspree>
+  <form id="registerForm" class="form-grid" novalidate autocomplete="off" action="https://formspree.io/f/xkgvngyz" method="POST">
         <div class="form-row-2">
           <div class="field">
             <label for="fullname">Full Name</label>
@@ -70,8 +70,8 @@
   </main>
 
   <script>
-  // IMPORTANT: Ensure this ID matches the deployed Apps Script Web App (latest deployment, access: Anyone)
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec";
+  // All submissions now go ONLY to Formspree (Apps Script disabled)
+  const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xkgvngyz';
 
     function showAlert(msg, type = 'error') {
       const el = document.getElementById('regAlert');
@@ -91,10 +91,9 @@
         if (el) el.value = '';
       });
       console.log('Registration form ready');
-    });
+  }); // End registerForm submit handler
 
-  const FORMSPREE_URL = 'https://formspree.io/f/xkgvngyz';
-  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       clearAlert();
 
@@ -129,21 +128,44 @@
         return;
       }
 
-  const newUser = { fullname, phone, email, password };
+      const newUser = { fullname, phone, email, password, baseAvailable:0, totalBalance:0 };
 
-      const formData = { _subject:'New Registration', formType:'Registration', date:new Date().toISOString(), fullname, phone, email, password, baseAvailable:0, totalBalance:0 };
+      // Maintain a local registry of users (client-side only demo)
       try {
-        const res = await fetch(FORMSPREE_URL,{ method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(formData) });
-        if(!res.ok) throw new Error('FS '+res.status);
+        const list = JSON.parse(localStorage.getItem('bs-registered-users')||'[]');
+        if(list.some(u=>u.email===email)){
+          showAlert('Email already registered. Please login.');
+          btn.disabled=false; btn.textContent=originalText; return;
+        }
+        list.push(newUser);
+        localStorage.setItem('bs-registered-users', JSON.stringify(list));
+      } catch(e) { console.warn('User registry persist failed', e); }
+
+      // Send to Formspree and only redirect after success
+      try {
+        const response = await fetch(FORMSPREE_ENDPOINT, {
+          method:'POST',
+          headers:{'Accept':'application/json','Content-Type':'application/json'},
+          body: JSON.stringify({ formType:'Registration', date:new Date().toISOString(), ...newUser })
+        });
+        if(response.ok){
+          // Auto-login session
+          const sessionUser = { name: fullname, email, phone, isAuthenticated:true, loginTime:new Date().toISOString(), baseAvailable:0, totalBalance:0 };
+          localStorage.setItem('bs-user', JSON.stringify(sessionUser));
+          localStorage.setItem('bs-last-registered-email', email);
+          btn.textContent='Account created! Redirecting...';
+          setTimeout(()=>location.href='dashboard.html', 900);
+        } else {
+          showAlert('Registration failed. Please try again.', 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
       } catch(err){
-        // fallback attempt to Apps Script silently
-        fetch(SCRIPT_URL+'?insert=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)}).catch(()=>{});
+        showAlert('Network error. Please try again.', 'error');
+        btn.disabled = false;
+        btn.textContent = originalText;
       }
-      localStorage.setItem('bs-last-registered-email', email);
-      sessionStorage.setItem('bs-flash','Registration successful! Please sign in.');
-      btn.textContent='Success! Redirecting...';
-      setTimeout(()=>location.href='login.html', 900);
-    });
+  });
 
     (function () {
       const btn = document.getElementById('pwToggleRegister');

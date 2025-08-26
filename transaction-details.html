@@ -240,7 +240,7 @@
       
       // Then fetch from SheetDB for latest status
       try {
-        const remoteTransfer = await Platform.fetchTransferByRef(ref);
+    // const remoteTransfer = await Platform.fetchTransferByRef(ref);
         if (remoteTransfer) {
           // Merge remote data with local
           const merged = localTransfer ? { ...localTransfer, ...remoteTransfer } : remoteTransfer;
@@ -272,7 +272,7 @@
       if (!currentTransfer || !currentTransfer.reference) return;
       
       try {
-        const remoteTransfer = await Platform.fetchTransferByRef(currentTransfer.reference);
+  // const remoteTransfer = await Platform.fetchTransferByRef(currentTransfer.reference);
         if (remoteTransfer) {
           const hasChanged = remoteTransfer.status !== currentTransfer.status;
           

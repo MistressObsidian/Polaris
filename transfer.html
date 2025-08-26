@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transfer Money • Bank Swift</title>
     <link rel="stylesheet" href="ui.css" />
-    <link rel="icon" href="bank-swift.png" type="image/png" />
-    <link rel="apple-touch-icon" href="bank-swift.png" />
-    <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
+    <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* Inherit the same design system */
@@ -30,10 +28,6 @@
             box-sizing: border-box;
         }
 
-    
-                <style>
-                    /* Additional styles for the Go Back button */
-                </style>
         body {
             font-family: 'Inter', -apple-system, sans-serif;
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -49,7 +43,6 @@
             left: 0;
             right: 0;
             bottom: 0;
-                    <button onclick="window.history.back()" class="btn-shared btn-outline" style="margin:18px 0 0 18px;">← Go Back</button>
             background-image: 
                 radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.2) 0%, transparent 50%),
                 radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
@@ -80,12 +73,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 1.5rem;
-            flex-wrap: wrap;
         }
-        .logo-inline { display:flex; align-items:center; gap:.65rem; text-decoration:none; }
-        .logo-inline img { height:42px; width:auto; display:block; }
-    .logo-inline span { font-weight:800; font-size:1.1rem; background:linear-gradient(135deg,#fff,#e0e7ff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; }
+    .brand-logo { display:flex; align-items:center; gap:12px; font-weight:800; font-size:1.15rem; }
+    .brand-logo img { width:46px; height:auto; display:block; filter:drop-shadow(0 4px 10px rgba(0,0,0,.4)); border-radius:10px; }
 
         .back-btn {
             padding: 0.75rem 1.5rem;
@@ -110,7 +100,8 @@
             font-size: 1.5rem;
             font-weight: 700;
             background: linear-gradient(135deg, #fff, #e0e7ff);
-            -webkit-background-clip: text; background-clip:text; color:transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -136,7 +127,7 @@
             font-size: 2.5rem;
             font-weight: 800;
             background: linear-gradient(135deg, #10b981, #06b6d4);
-            -webkit-background-clip: text; background-clip:text; color:transparent;
+            -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -194,7 +185,7 @@
             font-size: 2.5rem;
             margin-bottom: 0.75rem;
             background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text; background-clip:text; color:transparent;
+            -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -524,7 +515,7 @@
         }
 
         .success-btn-secondary {
-        <button onclick="window.history.back()" class="btn-shared btn-outline" style="position:absolute;top:18px;left:18px;z-index:100;">← Go Back</button>
+            background: rgba(255, 255, 255, 0.05);
             color: white;
             border: 1px solid var(--glass-border);
         }
@@ -568,32 +559,66 @@
 <body>
     <script src="common.js"></script>
     
-    <!-- Global header auto-injected by common.js -->
-    <div style="height:82px"></div>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+                                <div class="brand-logo">
+                                    <span class="logo-icon" aria-hidden="true" style="display:inline-block;vertical-align:middle;">
+                                        <svg viewBox="0 0 64 64" width="46" height="46" xmlns="http://www.w3.org/2000/svg">
+                                            <defs>
+                                                <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" stop-color="#667eea"/>
+                                                    <stop offset="60%" stop-color="#764ba2"/>
+                                                    <stop offset="100%" stop-color="#8b5cf6"/>
+                                                </linearGradient>
+                                                <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                    <stop offset="0%" stop-color="#06b6d4"/>
+                                                    <stop offset="100%" stop-color="#4facfe"/>
+                                                </linearGradient>
+                                                <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
+                                                    <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>
+                                                    <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>
+                                                </linearGradient>
+                                            </defs>
+                                            <path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/>
+                                            <path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>
+                                            <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
+                                        </svg>
+                                    </span>
+                                    <span>Bank Swift</span>
+                                </div>
+            <a href="dashboard.html" class="back-btn">
+                <span>←</span>
+                <span>Back to Dashboard</span>
+            </a>
+            <h1 class="page-title">Transfer Money</h1>
+            <div></div>
+        </div>
+    </header>
     
     <!-- Balance Display -->
-    <div class="balance-display animate-in">
+    <div class="balance-display">
         <div class="balance-label">Available Balance</div>
         <div class="balance-amount" id="availableBalance">$221,540.20</div>
     </div>
     
     <!-- Transfer Container -->
-    <div class="transfer-container animate-in" style="animation-delay:.1s;">
+    <div class="transfer-container">
         <!-- Transfer Methods -->
         <div class="transfer-methods">
-            <div class="method-card animate-in" onclick="selectMethod('wire')" style="animation-delay:.05s;">
+            <div class="method-card" onclick="selectMethod('wire')">
                 <div class="method-icon">💸</div>
                 <div class="method-name">Wire Transfer</div>
             </div>
-            <div class="method-card animate-in" onclick="selectMethod('ach')" style="animation-delay:.1s;">
+            <div class="method-card" onclick="selectMethod('ach')">
                 <div class="method-icon">🏦</div>
                 <div class="method-name">ACH Transfer</div>
             </div>
-            <div class="method-card animate-in" onclick="selectMethod('instant')" style="animation-delay:.15s;">
+            <div class="method-card" onclick="selectMethod('instant')">
                 <div class="method-icon">⚡</div>
                 <div class="method-name">Instant Transfer</div>
             </div>
-            <div class="method-card animate-in" onclick="selectMethod('international')" style="animation-delay:.2s;">
+            <div class="method-card" onclick="selectMethod('international')">
                 <div class="method-icon">🌍</div>
                 <div class="method-name">International</div>
             </div>
@@ -709,9 +734,10 @@
     </div>
     
     <script>
-    // Auth migration (legacy sessionStorage -> localStorage)
-    try { if(!localStorage.getItem('bs-user')){ const legacy = sessionStorage.getItem('loggedInUser'); if(legacy){ localStorage.setItem('bs-user', legacy); sessionStorage.removeItem('loggedInUser'); } } } catch {}
-    if (!Platform.isAuthenticated()) { window.location.href = 'login.html'; }
+        // Check authentication
+        if (!Platform.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
         
         // Load available balance
         async function loadBalance() {

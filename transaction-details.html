@@ -4,9 +4,7 @@
   <meta charset="UTF-8">
   <title>Transaction Details - Bank Swift</title>
   <link rel="stylesheet" href="ui.css" />
-  <link rel="icon" href="bank-swift.png" type="image/png" />
-  <link rel="apple-touch-icon" href="bank-swift.png" />
-  <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
+  <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
     :root {
@@ -66,6 +64,31 @@
   
   <!-- Global header auto-injected by common.js -->
   <div style="height:82px"></div>
+  <header style="background:linear-gradient(135deg,#4f46e5 0%,#6366f1 100%);color:#fff;padding:1rem 0;position:relative;z-index:1000;display:flex;align-items:center;gap:.6rem;">
+    <span class="logo-icon" aria-hidden="true" style="display:inline-block;vertical-align:middle;">
+      <svg viewBox="0 0 64 64" width="48" height="48" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#667eea"/>
+            <stop offset="60%" stop-color="#764ba2"/>
+            <stop offset="100%" stop-color="#8b5cf6"/>
+          </linearGradient>
+          <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#06b6d4"/>
+            <stop offset="100%" stop-color="#4facfe"/>
+          </linearGradient>
+          <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>
+          </linearGradient>
+        </defs>
+        <path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/>
+        <path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>
+        <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
+      </svg>
+    </span>
+    <span class="logo-text" style="font-size:1.25rem;font-weight:800;">Bank Swift</span>
+  </header>
 
   <!-- Main content -->
   <main>

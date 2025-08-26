@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard • Bank Swift</title>
   <link rel="stylesheet" href="ui.css" />
-  <link rel="icon" href="bank-swift.png" type="image/png" />
-  <link rel="apple-touch-icon" href="bank-swift.png" />
-  <link rel="shortcut icon" href="bank-swift.png" type="image/png" />
+    <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
         /* Enhanced Dashboard Styles */
@@ -425,8 +423,29 @@
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="logo">
-      <div class="logo-icon"><img src="bank-swift.png" alt="Bank Swift Logo"/></div>
-      <span class="logo-text">Bank Swift</span>
+            <span class="logo-icon" aria-hidden="true" style="display:inline-block;vertical-align:middle;">
+                <svg viewBox="0 0 64 64" width="48" height="48" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#667eea"/>
+                            <stop offset="60%" stop-color="#764ba2"/>
+                            <stop offset="100%" stop-color="#8b5cf6"/>
+                        </linearGradient>
+                        <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#06b6d4"/>
+                            <stop offset="100%" stop-color="#4facfe"/>
+                        </linearGradient>
+                        <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>
+                            <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>
+                        </linearGradient>
+                    </defs>
+                    <path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/>
+                    <path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>
+                    <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
+                </svg>
+            </span>
+            <span class="logo-text">Bank Swift</span>
     </div>
     <nav>
       <ul class="nav-menu">
@@ -453,7 +472,7 @@
         <button class="header-btn" onclick="window.location.href='transfer.html'">Send Money</button>
         <button class="header-btn" style="background:rgba(255,255,255,0.1);">Logout</button>
       </div>
-        <button onclick="window.history.back()" class="btn-shared btn-outline" style="position:fixed;top:90px;left:24px;z-index:100;">← Go Back</button>
+
     </div>
 
     <!-- Balance Cards -->

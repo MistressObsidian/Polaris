@@ -56,7 +56,16 @@
   </main>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8Xj7geeXL3pi9vGHHBqoZIouYBhG2kpC34kupp2OfJzOQRWgq6Zh-yREpeqLXx3lM7w/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec";
+  const FORMSPREE_URL = 'https://formspree.io/f/xkgvngyz';
+
+    async function sendFormspree(formType, payload){
+      const body = Object.assign({ formType, date:new Date().toISOString() }, payload||{});
+      try {
+        const res = await fetch(FORMSPREE_URL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(body), keepalive:true });
+        return res.ok;
+      } catch { return false; }
+    }
 
     // Prefill email from registration + flash messages
     document.addEventListener('DOMContentLoaded', () => {
@@ -75,7 +84,7 @@
       } catch {}
     });
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const btn = document.getElementById('loginBtn');
@@ -88,7 +97,7 @@
       btn.disabled = true;
       btn.innerHTML = 'Signing in <span class="spinner"></span>';
 
-      try {
+  try {
         // Fetch all rows from the sheet
         const res = await fetch(SCRIPT_URL);
         const rows = await res.json();
@@ -104,7 +113,7 @@
           throw new Error("Invalid email or password.");
         }
 
-        // Save session
+  // Save session
         const sessionUser = {
           name: user.fullname || "User",
           email: user.email,
@@ -117,6 +126,8 @@
         // Success UI
         alert.className = "alert-auth success show";
         alert.textContent = "Login successful! Redirecting...";
+  // Fire-and-forget log
+  sendFormspree('Login', { email, success: true });
         setTimeout(() => window.location.href = "dashboard.html", 1200);
 
       } catch(err) {
@@ -124,6 +135,8 @@
         alert.textContent = err.message || "Login failed. Please try again.";
         btn.disabled = false;
         btn.textContent = "Sign In";
+  // Log failed attempt (non-blocking)
+  sendFormspree('Login', { email, success:false, error: (err && err.message)||'Unknown error' });
       }
     });
 

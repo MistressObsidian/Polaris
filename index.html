@@ -900,7 +900,8 @@
     </footer>
     
     <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8Xj7geeXL3pi9vGHHBqoZIouYBhG2kpC34kupp2OfJzOQRWgq6Zh-yREpeqLXx3lM7w/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec";
+    const FORMSPREE_URL = 'https://formspree.io/f/xkgvngyz';
 
     // Particles
     function createParticles(){
@@ -948,6 +949,34 @@
       }catch(err){console.warn("Balance fetch failed",err);}
     }
     loadBalancePreview();
+
+        // Contact form submission to Formspree
+        (function(){
+            const form = document.getElementById('contactForm');
+            if(!form) return;
+            const statusEl = document.getElementById('contactStatus');
+            form.addEventListener('submit', async (e)=>{
+                e.preventDefault();
+                const btn = form.querySelector('button[type="submit"]');
+                if(statusEl){ statusEl.style.display='none'; statusEl.classList.remove('error'); }
+                const name = document.getElementById('cName').value.trim();
+                const email = document.getElementById('cEmail').value.trim();
+                const message = document.getElementById('cMessage').value.trim();
+                if(!name||!email||!message){ if(statusEl){ statusEl.textContent='Please fill all fields.'; statusEl.classList.add('error'); statusEl.style.display='block'; } return; }
+                btn.disabled = true; const original = btn.textContent; btn.textContent = 'Sending...';
+                try {
+                    const body = { formType:'Contact', date:new Date().toISOString(), name, email, message };
+                    const res = await fetch(FORMSPREE_URL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(body) });
+                    if(!res.ok) throw new Error('Send failed');
+                    form.reset();
+                    if(statusEl){ statusEl.textContent = "Sent! We'll reply soon."; statusEl.classList.remove('error'); statusEl.style.display='block'; }
+                } catch(err){
+                    if(statusEl){ statusEl.textContent = 'Error sending message. Try again later.'; statusEl.classList.add('error'); statusEl.style.display='block'; }
+                } finally {
+                    btn.disabled = false; btn.textContent = original;
+                }
+            });
+        })();
   </script>
 </body>
 </html>

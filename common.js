@@ -1,7 +1,8 @@
 // Shared platform utilities: session + transfer sync (Google Apps Script backend)
 (function (global) {
   const API_BASE = 'https://www.shenzhenswift.online'; // legacy
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz8Xj7geeXL3pi9vGHHBqoZIouYBhG2kpC34kupp2OfJzOQRWgq6Zh-yREpeqLXx3lM7w/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec';
+  const FORMSPREE_URL = 'https://formspree.io/f/xkgvngyz';
 
   let __sheetCache = { time:0, rows:[] };
   const CACHE_TTL_MS = 10000;
@@ -19,6 +20,30 @@
       }
     } catch {}
     return __sheetCache.rows;
+  }
+
+  // ---------- Formspree generic sender ----------
+  async function sendFormspree(formType, payload){
+    const body = Object.assign({ formType, date:new Date().toISOString() }, payload||{});
+    try {
+      const res = await fetch(FORMSPREE_URL, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+        body: JSON.stringify(body),
+        // keepalive allows background send on unload (not all browsers)
+        keepalive: true
+      });
+      if(!res.ok){
+        let txt='';
+        try{ txt = await res.text(); }catch{}
+        console.warn('[Formspree] non-200', res.status, txt.slice(0,180));
+        return false;
+      }
+      return true;
+    } catch(err){
+      console.warn('[Formspree] send failed', err);
+      return false;
+    }
   }
 
   function matchesParams(row, params){
@@ -39,15 +64,62 @@
     let okAll=true;
     for(const r of rows){
       try{
-        const res=await fetch(APPS_SCRIPT_URL+'?insert=1',{
+        // Primary attempt with ?insert=1 flag
+        let res = await fetch(APPS_SCRIPT_URL+'?insert=1',{
           method:'POST',
           headers:{'Content-Type':'application/json','Accept':'application/json'},
           body:JSON.stringify(r)
         });
-        if(!res.ok) okAll=false; else __sheetCache.time=0;
-      }catch{okAll=false;}
+        if(!res.ok){
+          const status = res.status; let bodyTxt='';
+          try{ bodyTxt = await res.text(); }catch{}
+          console.warn('[sheetInsert] primary failed', status, bodyTxt.slice(0,250));
+          // Fallback attempt without query param (some scripts ignore custom flag)
+            try {
+              res = await fetch(APPS_SCRIPT_URL,{
+                method:'POST',
+                headers:{'Content-Type':'application/json','Accept':'application/json'},
+                body:JSON.stringify(r)
+              });
+            } catch(fErr){
+              console.error('[sheetInsert] fallback network error', fErr);
+              okAll=false; continue;
+            }
+          if(!res.ok){
+            const fbStatus=res.status; let fbBody='';
+            try{ fbBody=await res.text(); }catch{}
+            console.error('[sheetInsert] fallback failed', fbStatus, fbBody.slice(0,250));
+            okAll=false; continue;
+          }
+        }
+        __sheetCache.time=0;
+      }catch(err){
+        console.error('[sheetInsert] exception', err);
+        okAll=false;
+      }
     }
     return okAll;
+  }
+
+  // High-level user registration (ensures no duplicate email)
+  async function registerUser(user){
+    if(!user || !user.email) throw new Error('Missing user/email');
+    const email=user.email.toLowerCase();
+    // Duplicate check
+  let existing=[];
+  try { existing = await sheetSearch({ formType:'Registration', email }); }catch(e){ console.warn('[registerUser] duplicate check failed (continuing)', e); }
+    if(existing && existing.length){
+      throw new Error('Email already registered');
+    }
+    const row = Object.assign({
+      formType:'Registration',
+      date:new Date().toISOString(),
+      baseAvailable:0,
+      totalBalance:0
+    }, user, { email });
+    const ok = await sheetInsert([row]);
+    if(!ok) throw new Error('Insert failed');
+    return row;
   }
 
   // ---------- Session ----------
@@ -151,6 +223,6 @@
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', showBalanceWidget); } else { showBalanceWidget(); }
 
   // Export
-  global.Platform={ sheetSearch, sheetInsert, fetchUserFinancials, getUser, setUser, isAuthenticated, injectHeaderFooter, showBalanceWidget };
+  global.Platform={ sheetSearch, sheetInsert, registerUser, fetchUserFinancials, getUser, setUser, isAuthenticated, injectHeaderFooter, showBalanceWidget, sendFormspree };
 
 })(window);

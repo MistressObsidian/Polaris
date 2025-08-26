@@ -113,9 +113,9 @@
           <li><a href="#contact" data-anchor="contact" class="hide-mobile">Contact</a></li>` : '';
     header.innerHTML=`
       <nav class="app-nav ${isLanding?'landing-nav':''}">
-        <a href="index.html" class="app-logo"><span class="logo-icon">${buildLogoSVG()}</span><span class="brand-text">Bank Swift</span></a>
+        <a href="${page==='dashboard.html'?'dashboard.html':'index.html'}" class="app-logo"><span class="logo-icon">${buildLogoSVG()}</span><span class="brand-text">Bank Swift</span></a>
         <ul class="nav-links-shared" id="globalNavLinks">
-          ${isLanding?marketingAnchors:`<li><a href="index.html" data-page="index.html">Home</a></li>`}
+          ${isLanding?marketingAnchors:`<li><a href="${page==='dashboard.html'?'dashboard.html':'index.html'}" data-page="${page==='dashboard.html'?'dashboard.html':'index.html'}">Home</a></li>`}
           ${authed?'<li><a href="dashboard.html" data-page="dashboard.html">Dashboard</a></li>':''}
           ${authed?'<li><a href="transfer.html" data-page="transfer.html">Transfers</a></li>':''}
           <li><a href="register.html" data-page="register.html" ${authed?'class="hidden"':''}>Register</a></li>

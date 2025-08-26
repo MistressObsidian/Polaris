@@ -30,6 +30,10 @@
             box-sizing: border-box;
         }
 
+    
+                <style>
+                    /* Additional styles for the Go Back button */
+                </style>
         body {
             font-family: 'Inter', -apple-system, sans-serif;
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -45,6 +49,7 @@
             left: 0;
             right: 0;
             bottom: 0;
+                    <button onclick="window.history.back()" class="btn-shared btn-outline" style="margin:18px 0 0 18px;">← Go Back</button>
             background-image: 
                 radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.2) 0%, transparent 50%),
                 radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
@@ -519,7 +524,7 @@
         }
 
         .success-btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
+        <button onclick="window.history.back()" class="btn-shared btn-outline" style="position:absolute;top:18px;left:18px;z-index:100;">← Go Back</button>
             color: white;
             border: 1px solid var(--glass-border);
         }

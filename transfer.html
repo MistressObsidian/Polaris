@@ -491,16 +491,21 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <button class="back-btn" onclick="goBack()" title="Go Back">←</button>
-        
-        <div class="header">
-            <div class="logo">Bank Swift</div>
-            <h2>Transfer Money</h2>
-            <p class="subtitle">Choose your preferred transfer method</p>
+    <div class="container" style="display: flex; flex-direction: row; gap: 2rem; align-items: flex-start;">
+        <div style="min-width:180px;max-width:220px;flex:0 0 180px;">
+            <div style="background:rgba(255,255,255,0.08);border-radius:16px;padding:1.2rem 1rem;margin-bottom:2rem;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.08);color:#fff;">
+                <div style="font-size:1.05rem;color:rgba(255,255,255,0.7);margin-bottom:0.5rem;">Available Balance</div>
+                <div id="availableBalance" style="font-size:1.5rem;font-weight:700;letter-spacing:1px;">$0.00</div>
+            </div>
         </div>
-        
-        <!-- Wire Transfer -->
+        <div style="flex:1;min-width:0;">
+            <button class="back-btn" onclick="goBack()" title="Go Back">←</button>
+            <div class="header">
+                <div class="logo">Bank Swift</div>
+                <h2>Transfer Money</h2>
+                <p class="subtitle">Choose your preferred transfer method</p>
+            </div>
+            <!-- Wire Transfer -->
         <button class="transfer-method-btn" onclick="toggleForm('wireForm')" id="wireBtn">
             <span class="method-icon">🏦</span>
             <span class="method-text">Wire Transfer</span>

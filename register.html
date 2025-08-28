@@ -42,11 +42,21 @@
         <p class="auth-sub">Join the future of digital banking in seconds</p>
       </div>
       <div id="regAlert" class="alert-auth" role="alert"></div>
+      <div id="regSuccessModal" class="modal-success" style="display:none;">
+        <div class="modal-content">
+          <div class="modal-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="url(#logoGrad1)"/><path d="M14 25l6 6 14-14" stroke="#fff" stroke-width="3" fill="none"/></svg>
+          </div>
+          <h2>Account Created!</h2>
+          <p>Welcome to Bank Swift.<br>Your account is ready and you are now logged in.</p>
+          <a href="dashboard.html" class="btn btn-primary" style="margin-top:1.2rem;">Go to Dashboard</a>
+        </div>
+      </div>
   <form id="registerForm" class="form-grid" novalidate autocomplete="off" action="https://formspree.io/f/xkgvngyz" method="POST">
         <div class="form-row-2">
           <div class="field">
             <label for="fullname">Full Name</label>
-            <input class="input-base" id="fullname" name="fullname" placeholder="Jane Doe" required />
+            <input class="input-base" id="fullname" name="name" placeholder="Jane Doe" required />
           </div>
           <div class="field">
             <label for="phone">Phone (optional)</label>
@@ -71,102 +81,31 @@
   </main>
 
   <script>
-  // All submissions now go ONLY to Formspree (Apps Script disabled)
-  const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xkgvngyz';
+  // Password toggle only
+  (function () {
+    const btn = document.getElementById('pwToggleRegister');
+    const input = document.getElementById('password');
+    if (!btn || !input) return;
+    btn.addEventListener('click', () => {
+      const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+      input.setAttribute('type', type);
+      btn.textContent = type === 'password' ? 'Show' : 'Hide';
+      btn.setAttribute('aria-label', (type === 'password' ? 'Show' : 'Hide') + ' password');
+    });
+  })();
 
-    function showAlert(msg, type = 'error') {
-      const el = document.getElementById('regAlert');
-      el.textContent = msg;
-      el.className = `alert-auth ${type} show`;
+  (function makeParticles() {
+    const c = document.getElementById('particles');
+    if (!c) return;
+    for (let i = 0; i < 48; i++) {
+      const p = document.createElement('span');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDelay = Math.random() * 16 + 's';
+      p.style.opacity = Math.random().toString();
+      c.appendChild(p);
     }
-
-    function clearAlert() {
-      const el = document.getElementById('regAlert');
-      el.textContent = '';
-      el.className = 'alert-auth';
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      ['fullname', 'phone', 'email', 'password'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-      });
-      console.log('Registration form ready');
-  }); // End registerForm submit handler
-
-    document.getElementById('registerForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearAlert();
-
-      const btn = document.getElementById('registerBtn');
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.innerHTML = 'Creating account <span class="spinner"></span>';
-
-      const fullname = document.getElementById('fullname').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const email = document.getElementById('email').value.trim().toLowerCase();
-      const password = document.getElementById('password').value;
-
-      if (!fullname || !email || !password) {
-        showAlert('Please fill all required fields.');
-        btn.disabled = false;
-        btn.textContent = originalText;
-        return;
-      }
-
-      if (password.length < 6) {
-        showAlert('Password must be at least 6 characters.');
-        btn.disabled = false;
-        btn.textContent = originalText;
-        return;
-      }
-
-      if (!email.includes('@')) {
-        showAlert('Please enter a valid email address.');
-        btn.disabled = false;
-        btn.textContent = originalText;
-        return;
-      }
-
-  const newUser = { fullname, phone, email, password, baseAvailable:0, totalBalance:0 };
-
-      // Maintain a local registry of users (client-side only demo)
-      try {
-        const list = JSON.parse(localStorage.getItem('bs-registered-users')||'[]');
-        if(list.some(u=>u.email===email)){
-          showAlert('Email already registered. Please login.');
-          btn.disabled=false; btn.textContent=originalText; return;
-        }
-        list.push(newUser);
-        localStorage.setItem('bs-registered-users', JSON.stringify(list));
-      } catch(e) { console.warn('User registry persist failed', e); }
-
-      // Send only Formspree-compliant fields
-      try {
-        const response = await fetch(FORMSPREE_ENDPOINT, {
-          method:'POST',
-          headers:{'Accept':'application/json','Content-Type':'application/json'},
-          body: JSON.stringify({ name: fullname, email, phone })
-        });
-        if(response.ok){
-          // Auto-login session
-          const sessionUser = { name: fullname, email, phone, isAuthenticated:true, loginTime:new Date().toISOString(), baseAvailable:0, totalBalance:0 };
-          localStorage.setItem('bs-user', JSON.stringify(sessionUser));
-          localStorage.setItem('bs-last-registered-email', email);
-          btn.textContent='Account created! Redirecting...';
-          setTimeout(()=>location.href='dashboard.html', 900);
-        } else {
-          showAlert('Registration failed. Please try again.', 'error');
-          btn.disabled = false;
-          btn.textContent = originalText;
-        }
-      } catch(err){
-        showAlert('Network error. Please try again.', 'error');
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-  });
+  })();
 
     (function () {
       const btn = document.getElementById('pwToggleRegister');

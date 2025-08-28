@@ -620,7 +620,7 @@
             <div class="success-icon">✅</div>
             <h2 style="color: #28a745; margin-bottom: 15px;">Transfer Successful!</h2>
             <div id="successDetails" class="success-details"></div>
-            <button class="close-btn" onclick="closeSuccessModal()">Continue</button>
+            <button class="close-btn" onclick="goToTransactionDetails()">Continue</button>
         </div>
     </div>
     
@@ -867,6 +867,11 @@
         
         function closeSuccessModal() {
             document.getElementById('successModal').style.display = 'none';
+        }
+
+        function goToTransactionDetails() {
+            // You may want to pass transaction ID or details via query string or localStorage
+            window.location.href = 'transaction-details.html';
         }
         
         function goBack() {

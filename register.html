@@ -52,11 +52,11 @@
           <a href="dashboard.html" class="btn btn-primary" style="margin-top:1.2rem;">Go to Dashboard</a>
         </div>
       </div>
-  <form id="registerForm" class="form-grid" novalidate autocomplete="off" action="https://formspree.io/f/xkgvngyz" method="POST">
+  <form id="registerForm" autocomplete="off" novalidate=""> action="https://formspree.io/f/xkgvngyz" method="POST">
         <div class="form-row-2">
           <div class="field">
             <label for="fullname">Full Name</label>
-            <input class="input-base" id="fullname" name="name" placeholder="Jane Doe" required />
+            <input class="input-base" id="fullname" name="fullname" placeholder="Jane Doe" required />
           </div>
           <div class="field">
             <label for="phone">Phone (optional)</label>
@@ -73,6 +73,10 @@
             <input class="input-base" type="password" id="password" name="password" minlength="6" placeholder="Minimum 6 characters" required />
             <button type="button" class="pw-toggle" id="pwToggleRegister" aria-label="Show password">Show</button>
           </div>
+        </div>
+        <div class="field">
+          <label for="confirmPassword">Confirm Password</label>
+          <input class="input-base" type="password" id="confirmPassword" name="confirmPassword" minlength="6" placeholder="Re-enter password" required />
         </div>
         <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
       </form>

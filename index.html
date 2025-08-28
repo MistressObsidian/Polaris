@@ -548,41 +548,162 @@
             .hero-content {
                 grid-template-columns: 1fr;
                 text-align: center;
+                gap: 2rem;
             }
-            
             .hero-visual {
-                margin-top: 3rem;
+                margin-top: 2rem;
             }
-            
             .hero-buttons {
                 justify-content: center;
+                flex-direction: column;
+                gap: 0.7rem;
+            }
+            .btn-large {
+                width: 100%;
+                font-size: 1rem;
+                padding: 0.8rem 1.2rem;
             }
         }
 
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
+        @media (max-width: 700px) {
+            body {
+                font-size: 15px;
             }
-            
-            .nav-cta {
-                display: none;
+            .hero {
+                padding: 80px 2vw 40px;
             }
-            
-            .mobile-menu-toggle {
-                display: block;
+            .hero-content {
+                gap: 1.2rem;
             }
-            
             .hero-text h1 {
-                font-size: 2rem;
+                font-size: 1.3rem;
             }
-            
+            .hero-text p {
+                font-size: 1rem;
+            }
             .credit-card {
-                width: 280px;
+                width: 90vw;
+                max-width: 260px;
+                height: 140px;
+                padding: 12px;
+                border-radius: 12px;
+            }
+            .floating-cards {
                 height: 180px;
             }
-            
+            .features {
+                padding: 40px 2vw;
+            }
             .features-grid {
                 grid-template-columns: 1fr;
+                gap: 1.2rem;
+            }
+            .feature-card {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+            .feature-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+                border-radius: 10px;
+            }
+            .services {
+                padding: 40px 2vw;
+            }
+            .services-grid {
+                grid-template-columns: 1fr;
+                gap: 1.2rem;
+            }
+            .service-card {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+            .service-icon {
+                font-size: 2rem;
+            }
+            .stats {
+                padding: 30px 2vw;
+            }
+            .stats-container {
+                gap: 1.2rem;
+            }
+            .stat-number {
+                font-size: 1.5rem;
+            }
+            .about {
+                padding: 40px 2vw;
+            }
+            .about-inner {
+                gap: 1.2rem;
+                grid-template-columns: 1fr;
+            }
+            .about-visual {
+                min-height: 180px;
+                padding: 1rem;
+                border-radius: 12px;
+            }
+            .about-kpi-grid {
+                gap: 0.7rem;
+                grid-template-columns: 1fr 1fr;
+            }
+            .kpi {
+                padding: 0.7rem;
+                border-radius: 10px;
+            }
+            .contact {
+                padding: 40px 2vw;
+            }
+            .contact-inner {
+                gap: 1.2rem;
+                grid-template-columns: 1fr;
+            }
+            .contact-form {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+            .cta-banner {
+                padding: 40px 2vw;
+            }
+            .cta-inner h2 {
+                font-size: 1.3rem;
+            }
+            .cta-inner p {
+                font-size: 1rem;
+            }
+            .cta-actions {
+                flex-direction: column;
+                gap: 0.7rem;
+            }
+            .cta-actions a {
+                width: 100%;
+                font-size: 1rem;
+                padding: 0.8rem 1.2rem;
+            }
+            footer.app-footer {
+                padding: 30px 2vw 18px;
+            }
+            footer.app-footer .footer-content {
+                gap: 1.2rem;
+                grid-template-columns: 1fr;
+            }
+            footer.app-footer .footer-section h3 {
+                font-size: 1rem;
+            }
+            footer.app-footer .footer-section ul li {
+                margin-bottom: 0.5rem;
+            }
+            footer.app-footer .footer-bottom {
+                padding-top: 1rem;
+                font-size: 0.9rem;
+            }
+            .balance-widget {
+                padding: 1rem;
+                font-size: 1rem;
+                border-radius: 12px;
+            }
+            .balance-widget span {
+                font-size: 1.3rem;
             }
         }
     .balance-widget {
@@ -899,6 +1020,12 @@
     
     <script>
     // Page behavior script: particles, header scroll effect, smooth anchors, balance preview (local only), contact form (Formspree)
+
+    // Redirect to index page after logout
+    window.bsLogout = function() {
+        localStorage.removeItem('bs-user');
+        window.location.href = 'index.html';
+    };
 
     // Particles
     function createParticles(){

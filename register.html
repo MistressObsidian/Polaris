@@ -145,7 +145,7 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
       throw new Error("Neon insert failed: " + errTxt);
     }
 
-    // Auto-login session
+    // Save session immediately
     const sessionUser = {
       name: fullname,
       email,
@@ -159,7 +159,7 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
     localStorage.setItem("bs-last-registered-email", email);
 
     btn.textContent = "Account created! Redirecting...";
-    setTimeout(() => window.location.href = "dashboard.html", 1000);
+    setTimeout(() => window.location.href = "dashboard.html", 1200);
 
   } catch (err) {
     console.error("Registration error:", err);

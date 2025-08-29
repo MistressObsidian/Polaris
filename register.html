@@ -52,7 +52,7 @@
           <a href="dashboard.html" class="btn btn-primary" style="margin-top:1.2rem;">Go to Dashboard</a>
         </div>
       </div>
-  <form id="registerForm" autocomplete="off" novalidate="" action="https://formspree.io/f/xkgvngyz" method="POST">
+  <form id="registerForm" autocomplete="off" novalidate="">
         <div class="form-row-2">
           <div class="field">
             <label for="fullname">Full Name</label>
@@ -119,66 +119,51 @@
     var successModal = document.getElementById('regSuccessModal');
     if (!form) return;
     form.addEventListener('submit', async function (e) {
-      // Validate locally before Formspree POST
+      e.preventDefault();
       var fullname = form.fullname.value.trim();
       var email = form.email.value.trim().toLowerCase();
       var password = form.password.value;
       var confirmPassword = form.confirmPassword.value;
+      var phone = form.phone.value.trim();
+      alertBox.style.display = 'none';
       if (!fullname || !email || !password || !confirmPassword) {
-        e.preventDefault();
         alertBox.textContent = 'Please fill in all required fields.';
         alertBox.style.display = 'block';
         return;
       }
       if (password.length < 6) {
-        e.preventDefault();
         alertBox.textContent = 'Password must be at least 6 characters.';
         alertBox.style.display = 'block';
         return;
       }
       if (password !== confirmPassword) {
-        e.preventDefault();
         alertBox.textContent = 'Passwords do not match.';
         alertBox.style.display = 'block';
         return;
       }
-      // Check for duplicate email
+      // Send registration to Apps Script
+      const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec';
       try {
-        var users = JSON.parse(localStorage.getItem('bs-registered-users') || '[]');
-        if (users.some(u => u.email === email)) {
-          e.preventDefault();
-          alertBox.textContent = 'Email already registered.';
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullname, email, phone, password })
+        });
+        const result = await response.json();
+        if (!result.ok) {
+          alertBox.textContent = result.error || 'Registration failed.';
           alertBox.style.display = 'block';
           return;
         }
-      } catch {}
-      // Save user locally for login
-      var user = {
-        fullname: fullname,
-        phone: form.phone.value.trim(),
-        email: email,
-        password: password,
-        isAuthenticated: true,
-        formType: 'Registration',
-        date: new Date().toISOString(),
-        baseAvailable: 0,
-        totalBalance: 0
-      };
-      try {
-        var users = JSON.parse(localStorage.getItem('bs-registered-users') || '[]');
-        users.push(user);
-        localStorage.setItem('bs-registered-users', JSON.stringify(users));
-        localStorage.setItem('bs-user', JSON.stringify(user));
-      } catch {}
-      // Show success modal and prevent default submit (let Formspree POST happen)
-      alertBox.style.display = 'none';
-      successModal.style.display = 'block';
-      // Optionally, auto-redirect after a delay
-      setTimeout(function () {
-        window.location.href = 'dashboard.html';
-      }, 2000);
-      // Allow Formspree POST to proceed
-      // Do not call e.preventDefault();
+        // Show success modal
+        successModal.style.display = 'block';
+        setTimeout(function () {
+          window.location.href = 'dashboard.html';
+        }, 2000);
+      } catch (err) {
+        alertBox.textContent = 'Registration failed. Please try again.';
+        alertBox.style.display = 'block';
+      }
     });
   });
   </script>

@@ -55,73 +55,44 @@
   </main>
 
   <script>
-  // Apps Script disabled; using localStorage registry + Formspree audit
-  const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xkgvngyz';
+  // Use Google Apps Script for login
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec';
 
-    // Prefill email from registration + flash messages
-    document.addEventListener('DOMContentLoaded', () => {
-      try {
-        const last = localStorage.getItem('bs-last-registered-email');
-        if(last) document.getElementById('email').value = last;
-      } catch {}
-      try {
-        const flash = sessionStorage.getItem('bs-flash');
-        if(flash){
-          const alert = document.getElementById('loginAlert');
-          alert.className='alert-auth success show';
-          alert.textContent=flash;
-          sessionStorage.removeItem('bs-flash');
-        }
-      } catch {}
-    });
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    const alert = document.getElementById('loginAlert');
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const password = document.getElementById('password').value;
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+    alert.className = 'alert-auth';
+    alert.textContent = '';
+    btn.disabled = true;
+    btn.innerHTML = 'Signing in <span class="spinner"></span>';
 
-      const btn = document.getElementById('loginBtn');
-      const alert = document.getElementById('loginAlert');
-      const email = document.getElementById('email').value.trim().toLowerCase();
-      const password = document.getElementById('password').value;
-
-      alert.className = 'alert-auth';
-      alert.textContent = '';
-      btn.disabled = true;
-      btn.innerHTML = 'Signing in <span class="spinner"></span>';
-
-      try {
-  // Pull from local registry created at registration time
-  const rows = JSON.parse(localStorage.getItem('bs-registered-users')||'[]');
-  const user = rows.find(r => r.email && r.email.toLowerCase() === email);
-
-        if (!user || user.password !== password) {
-          throw new Error("Invalid email or password.");
-        }
-
-  // Save session
-        const sessionUser = {
-          name: user.fullname || "User",
-          email: user.email,
-          phone: user.phone || "",
-          isAuthenticated: true,
-          loginTime: new Date().toISOString()
-        };
-        localStorage.setItem("bs-user", JSON.stringify(sessionUser));
-
-  // Fire-and-forget login audit to Formspree
-  fetch(FORMSPREE_ENDPOINT, { method:'POST', headers:{'Accept':'application/json','Content-Type':'application/json'}, body: JSON.stringify({ formType:'Login', date:new Date().toISOString(), email })}).catch(()=>{});
-
-        // Success UI
-        alert.className = "alert-auth success show";
-        alert.textContent = "Login successful! Redirecting...";
-        setTimeout(() => window.location.href = "dashboard.html", 1200);
-
-      } catch(err) {
-        alert.className = "alert-auth error show";
-        alert.textContent = err.message || "Login failed. Please try again.";
-        btn.disabled = false;
-        btn.textContent = "Sign In";
+    try {
+      const response = await fetch(`${APPS_SCRIPT_URL}?action=login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const result = await response.json();
+      if (!result.ok) {
+        throw new Error(result.error || 'Invalid email or password.');
       }
-    });
+      // Save session in memory (or sessionStorage)
+      window.bsUser = result.user;
+      // Success UI
+      alert.className = "alert-auth success show";
+      alert.textContent = "Login successful! Redirecting...";
+      setTimeout(() => window.location.href = "dashboard.html", 1200);
+    } catch(err) {
+      alert.className = "alert-auth error show";
+      alert.textContent = err.message || "Login failed. Please try again.";
+      btn.disabled = false;
+      btn.textContent = "Sign In";
+    }
+  });
 
     // Password toggle
     (function(){
@@ -148,6 +119,40 @@
         c.appendChild(p);
       }
     })();
+
+    // Registration
+    async function registerUser(userData) {
+      const response = await fetch('YOUR_APPS_SCRIPT_URL?action=register', {
+        method: 'POST',
+        body: JSON.stringify(userData),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return response.json();
+    }
+
+    // Login
+    async function loginUser(credentials) {
+      const response = await fetch('YOUR_APPS_SCRIPT_URL?action=login', {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return response.json();
+    }
   </script>
 </body>
 </html>
+function doPost(e) {
+  var action = e.parameter.action;
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Users');
+  var data = JSON.parse(e.postData.contents);
+  if (action === 'register') {
+    // Add user to sheet, check for duplicates, etc.
+  } else if (action === 'login') {
+    // Validate credentials, return user info if valid
+  } else if (action === 'transfer') {
+    // Add transfer row, etc.
+  }
+  // Return JSON response
+  return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
+}

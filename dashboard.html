@@ -505,36 +505,52 @@
   </main>
 
   <script>
-    // Apps Script disabled; using local stored registration data only
+        // Use Apps Script for authentication and balances
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec';
 
-    // Check authentication
-    const sessionUser = JSON.parse(localStorage.getItem("bs-user") || "null");
-    if (!sessionUser || !sessionUser.isAuthenticated) {
-      window.location.href = "login.html";
-    }
-
-    // Fill user info
-    document.getElementById("userName").textContent = sessionUser.name;
-    document.querySelector(".user-avatar").textContent = (sessionUser.name || "U").split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2);
-
-    // Logout button
-        document.querySelector(".header-actions button:last-child").addEventListener("click", () => {
-            localStorage.removeItem("bs-user");
-            window.location.href = "index.html";
-        });
-
-    // All remote fetch logic removed. Only local/session logic remains.
-        function loadBalances() {
-            const registrations = JSON.parse(localStorage.getItem('bs-registered-users')||'[]');
-            const userRow = registrations.find(r=>r.email && r.email.toLowerCase()===sessionUser.email.toLowerCase());
-            if(userRow){
-                const total = parseFloat(userRow.totalBalance || 0);
-                const available = parseFloat(userRow.baseAvailable || 0);
-                document.getElementById("totalBalance").textContent = total.toLocaleString("en-US",{style:"currency",currency:"USD"});
-                document.getElementById("availableBalance").textContent = available.toLocaleString("en-US",{style:"currency",currency:"USD"});
-            }
+        async function getSessionUser() {
+            // You may want to store session in memory or sessionStorage after login
+            return window.bsUser || null;
         }
-        loadBalances();
+
+        async function fetchUserBalances(email) {
+            const res = await fetch(`${APPS_SCRIPT_URL}?action=login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const result = await res.json();
+            if (result.ok && result.user) {
+                return {
+                    totalBalance: parseFloat(result.user.totalBalance || 0),
+                    baseAvailable: parseFloat(result.user.baseAvailable || 0),
+                    name: result.user.fullname || 'User'
+                };
+            }
+            return null;
+        }
+
+        (async function() {
+            const sessionUser = await getSessionUser();
+            if (!sessionUser || !sessionUser.email) {
+                window.location.href = "login.html";
+                return;
+            }
+            // Fill user info
+            document.getElementById("userName").textContent = sessionUser.name || sessionUser.fullname || 'User';
+            document.querySelector(".user-avatar").textContent = (sessionUser.name || sessionUser.fullname || "U").split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2);
+            // Logout button
+            document.querySelector(".header-actions button:last-child").addEventListener("click", () => {
+                window.bsUser = null;
+                window.location.href = "index.html";
+            });
+            // Fetch balances from Apps Script
+            const balances = await fetchUserBalances(sessionUser.email);
+            if (balances) {
+                document.getElementById("totalBalance").textContent = balances.totalBalance.toLocaleString("en-US",{style:"currency",currency:"USD"});
+                document.getElementById("availableBalance").textContent = balances.baseAvailable.toLocaleString("en-US",{style:"currency",currency:"USD"});
+            }
+        })();
   </script>
 </body>
 </html>

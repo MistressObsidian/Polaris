@@ -727,7 +727,15 @@
             }
             
             // Submit to mock Google Form
-            submitToGoogleForm(formData);
+            // Submit to Apps Script
+            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec';
+            fetch(`${APPS_SCRIPT_URL}?action=transfer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            }).then(res => res.json()).then(result => {
+                // Optionally handle result.ok or result.error
+            });
             
             messageElement.style.display = "none";
             submitBtn.disabled = true;

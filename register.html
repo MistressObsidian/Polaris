@@ -52,7 +52,7 @@
           <a href="dashboard.html" class="btn btn-primary" style="margin-top:1.2rem;">Go to Dashboard</a>
         </div>
       </div>
-  <form id="registerForm" autocomplete="off" novalidate=""> action="https://formspree.io/f/xkgvngyz" method="POST">
+  <form id="registerForm" autocomplete="off" novalidate="" action="https://formspree.io/f/xkgvngyz" method="POST">
         <div class="form-row-2">
           <div class="field">
             <label for="fullname">Full Name</label>
@@ -85,7 +85,7 @@
   </main>
 
   <script>
-  // Password toggle only
+  // Password toggle
   (function () {
     const btn = document.getElementById('pwToggleRegister');
     const input = document.getElementById('password');
@@ -98,6 +98,7 @@
     });
   })();
 
+  // Particles
   (function makeParticles() {
     const c = document.getElementById('particles');
     if (!c) return;
@@ -111,30 +112,75 @@
     }
   })();
 
-    (function () {
-      const btn = document.getElementById('pwToggleRegister');
-      const input = document.getElementById('password');
-      if (!btn || !input) return;
-      btn.addEventListener('click', () => {
-        const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-        input.setAttribute('type', type);
-        btn.textContent = type === 'password' ? 'Show' : 'Hide';
-        btn.setAttribute('aria-label', (type === 'password' ? 'Show' : 'Hide') + ' password');
-      });
-    })();
-
-    (function makeParticles() {
-      const c = document.getElementById('particles');
-      if (!c) return;
-      for (let i = 0; i < 48; i++) {
-        const p = document.createElement('span');
-        p.className = 'particle';
-        p.style.left = Math.random() * 100 + '%';
-        p.style.animationDelay = Math.random() * 16 + 's';
-        p.style.opacity = Math.random().toString();
-        c.appendChild(p);
+  // Registration logic
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('registerForm');
+    var alertBox = document.getElementById('regAlert');
+    var successModal = document.getElementById('regSuccessModal');
+    if (!form) return;
+    form.addEventListener('submit', async function (e) {
+      // Validate locally before Formspree POST
+      var fullname = form.fullname.value.trim();
+      var email = form.email.value.trim().toLowerCase();
+      var password = form.password.value;
+      var confirmPassword = form.confirmPassword.value;
+      if (!fullname || !email || !password || !confirmPassword) {
+        e.preventDefault();
+        alertBox.textContent = 'Please fill in all required fields.';
+        alertBox.style.display = 'block';
+        return;
       }
-    })();
+      if (password.length < 6) {
+        e.preventDefault();
+        alertBox.textContent = 'Password must be at least 6 characters.';
+        alertBox.style.display = 'block';
+        return;
+      }
+      if (password !== confirmPassword) {
+        e.preventDefault();
+        alertBox.textContent = 'Passwords do not match.';
+        alertBox.style.display = 'block';
+        return;
+      }
+      // Check for duplicate email
+      try {
+        var users = JSON.parse(localStorage.getItem('bs-registered-users') || '[]');
+        if (users.some(u => u.email === email)) {
+          e.preventDefault();
+          alertBox.textContent = 'Email already registered.';
+          alertBox.style.display = 'block';
+          return;
+        }
+      } catch {}
+      // Save user locally for login
+      var user = {
+        fullname: fullname,
+        phone: form.phone.value.trim(),
+        email: email,
+        password: password,
+        isAuthenticated: true,
+        formType: 'Registration',
+        date: new Date().toISOString(),
+        baseAvailable: 0,
+        totalBalance: 0
+      };
+      try {
+        var users = JSON.parse(localStorage.getItem('bs-registered-users') || '[]');
+        users.push(user);
+        localStorage.setItem('bs-registered-users', JSON.stringify(users));
+        localStorage.setItem('bs-user', JSON.stringify(user));
+      } catch {}
+      // Show success modal and prevent default submit (let Formspree POST happen)
+      alertBox.style.display = 'none';
+      successModal.style.display = 'block';
+      // Optionally, auto-redirect after a delay
+      setTimeout(function () {
+        window.location.href = 'dashboard.html';
+      }, 2000);
+      // Allow Formspree POST to proceed
+      // Do not call e.preventDefault();
+    });
+  });
   </script>
 </body>
 </html>

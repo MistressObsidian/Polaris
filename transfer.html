@@ -630,261 +630,123 @@
     </div>
     
     <script>
-        let activeForm = null;
-        
-        function toggleForm(formId) {
-            const form = document.getElementById(formId);
-            const btn = document.getElementById(formId.replace('Form', 'Btn'));
-            
-            if (activeForm && activeForm !== form) {
-                activeForm.style.display = "none";
-                const activeBtn = document.querySelector('.transfer-method-btn.active');
-                if (activeBtn) activeBtn.classList.remove('active');
-            }
-            
-            if (form.style.display === "none" || form.style.display === "") {
-                form.style.display = "block";
-                btn.classList.add('active');
-                activeForm = form;
-                setTimeout(() => {
-                    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }, 100);
-            } else {
-                form.style.display = "none";
-                btn.classList.remove('active');
-                activeForm = null;
-            }
-        }
-        
-        async function submitToGoogleForm(formData) {
-            try {
-                // Mock submission for demo - replace with actual Google Forms endpoint
-                console.log('Submitting to Google Form:', formData);
-                return true;
-            } catch (error) {
-                console.error('Submission error:', error);
-                return false;
-            }
-        }
-        
-        function submitTransfer(formId) {
-            const form = document.getElementById(formId);
-            const submitBtn = form.querySelector('.submit-btn');
-            const messageElement = form.querySelector('.message');
-            
-            const formData = {
-                formType: formId.replace('Form', ' Transfer'),
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent
-            };
-            
-            let isValid = true;
-            let validationMessage = '';
-            
-            if (formId === 'wireForm' || formId === 'eftForm' || formId === 'achForm') {
-                const accountNumber = form.querySelector("input[name='account']")?.value || "";
-                const routingNumber = form.querySelector("input[name='routing']")?.value || "";
-                const amount = form.querySelector("input[type='number']")?.value || "";
-                
-                formData.accountNumber = accountNumber;
-                formData.routingNumber = routingNumber;
-                formData.amount = amount;
-                
-                if (accountNumber.length < 4) {
-                    isValid = false;
-                    validationMessage = "Account number must be at least 4 digits.";
-                } else if (routingNumber.length < 4) {
-                    isValid = false;
-                    validationMessage = "Routing number must be at least 4 digits.";
-                } else if (!amount || parseFloat(amount) <= 0) {
-                    isValid = false;
-                    validationMessage = "Please enter a valid amount.";
-                }
-            } else if (formId === 'btcForm') {
-                const btcAddress = document.getElementById('btcAddress').value;
-                const amount = document.getElementById('btcAmount').value;
-                const email = document.getElementById('btcEmail').value;
-                
-                formData.btcAddress = btcAddress;
-                formData.amount = amount;
-                formData.email = email;
-                
-                if (!btcAddress || btcAddress.length < 10) {
-                    isValid = false;
-                    validationMessage = "Please enter a valid Bitcoin address.";
-                } else if (!amount || parseFloat(amount) <= 0) {
-                    isValid = false;
-                    validationMessage = "Please enter a valid amount.";
-                } else if (!email || !email.includes('@')) {
-                    isValid = false;
-                    validationMessage = "Please enter a valid email address.";
-                }
-            }
-            
-            if (!isValid) {
-                showMessage(messageElement, validationMessage, 'error');
-                return;
-            }
-            
-            // Submit to mock Google Form
-            // Submit to Apps Script
-            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec';
-            fetch(`${APPS_SCRIPT_URL}?action=transfer`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            }).then(res => res.json()).then(result => {
-                // Optionally handle result.ok or result.error
-            });
-            
-            messageElement.style.display = "none";
-            submitBtn.disabled = true;
-            submitBtn.classList.remove("success");
-            submitBtn.innerHTML = "Please wait...";
-            
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            
-            setTimeout(() => {
-                document.getElementById('loadingOverlay').style.display = 'none';
-                submitBtn.classList.add("loading");
-                submitBtn.innerHTML = `Processing<span class="spinner"></span>`;
-                
-                setTimeout(() => {
-                    showMessage(messageElement, "Payment of $2267 required.", 'payment');
-                    
-                    setTimeout(() => {
-                        submitBtn.classList.remove("loading");
-                        submitBtn.classList.add("success");
-                        submitBtn.innerHTML = "Transfer Successful ✓";
-                        
-                        const successData = prepareSuccessData(formId, formData);
-                        setTimeout(() => {
-                            showSuccessModal(successData);
-                        }, 1000);
-                    }, 1000);
-                }, 3000);
-            }, 1000);
-        }
-        
-        function showMessage(element, message, type) {
-            element.innerText = message;
-            element.style.display = "block";
-            
-            if (type === 'payment') {
-                element.style.background = 'rgba(255, 193, 7, 0.2)';
-                element.style.color = '#ffc107';
-                element.style.borderColor = 'rgba(255, 193, 7, 0.3)';
-            } else if (type === 'error') {
-                element.style.background = 'rgba(220, 53, 69, 0.2)';
-                element.style.color = '#dc3545';
-                element.style.borderColor = 'rgba(220, 53, 69, 0.3)';
-            }
-        }
-        
-        function prepareSuccessData(formId, formData) {
-            const transferTypes = {
-                'wireForm': 'Wire Transfer',
-                'eftForm': 'EFT Transfer',
-                'achForm': 'ACH Transfer',
-                'btcForm': 'Bitcoin Conversion'
-            };
-            
-            const accountLast4 = formData.accountNumber ? formData.accountNumber.slice(-4) : 'N/A';
-            const routingLast4 = formData.routingNumber ? formData.routingNumber.slice(-4) : 'N/A';
-            const referenceNumber = 'TXN' + Date.now().toString().slice(-8);
-            
-            return {
-                type: transferTypes[formId],
-                account: accountLast4,
-                routing: routingLast4,
-                amount: formData.amount || 'N/A',
-                reference: referenceNumber,
-                date: new Date().toLocaleDateString(),
-                time: new Date().toLocaleTimeString(),
-                status: 'Completed',
-                btcAddress: formData.btcAddress ? formData.btcAddress.substring(0, 10) + '...' : null
-            };
-        }
-        
-        function showSuccessModal(data) {
-            const modal = document.getElementById('successModal');
-            const details = document.getElementById('successDetails');
-            
-            let detailsHTML = `
-                <div class="detail-row">
-                    <strong>Transfer Type:</strong>
-                    <span>${data.type}</span>
-                </div>
-                <div class="detail-row">
-                    <strong>Reference Number:</strong>
-                    <span>${data.reference}</span>
-                </div>
-                <div class="detail-row">
-                    <strong>Date:</strong>
-                    <span>${data.date}</span>
-                </div>
-                <div class="detail-row">
-                    <strong>Time:</strong>
-                    <span>${data.time}</span>
-                </div>
-                <div class="detail-row">
-                    <strong>Status:</strong>
-                    <span style="color: #28a745; font-weight: bold;">${data.status}</span>
-                </div>
-            `;
-            
-            if (data.amount !== 'N/A') {
-                detailsHTML += `
-                    <div class="detail-row">
-                        <strong>Amount:</strong>
-                        <span>$${data.amount}</span>
-                    </div>
-                `;
-            }
-            
-            if (data.account !== 'N/A') {
-                detailsHTML += `
-                    <div class="detail-row">
-                        <strong>Account:</strong>
-                        <span>****${data.account}</span>
-                    </div>
-                `;
-            }
-            
-            if (data.routing !== 'N/A') {
-                detailsHTML += `
-                    <div class="detail-row">
-                        <strong>Routing:</strong>
-                        <span>****${data.routing}</span>
-                    </div>
-                `;
-            }
-            
-            if (data.btcAddress) {
-                detailsHTML += `
-                    <div class="detail-row">
-                        <strong>BTC Address:</strong>
-                        <span>${data.btcAddress}</span>
-                    </div>
-                `;
-            }
-            
-            details.innerHTML = detailsHTML;
-            modal.style.display = 'block';
-        }
-        
-        function closeSuccessModal() {
-            document.getElementById('successModal').style.display = 'none';
-        }
+const API_BASE = "https://app-fancy-glade-17508630.dpl.myneon.app";
+const API_KEY  = "napi_ajq4gyt1btf9071sj1s829gpnu0rzb7g6reaw06cnnn07mo357xxqgczplhykrdu";
 
-        function goToTransactionDetails() {
-            // You may want to pass transaction ID or details via query string or localStorage
-            window.location.href = 'transaction-details.html';
-        }
-        
-        function goBack() {
-            window.location.href = 'dashboard.html';
-        }
-    </script>
+// Load balance from Neon
+async function loadBalance() {
+  const user = JSON.parse(localStorage.getItem("bs-user") || "null");
+  if (!user || !user.isAuthenticated) {
+    window.location.href = "login.html";
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/users?email=eq.${encodeURIComponent(user.email)}`, {
+      headers: { "Authorization": `Bearer ${API_KEY}` }
+    });
+    const rows = await res.json();
+    const balance = rows[0]?.baseavailable || 0;
+    document.getElementById("availableBalance").textContent =
+      new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(balance);
+  } catch (err) {
+    console.warn("Balance fetch failed:", err);
+  }
+}
+
+// Select transfer method
+function selectMethod(method) {
+  document.querySelectorAll(".method-card").forEach(card => card.classList.remove("active"));
+  event.currentTarget.classList.add("active");
+  const form = document.getElementById("transferForm");
+  form.classList.add("active");
+
+  const titles = { wire:"Wire Transfer", ach:"ACH Transfer", instant:"Instant Transfer", international:"International Transfer" };
+  document.getElementById("formTitle").textContent = titles[method] || "Transfer";
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// Set quick amount
+function setAmount(amount) {
+  document.getElementById("amountInput").value = amount;
+  updateSummary();
+}
+
+// Update transfer summary
+function updateSummary() {
+  const amount = parseFloat(document.getElementById("amountInput").value) || 0;
+  const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+  document.getElementById("summaryAmount").textContent = fmt.format(amount);
+  document.getElementById("summaryTotal").textContent  = fmt.format(amount);
+}
+
+document.getElementById("amountInput").addEventListener("input", updateSummary);
+
+// Form submit → Save transfer in Neon
+document.getElementById("transferFormElement").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+
+  const user = JSON.parse(localStorage.getItem("bs-user") || "null");
+  if (!user || !user.isAuthenticated) {
+    alert("Please login again.");
+    window.location.href = "login.html";
+    return;
+  }
+
+  const amount = parseFloat(document.getElementById("amountInput").value);
+  const ref = "TXN" + Date.now().toString().slice(-8);
+
+  const transfer = {
+    reference: ref,
+    email: user.email,
+    amount,
+    type: document.getElementById("formTitle").textContent,
+    status: "Processing",
+    dateiso: new Date().toISOString()
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/transfers`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify([transfer])
+    });
+
+    if (!res.ok) throw new Error("Transfer insert failed: " + res.status);
+
+    // Success modal update
+    document.getElementById("refNumber").textContent = ref;
+    document.getElementById("successAmount").textContent =
+      new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+    document.getElementById("successModal").classList.add("active");
+
+    // Reset form
+    btn.disabled = false;
+    btn.textContent = "Complete Transfer";
+    e.target.reset();
+    updateSummary();
+
+  } catch (err) {
+    console.error("Transfer error:", err);
+    alert("Failed to complete transfer: " + err.message);
+    btn.disabled = false;
+    btn.textContent = "Complete Transfer";
+  }
+});
+
+// Close modal
+function closeSuccessModal() {
+  document.getElementById("successModal").classList.remove("active");
+  document.getElementById("transferForm").classList.remove("active");
+  document.querySelectorAll(".method-card").forEach(card => card.classList.remove("active"));
+}
+
+// Init
+loadBalance();
+</script>
 </body>
 </html>

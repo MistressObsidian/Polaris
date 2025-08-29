@@ -166,189 +166,68 @@
   </div>
 
   <script>
-    let currentTransfer = null;
-    let syncInterval = null;
+const API_BASE = "https://app-fancy-glade-17508630.dpl.myneon.app";
+const API_KEY  = "napi_ajq4gyt1btf9071sj1s829gpnu0rzb7g6reaw06cnnn07mo357xxqgczplhykrdu";
 
-    function currency(n) {
-      try {
-        return Number(n).toLocaleString('en-US', {style:'currency', currency:'USD'});
-      } catch {
-        return `$${n}`;
-      }
-    }
+// Load transfers for logged-in user
+async function loadTransfers() {
+  const user = JSON.parse(localStorage.getItem("bs-user") || "null");
+  if (!user || !user.isAuthenticated) {
+    window.location.href = "login.html";
+    return;
+  }
 
-    function formatDateTime(iso) {
-      try {
-        const d = iso ? new Date(iso) : new Date();
-        return d.toLocaleDateString() + ' • ' + d.toLocaleTimeString();
-      } catch {
-        return '—';
-      }
-    }
-
-    function updateUI(transfer) {
-      if (!transfer) return;
-      
-      currentTransfer = transfer;
-      const status = (transfer.status || 'Pending').toLowerCase();
-      const isCompleted = status === 'completed';
-      
-      // Update status banner
-      const banner = document.getElementById('statusBanner');
-      const bannerText = document.getElementById('bannerText');
-      
-      if (isCompleted) {
-        banner.className = 'success-banner';
-        banner.innerHTML = '<div class="success-icon">✓</div><div id="bannerText">Transfer Completed</div>';
-      } else {
-        banner.className = 'pending-banner';
-        banner.innerHTML = '<div class="pending-icon">⏱</div><div id="bannerText">Processing Transfer...</div>';
-      }
-      
-      // Update amount and summary
-      const amount = Number(transfer.amount) || 0;
-      document.getElementById('amountValue').textContent = currency(amount);
-      
-      const from = transfer.from || transfer.from_account || '—';
-      const to = transfer.to || transfer.to_account || '—';
-      const summary = (from !== '—' || to !== '—') 
-        ? `Transferred from ${from} to ${to}`
-        : (transfer.network || transfer.type || 'Transfer');
-      document.getElementById('summaryText').textContent = summary;
-      
-      // Update status pill
-      const pill = document.getElementById('statusPill');
-      pill.textContent = transfer.status || 'Pending';
-      pill.className = isCompleted ? 'status-pill completed' : 'status-pill pending';
-      
-      // Update details
-      document.getElementById('dateTimeValue').textContent = formatDateTime(transfer.dateISO || transfer.date);
-      document.getElementById('fromValue').textContent = from;
-      document.getElementById('toValue').textContent = to;
-      document.getElementById('referenceValue').textContent = transfer.reference || '—';
-      document.getElementById('networkValue').textContent = transfer.network || transfer.type || 'Transfer';
-      document.getElementById('feesValue').textContent = transfer.fees || transfer.fee || '$0.00';
-      
-      // Show sync indicator
-      showSyncIndicator();
-    }
-
-    function showSyncIndicator() {
-      const badge = document.getElementById('syncBadge');
-      badge.classList.add('active');
-      setTimeout(() => {
-        badge.classList.remove('active');
-      }, 2000);
-    }
-
-    async function loadTransfer(ref) {
-      if (!ref) {
-        // Try to get the most recent transfer
-        const transfers = Platform.getLocalTransfers();
-        if (transfers.length > 0) {
-          currentTransfer = transfers[0];
-          updateUI(currentTransfer);
-          return;
-        }
-        showEmptyState();
-        return;
-      }
-      
-      // First check local storage
-      const localTransfers = Platform.getLocalTransfers();
-      const localTransfer = localTransfers.find(t => t.reference === ref);
-      
-      if (localTransfer) {
-        updateUI(localTransfer);
-      }
-      
-      // Then fetch from SheetDB for latest status
-      try {
-    // const remoteTransfer = await Platform.fetchTransferByRef(ref);
-        if (remoteTransfer) {
-          // Merge remote data with local
-          const merged = localTransfer ? { ...localTransfer, ...remoteTransfer } : remoteTransfer;
-          updateUI(merged);
-          
-          // Update local storage
-          Platform.upsertLocalTransfer(merged);
-        }
-      } catch (e) {
-        console.error('Failed to fetch transfer:', e);
-      }
-    }
-
-    function showEmptyState() {
-      const container = document.getElementById('txContainer');
-      container.innerHTML = `
-        <div class="amount-line">
-          <div class="value">$0.00</div>
-          <div class="muted">No transaction to display</div>
-        </div>
-        <div class="actions" style="margin-top:8px;">
-          <a class="btn btn-primary" href="transfer.html">Make a transfer</a>
-          <a class="btn btn-outline" href="dashboard.html">Back to dashboard</a>
-        </div>
-      `;
-    }
-
-    async function syncTransferStatus() {
-      if (!currentTransfer || !currentTransfer.reference) return;
-      
-      try {
-  // const remoteTransfer = await Platform.fetchTransferByRef(currentTransfer.reference);
-        if (remoteTransfer) {
-          const hasChanged = remoteTransfer.status !== currentTransfer.status;
-          
-          if (hasChanged) {
-            updateUI(remoteTransfer);
-            Platform.upsertLocalTransfer(remoteTransfer);
-          }
-        }
-      } catch (e) {
-        console.error('Sync failed:', e);
-      }
-    }
-
-    function startAutoSync() {
-      if (syncInterval) clearInterval(syncInterval);
-      
-      // Sync every 5 seconds for live updates
-      syncInterval = setInterval(() => {
-        syncTransferStatus();
-      }, 5000);
-    }
-
-    // Initialize
-    window.addEventListener('DOMContentLoaded', async () => {
-  // Auth migration
-  try { if(!localStorage.getItem('bs-user')){ const legacy = sessionStorage.getItem('loggedInUser'); if(legacy){ localStorage.setItem('bs-user', legacy); sessionStorage.removeItem('loggedInUser'); } } } catch {}
-  if (!Platform.isAuthenticated()) { window.location.href = 'login.html'; return; }
-      
-      // Get reference from URL
-      const params = new URLSearchParams(location.search);
-      const ref = params.get('ref') || params.get('id') || params.get('reference');
-      
-      // Load transfer
-      await loadTransfer(ref);
-      
-      // Start auto-sync if we have a transfer
-      if (currentTransfer) {
-        startAutoSync();
-      }
-      
-      // Refresh on visibility change
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && currentTransfer) {
-          syncTransferStatus();
-        }
-      });
+  try {
+    const res = await fetch(`${API_BASE}/transfers?email=eq.${encodeURIComponent(user.email)}&order=dateiso.desc`, {
+      headers: { "Authorization": `Bearer ${API_KEY}` }
     });
+    if (!res.ok) throw new Error("Fetch failed: " + res.status);
+    const rows = await res.json();
 
-    // Cleanup
-    window.addEventListener('beforeunload', () => {
-      if (syncInterval) clearInterval(syncInterval);
-    });
-  </script>
+    renderTransfers(rows);
+  } catch (err) {
+    console.error("Failed to fetch transfers:", err);
+    document.getElementById("transfersList").innerHTML = 
+      `<p class="error">Could not load transfers.</p>`;
+  }
+}
+
+// Render transfers in a table or list
+function renderTransfers(transfers) {
+  const container = document.getElementById("transfersList");
+  if (!transfers.length) {
+    container.innerHTML = `<p>No transfers found.</p>`;
+    return;
+  }
+
+  const html = `
+    <table class="transfers-table">
+      <thead>
+        <tr>
+          <th>Reference</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${transfers.map(t => `
+          <tr>
+            <td>${t.reference}</td>
+            <td>${t.type || "Transfer"}</td>
+            <td>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(t.amount||0)}</td>
+            <td>${t.status}</td>
+            <td>${new Date(t.dateiso).toLocaleString()}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>`;
+  container.innerHTML = html;
+}
+
+// Init
+document.addEventListener("DOMContentLoaded", loadTransfers);
+</script>
 </body>
 </html>

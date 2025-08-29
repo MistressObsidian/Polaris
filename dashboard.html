@@ -505,52 +505,55 @@
   </main>
 
   <script>
-        // Use Apps Script for authentication and balances
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec';
+const API_BASE = "https://app-fancy-glade-17508630.dpl.myneon.app";
+const API_KEY  = "napi_ajq4gyt1btf9071sj1s829gpnu0rzb7g6reaw06cnnn07mo357xxqgczplhykrdu";
 
-        async function getSessionUser() {
-            // You may want to store session in memory or sessionStorage after login
-            return window.bsUser || null;
-        }
+async function fetchUserFromNeon(email) {
+  try {
+    const response = await fetch(`${API_BASE}/users?email=eq.${encodeURIComponent(email)}`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Accept": "application/json"
+      }
+    });
+    if (!response.ok) throw new Error("Failed to fetch user data from Neon");
+    const rows = await response.json();
+    return rows[0] || null;
+  } catch (err) {
+    console.error("Neon fetch error:", err);
+    return null;
+  }
+}
 
-        async function fetchUserBalances(email) {
-            const res = await fetch(`${APPS_SCRIPT_URL}?action=login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-            const result = await res.json();
-            if (result.ok && result.user) {
-                return {
-                    totalBalance: parseFloat(result.user.totalBalance || 0),
-                    baseAvailable: parseFloat(result.user.baseAvailable || 0),
-                    name: result.user.fullname || 'User'
-                };
-            }
-            return null;
-        }
+async function loadDashboard() {
+  const user = JSON.parse(localStorage.getItem("bs-user") || "null");
+  if (!user || !user.isAuthenticated) {
+    window.location.href = "login.html";
+    return;
+  }
 
-        (async function() {
-            const sessionUser = await getSessionUser();
-            if (!sessionUser || !sessionUser.email) {
-                window.location.href = "login.html";
-                return;
-            }
-            // Fill user info
-            document.getElementById("userName").textContent = sessionUser.name || sessionUser.fullname || 'User';
-            document.querySelector(".user-avatar").textContent = (sessionUser.name || sessionUser.fullname || "U").split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2);
-            // Logout button
-            document.querySelector(".header-actions button:last-child").addEventListener("click", () => {
-                window.bsUser = null;
-                window.location.href = "index.html";
-            });
-            // Fetch balances from Apps Script
-            const balances = await fetchUserBalances(sessionUser.email);
-            if (balances) {
-                document.getElementById("totalBalance").textContent = balances.totalBalance.toLocaleString("en-US",{style:"currency",currency:"USD"});
-                document.getElementById("availableBalance").textContent = balances.baseAvailable.toLocaleString("en-US",{style:"currency",currency:"USD"});
-            }
-        })();
-  </script>
+  // Try to fetch live balances from Neon
+  const neonUser = await fetchUserFromNeon(user.email);
+
+  if (neonUser) {
+    user.baseAvailable = neonUser.baseavailable || 0;
+    user.totalBalance  = neonUser.totalbalance || 0;
+    localStorage.setItem("bs-user", JSON.stringify(user));
+  }
+
+  // Update dashboard UI
+  document.getElementById("welcomeUser").textContent = user.name || "User";
+  document.getElementById("availableBalance").textContent =
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })
+      .format(user.baseAvailable || 0);
+  document.getElementById("totalBalance").textContent =
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })
+      .format(user.totalBalance || 0);
+}
+
+// Run on page load
+document.addEventListener("DOMContentLoaded", loadDashboard);
+</script>
 </body>
 </html>

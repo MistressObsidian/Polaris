@@ -84,88 +84,102 @@
     </section>
   </main>
 
-  <script>
-  // Password toggle
-  (function () {
-    const btn = document.getElementById('pwToggleRegister');
-    const input = document.getElementById('password');
-    if (!btn || !input) return;
-    btn.addEventListener('click', () => {
-      const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-      input.setAttribute('type', type);
-      btn.textContent = type === 'password' ? 'Show' : 'Hide';
-      btn.setAttribute('aria-label', (type === 'password' ? 'Show' : 'Hide') + ' password');
-    });
-  })();
+<script>
+const API_BASE = "https://app-fancy-glade-17508630.dpl.myneon.app";
+const API_KEY  = "napi_ajq4gyt1btf9071sj1s829gpnu0rzb7g6reaw06cnnn07mo357xxqgczplhykrdu";
 
-  // Particles
-  (function makeParticles() {
-    const c = document.getElementById('particles');
-    if (!c) return;
-    for (let i = 0; i < 48; i++) {
-      const p = document.createElement('span');
-      p.className = 'particle';
-      p.style.left = Math.random() * 100 + '%';
-      p.style.animationDelay = Math.random() * 16 + 's';
-      p.style.opacity = Math.random().toString();
-      c.appendChild(p);
+function showAlert(msg, type = "error") {
+  const el = document.getElementById("regAlert");
+  el.textContent = msg;
+  el.className = `alert-auth ${type} show`;
+}
+
+function clearAlert() {
+  const el = document.getElementById("regAlert");
+  el.textContent = "";
+  el.className = "alert-auth";
+}
+
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearAlert();
+
+  const btn = document.getElementById("registerBtn");
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = 'Creating account <span class="spinner"></span>';
+
+  const fullname = document.getElementById("fullname").value.trim();
+  const phone    = document.getElementById("phone").value.trim();
+  const email    = document.getElementById("email").value.trim().toLowerCase();
+  const password = document.getElementById("password").value;
+
+  if (!fullname || !email || !password) {
+    showAlert("Please fill all required fields.");
+    btn.disabled = false;
+    btn.textContent = originalText;
+    return;
+  }
+
+  try {
+    // Insert new user into Neon
+    const response = await fetch(`${API_BASE}/users`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify([{
+        fullname,
+        phone,
+        email,
+        password,
+        baseavailable: 0,
+        totalbalance: 0,
+        createdat: new Date().toISOString()
+      }])
+    });
+
+    if (!response.ok) {
+      const errTxt = await response.text();
+      throw new Error("Neon insert failed: " + errTxt);
     }
-  })();
 
-  // Registration logic
-  document.addEventListener('DOMContentLoaded', function () {
-    var form = document.getElementById('registerForm');
-    var alertBox = document.getElementById('regAlert');
-    var successModal = document.getElementById('regSuccessModal');
-    if (!form) return;
-    form.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      var fullname = form.fullname.value.trim();
-      var email = form.email.value.trim().toLowerCase();
-      var password = form.password.value;
-      var confirmPassword = form.confirmPassword.value;
-      var phone = form.phone.value.trim();
-      alertBox.style.display = 'none';
-      if (!fullname || !email || !password || !confirmPassword) {
-        alertBox.textContent = 'Please fill in all required fields.';
-        alertBox.style.display = 'block';
-        return;
-      }
-      if (password.length < 6) {
-        alertBox.textContent = 'Password must be at least 6 characters.';
-        alertBox.style.display = 'block';
-        return;
-      }
-      if (password !== confirmPassword) {
-        alertBox.textContent = 'Passwords do not match.';
-        alertBox.style.display = 'block';
-        return;
-      }
-      // Send registration to Apps Script
-      const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoGKehvBYhmNNJjpfz4T9IOHfMYMF7ZurjSgTxvdC6bjeiKDO2KT_z_xapjZRoLvVk4g/exec';
-      try {
-        const response = await fetch(`${APPS_SCRIPT_URL}?action=register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fullname, email, phone, password })
-        });
-        const result = await response.json();
-        if (!result.ok) {
-          alertBox.textContent = result.error || 'Registration failed.';
-          alertBox.style.display = 'block';
-          return;
-        }
-        // Show success modal
-        successModal.style.display = 'block';
-        setTimeout(function () {
-          window.location.href = 'dashboard.html';
-        }, 2000);
-      } catch (err) {
-        alertBox.textContent = 'Registration failed. Please try again.';
-        alertBox.style.display = 'block';
-      }
-    });
+    // Auto-login session
+    const sessionUser = {
+      name: fullname,
+      email,
+      phone,
+      isAuthenticated: true,
+      loginTime: new Date().toISOString(),
+      baseAvailable: 0,
+      totalBalance: 0
+    };
+    localStorage.setItem("bs-user", JSON.stringify(sessionUser));
+    localStorage.setItem("bs-last-registered-email", email);
+
+    btn.textContent = "Account created! Redirecting...";
+    setTimeout(() => window.location.href = "dashboard.html", 1000);
+
+  } catch (err) {
+    console.error("Registration error:", err);
+    showAlert("Error saving to Neon: " + (err.message || ""));
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+});
+
+// Password toggle
+(function () {
+  const btn = document.getElementById("pwToggleRegister");
+  const input = document.getElementById("password");
+  if (!btn || !input) return;
+  btn.addEventListener("click", () => {
+    const type = input.getAttribute("type") === "password" ? "text" : "password";
+    input.setAttribute("type", type);
+    btn.textContent = type === "password" ? "Show" : "Hide";
   });
-  </script>
+})();
+</script>
 </body>
 </html>

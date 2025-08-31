@@ -641,9 +641,9 @@ async function loadBalance() {
     return;
   }
   try {
-    const res = await fetch(`${API_BASE}/users?email=eq.${encodeURIComponent(user.email)}`, {
-      headers: { "Authorization": `Bearer ${API_KEY}` }
-    });
+        const res = await fetch(`${API_BASE}/users?email=eq.${encodeURIComponent(user.email)}`, {
+            headers: {}
+        });
     const rows = await res.json();
     const balance = rows[0]?.baseavailable || 0;
     document.getElementById("availableBalance").textContent =
@@ -707,14 +707,13 @@ document.getElementById("transferFormElement").addEventListener("submit", async 
   };
 
   try {
-    const res = await fetch(`${API_BASE}/transfers`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify([transfer])
-    });
+        const res = await fetch(`${API_BASE}/transfers`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify([transfer])
+        });
 
     if (!res.ok) throw new Error("Transfer insert failed: " + res.status);
 

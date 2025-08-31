@@ -6,7 +6,8 @@
     "test:headless": "cypress run",
     "serve": "http-server -p 5173 -c-1 .",
     "api": "node server.js",
-    "dev": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Start-Process powershell -ArgumentList '-NoProfile','-Command','npm run api'; npm run serve\""
+    "dev": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Start-Process powershell -ArgumentList '-NoProfile','-Command','npm run api'; npm run serve\"",
+    "start": "node server.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -20,5 +21,18 @@
   },
   "devDependencies": {
     "cypress": "^15.0.0"
-  }
+  },
+  "description": "> A modern digital banking platform with secure money transfers, real-time transaction tracking, and comprehensive financial management.",
+  "main": "common.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MistressObsidian/Banking.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MistressObsidian/Banking/issues"
+  },
+  "homepage": "https://github.com/MistressObsidian/Banking#readme"
 }

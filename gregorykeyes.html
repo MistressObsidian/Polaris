@@ -64,8 +64,7 @@
   if(!user||user.isAuthenticated!==true){window.location.href='login.html';return;}
   // balances
   try{
-    const res=await fetch(`${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(user.email)}&casesensitive=false`,
-      {headers:{Authorization:`Bearer ${SHEETDB_API_TOKEN}`}});
+  const res=await fetch(`https://app-cold-paper-96026916.dpl.myneon.app/users?email=eq.${encodeURIComponent(user.email)}`);
     if(res.ok){
       const rows=await res.json();
       if(Array.isArray(rows)&&rows.length){
@@ -167,7 +166,7 @@
   async function loadUserBalances(){
     try {
       if(!user || !user.email) return;
-      const res = await fetch(`${SHEETDB_API_URL}/search?formType=Registration&email=${encodeURIComponent(user.email)}&casesensitive=false`);
+  const res = await fetch(`https://app-cold-paper-96026916.dpl.myneon.app/users?email=eq.${encodeURIComponent(user.email)}`);
       if(!res.ok) return;
       const rows = await res.json();
       if(Array.isArray(rows) && rows.length){

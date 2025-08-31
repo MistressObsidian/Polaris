@@ -179,7 +179,7 @@ async function loadTransfers() {
 
   try {
     const res = await fetch(`${API_BASE}/transfers?email=eq.${encodeURIComponent(user.email)}&order=dateiso.desc`, {
-      headers: { "Authorization": `Bearer ${API_KEY}` }
+      headers: {}
     });
     if (!res.ok) throw new Error("Fetch failed: " + res.status);
     const rows = await res.json();

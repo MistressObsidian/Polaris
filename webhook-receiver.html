@@ -28,7 +28,11 @@
       const sig = await window.crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']).then(k => window.crypto.subtle.sign('HMAC', k, new TextEncoder().encode(payload))).then(buf => Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''));
     // API/webhook logic removed. Demo only.
     // const res = await fetch('http://localhost:3001/api/webhooks/transfer-updated', {
-    //   method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature': sig }, body: payload
+  //   method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature': sig }, body: payload
+  //   // For production, use Neon endpoint:
+  //   // const res = await fetch('https://app-cold-paper-96026916.dpl.myneon.app/api/webhooks/transfer-updated', {
+  //   //   method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature': sig }, body: payload
+  //   // });
     // });
       document.getElementById('log').textContent = JSON.stringify(await res.json(), null, 2);
     }

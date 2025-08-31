@@ -1,25 +1,28 @@
 // server.js
 import express from "express";
-import pkg from "pg";
+import { Client } from "pg";
 import bcrypt from "bcryptjs";
 import cors from "cors";
+import dotenv from "dotenv";
 
-const { Pool } = pkg;
+dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // your Neon URL
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
+
+client.connect();
 
 // Register
 app.post("/api/register", async (req, res) => {
   const { fullname, email, phone, password } = req.body;
   const hash = await bcrypt.hash(password, 10);
   try {
-    await pool.query(
+    await client.query(
       "INSERT INTO users (fullname, email, phone, password_hash) VALUES ($1,$2,$3,$4)",
       [fullname, email.toLowerCase(), phone, hash]
     );
@@ -32,7 +35,7 @@ app.post("/api/register", async (req, res) => {
 // Login
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
-  const result = await pool.query("SELECT * FROM users WHERE email=$1", [email.toLowerCase()]);
+  const result = await client.query("SELECT * FROM users WHERE email=$1", [email.toLowerCase()]);
   if (result.rows.length === 0) return res.status(401).json({ error: "User not found" });
 
   const user = result.rows[0];
@@ -49,7 +52,7 @@ app.post("/api/login", async (req, res) => {
 app.post("/api/transfers", async (req, res) => {
   const { user_id, amount, note } = req.body;
   const ref = "TXN" + Date.now();
-  await pool.query(
+  await client.query(
     "INSERT INTO transfers (reference, user_id, amount, note) VALUES ($1,$2,$3,$4)",
     [ref, user_id, amount, note]
   );

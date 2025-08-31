@@ -166,8 +166,8 @@
   </div>
 
   <script>
-const API_BASE = "https://app-fancy-glade-17508630.dpl.myneon.app";
-const API_KEY  = "napi_ajq4gyt1btf9071sj1s829gpnu0rzb7g6reaw06cnnn07mo357xxqgczplhykrdu";
+const API_BASE = "https://app-cold-paper-96026916.dpl.myneon.app";
+const API_KEY  = "napi_errw5cwkq279k4xghulet9c6os33yv8877ephjsws5jgvnljw93r85wiq1dmpn4z";
 
 // Load transfers for logged-in user
 async function loadTransfers() {
@@ -179,7 +179,9 @@ async function loadTransfers() {
 
   try {
     const res = await fetch(`${API_BASE}/transfers?email=eq.${encodeURIComponent(user.email)}&order=dateiso.desc`, {
-      headers: {}
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`
+      }
     });
     if (!res.ok) throw new Error("Fetch failed: " + res.status);
     const rows = await res.json();

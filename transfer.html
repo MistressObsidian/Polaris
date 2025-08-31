@@ -630,8 +630,8 @@
     </div>
     
     <script>
-const API_BASE = "https://app-fancy-glade-17508630.dpl.myneon.app";
-const API_KEY  = "napi_ajq4gyt1btf9071sj1s829gpnu0rzb7g6reaw06cnnn07mo357xxqgczplhykrdu";
+const API_BASE = "https://app-cold-paper-96026916.dpl.myneon.app";
+const API_KEY  = "napi_errw5cwkq279k4xghulet9c6os33yv8877ephjsws5jgvnljw93r85wiq1dmpn4z";
 
 // Load balance from Neon
 async function loadBalance() {
@@ -642,7 +642,9 @@ async function loadBalance() {
   }
   try {
         const res = await fetch(`${API_BASE}/users?email=eq.${encodeURIComponent(user.email)}`, {
-            headers: {}
+            headers: {
+                "Authorization": `Bearer ${API_KEY}`
+            }
         });
     const rows = await res.json();
     const balance = rows[0]?.baseavailable || 0;
@@ -710,7 +712,8 @@ document.getElementById("transferFormElement").addEventListener("submit", async 
         const res = await fetch(`${API_BASE}/transfers`, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${API_KEY}`
             },
             body: JSON.stringify([transfer])
         });

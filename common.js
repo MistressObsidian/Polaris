@@ -1,7 +1,7 @@
 // Shared platform utilities: session + transfer sync (Neon backend)
 (function (global) {
   const API_BASE = "https://app-cold-paper-96026916.dpl.myneon.app";
-  const API_KEY  = "napi_ajq4gyt1btf9071sj1s829gpnu0rzb7g6reaw06cnnn07mo357xxqgczplhykrdu";
+  const API_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYXV0aGVudGljYXRlZCIsImVtYWlsIjoieW91ckBlbWFpbC5jb20iLCJpYXQiOjE3NTY2ODYwNzYsImV4cCI6MTc1NjY4OTY3Nn0.OxFr1vQSPYEpPxzpu_qnLVY-o_OdrrEn9wzNcF5ARu8";
 
   // ---------- Neon Helpers ----------
   async function neonFetch(path, options = {}) {

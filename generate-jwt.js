@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 // Replace with your actual secret
-const secret = '8a636c4c9fc2c9043642f6744da9510bbf28bb86490001643337ade3a002c39e6db08185002c8bd72c64498cbd832ea3bb5b9d022389f87e2bb118ffbab50201';
+const secret = 'e4f9c7b1d2a38f0c6e9d5b4a7c2f8e1d9b6a3f4c8d7e2a5b1c9f6d3a7b8e4c2f';
 
 // Example payload (customize as needed)
 const payload = {

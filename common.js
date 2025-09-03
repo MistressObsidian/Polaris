@@ -1,13 +1,24 @@
+(function(global) {
 // Shared platform utilities: session + transfer sync (Neon backend)
-(function (global) {
-  const API_BASE = "https://app-cold-paper-96026916.dpl.myneon.app";
-  const API_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYXV0aGVudGljYXRlZCIsImVtYWlsIjoieW91ckBlbWFpbC5jb20iLCJpYXQiOjE3NTY2ODgzMDcsImV4cCI6MTc1NjY5MTkwN30.n6ilFhPl1Hq3BoYfw6FZphuHpk4aX5nyAXXuxtIvERE";
+// Central API key management
+const API_BASE = "https://app-autumn-bird-87897612.dpl.myneon.app";
+function getApiKey() {
+  return localStorage.getItem("NEON_API_KEY") || "";
+}
+function setApiKey(key) {
+  localStorage.setItem("NEON_API_KEY", key);
+}
 
   // ---------- Neon Helpers ----------
   async function neonFetch(path, options = {}) {
     const url = `${API_BASE}${path}`;
+    const apiKey = getApiKey();
     const headers = Object.assign(
-      { "Authorization": `Bearer ${API_KEY}`, "Content-Type": "application/json", "Accept": "application/json" },
+      {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
       options.headers || {}
     );
     const res = await fetch(url, { ...options, headers });
@@ -170,6 +181,6 @@
   }
 
   // Export
-  global.Platform = { sheetSearch, sheetInsert, registerUser, fetchUserFinancials, getUser, setUser, isAuthenticated, injectHeaderFooter, showBalanceWidget };
+  global.Platform = { sheetSearch, sheetInsert, registerUser, fetchUserFinancials, getUser, setUser, isAuthenticated, injectHeaderFooter, showBalanceWidget, getApiKey, setApiKey };
 
 })(window);

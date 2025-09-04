@@ -17,28 +17,29 @@
     header img{height:42px;width:auto;display:block}
     header h1{font-size:1.2rem;margin:0;font-weight:800;color:#1e3c72}
   </style>
-  <script>
-const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
-const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
+  <script src="config.js"></script>
+<script>
+const API_BASE = window.API_BASE;
 
 // Simulate webhook event (manual trigger)
 async function sendWebhookTest() {
   try {
     const res = await fetch(`${API_BASE}/webhooks/test`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`
-      },
-      body: JSON.stringify({ event: "transfer.completed", data: { id: "demo123", amount: 500 } })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "transfer.completed",
+        data: { id: "demo123", amount: 500 }
+      })
     });
 
     if (!res.ok) throw new Error("Webhook send failed");
     const data = await res.json();
-
-    document.getElementById("webhookResult").textContent = JSON.stringify(data, null, 2);
+    document.getElementById("webhookResult").textContent =
+      JSON.stringify(data, null, 2);
   } catch (err) {
-    document.getElementById("webhookResult").textContent = "Error: " + err.message;
+    document.getElementById("webhookResult").textContent =
+      "Error: " + err.message;
   }
 }
 </script>

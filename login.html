@@ -55,38 +55,29 @@
     </section>
   </main>
 
-  <script>
-const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
-const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
-
-// Handle login form
+<script src="config.js"></script>
+<script>
+const API_BASE = window.API_BASE;  // set to "/api" in config.js
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = document.getElementById("email").value.trim().toLowerCase();
   const password = document.getElementById("password").value;
 
   try {
-    // 🔎 Check user directly in register table
-    const response = await fetch(
-      `${API_BASE}/register?email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}`,
-      {
-        headers: { Authorization: `Bearer ${API_KEY}` }
-      }
-    );
+    const res = await fetch(`${API_BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
 
-    if (!response.ok) throw new Error("Login request failed");
-    const users = await response.json();
+    if (!res.ok) throw new Error(data.error || "Login failed");
 
-    if (users.length) {
-      // ✅ Success → save user in localStorage
-      const user = users[0];
-      localStorage.setItem("bs-user", JSON.stringify(user));
-      window.location.href = "dashboard.html";
-    } else {
-      throw new Error("Invalid email or password");
-    }
+    // Save token to localStorage
+    localStorage.setItem("bs-auth-token", data.token);
+    window.location.href = "dashboard.html";
   } catch (err) {
-    alert("Login failed: " + err.message);
+    document.getElementById("loginAlert").textContent = err.message;
   }
 });
 </script>

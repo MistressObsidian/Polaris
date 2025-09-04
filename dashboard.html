@@ -505,8 +505,7 @@
   </main>
 
  <script>
-const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
-const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
+// Local API config (uses config.js -> window.API_BASE = '/api')
 
 let user = null;
 
@@ -537,9 +536,8 @@ window.addEventListener("transfer-completed", async (e) => {
 // Fetch balances
 async function loadBalances(email) {
   try {
-    const res = await fetch(`${API_BASE}/transactions?user_email=eq.${encodeURIComponent(email)}`, {
-      headers: { Authorization: `Bearer ${API_KEY}` }
-    });
+  const u = JSON.parse(localStorage.getItem('bs-user')||'null');
+  const res = await fetch(`${window.API_BASE}/transactions?user_email=${encodeURIComponent(email)}`, { headers: { Authorization: `Bearer ${u?.token||''}` }});
 
     if (!res.ok) throw new Error("Failed to fetch balances");
     const rows = await res.json();
@@ -564,9 +562,8 @@ async function loadBalances(email) {
 // Fetch recent transactions
 async function loadTransactions(email) {
   try {
-    const res = await fetch(`${API_BASE}/transactions?user_email=eq.${encodeURIComponent(email)}&order=created_at.desc&limit=10`, {
-      headers: { Authorization: `Bearer ${API_KEY}` }
-    });
+  const u = JSON.parse(localStorage.getItem('bs-user')||'null');
+  const res = await fetch(`${window.API_BASE}/transactions?user_email=${encodeURIComponent(email)}`, { headers: { Authorization: `Bearer ${u?.token||''}` }});
 
     if (!res.ok) throw new Error("Failed to fetch transactions");
     const rows = await res.json();
@@ -577,7 +574,7 @@ async function loadTransactions(email) {
       <div class="tx">
         <div>
           <div class="name">${tx.description || "Transaction"}</div>
-          <div class="meta">${new Date(tx.created_at).toLocaleString()}</div>
+          <div class="meta">${new Date(tx.ts || Date.now()).toLocaleString()}</div>
         </div>
         <div class="delta ${tx.type === "credit" ? "pos" : "neg"}">
           ${tx.type === "credit" ? "+" : "-"}$${Number(tx.amount).toFixed(2)}

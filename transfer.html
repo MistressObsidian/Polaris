@@ -6,6 +6,7 @@
     <title>Transfer Money • Bank Swift</title>
     <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
     <style>
         * {
             margin: 0;
@@ -630,8 +631,7 @@
     </div>
     
     <script>
-const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
-const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
+// Local API via Express
 
 let user = null;
 
@@ -669,20 +669,17 @@ async function handleTransfer(e) {
 
   try {
     // 1. Check recipient exists
-    const userCheck = await fetch(`${API_BASE}/register?email=eq.${encodeURIComponent(recipient)}`, {
-      headers: { Authorization: `Bearer ${API_KEY}` }
-    });
-    if (!userCheck.ok) throw new Error("Failed to verify recipient");
-    const userRows = await userCheck.json();
-    if (!userRows.length) {
+    const authUser = JSON.parse(localStorage.getItem('bs-user')||'null');
+    const userRes = await fetch(`${window.API_BASE}/users`, { headers: { Authorization: `Bearer ${authUser?.token||''}` }});
+    const allUsers = userRes.ok ? await userRes.json() : [];
+    const exists = Array.isArray(allUsers) ? allUsers.some(u => (u.email||'').toLowerCase() === recipient) : false;
+    if (!exists) {
       alert("Recipient not found. Please make sure the email is registered.");
       return;
     }
 
     // 2. Check sender balance
-    const balanceRes = await fetch(`${API_BASE}/transactions?user_email=eq.${encodeURIComponent(user.email)}`, {
-      headers: { Authorization: `Bearer ${API_KEY}` }
-    });
+    const balanceRes = await fetch(`${window.API_BASE}/transactions?user_email=${encodeURIComponent(user.email)}`, { headers: { Authorization: `Bearer ${authUser?.token||''}` }});
     if (!balanceRes.ok) throw new Error("Failed to fetch balance");
     const txRows = await balanceRes.json();
 
@@ -698,12 +695,9 @@ async function handleTransfer(e) {
     }
 
     // 3. Insert into transfers table
-    const transferRes = await fetch(`${API_BASE}/transfers`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`
-      },
+            const transferRes = await fetch(`${window.API_BASE}/transfers`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${authUser?.token||''}` },
       body: JSON.stringify({
         sender_email: user.email,
         recipient,
@@ -715,12 +709,9 @@ async function handleTransfer(e) {
     const transferData = await transferRes.json();
 
     // 4. Add debit to sender's transactions
-    await fetch(`${API_BASE}/transactions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`
-      },
+            await fetch(`${window.API_BASE}/transactions`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${authUser?.token||''}` },
       body: JSON.stringify({
         user_email: user.email,
         type: "debit",
@@ -730,12 +721,9 @@ async function handleTransfer(e) {
     });
 
     // 5. Add credit to recipient's transactions
-    await fetch(`${API_BASE}/transactions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`
-      },
+            await fetch(`${window.API_BASE}/transactions`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${authUser?.token||''}` },
       body: JSON.stringify({
         user_email: recipient,
         type: "credit",

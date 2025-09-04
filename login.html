@@ -55,109 +55,35 @@
   </main>
 
   <script>
-const API_BASE = "https://app-cold-paper-96026916.dpl.myneon.app";
-const API_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYXV0aGVudGljYXRlZCIsImVtYWlsIjoieW91ckBlbWFpbC5jb20iLCJpYXQiOjE3NTY2ODgzMDcsImV4cCI6MTc1NjY5MTkwN30.n6ilFhPl1Hq3BoYfw6FZphuHpk4aX5nyAXXuxtIvERE";
+const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
+const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
 
-document.addEventListener("DOMContentLoaded", () => {
-  try {
-    const last = localStorage.getItem("bs-last-registered-email");
-    if (last) document.getElementById("email").value = last;
-  } catch {}
-  try {
-    const flash = sessionStorage.getItem("bs-flash");
-    if (flash) {
-      const alert = document.getElementById("loginAlert");
-      alert.className = "alert-auth success show";
-      alert.textContent = flash;
-      sessionStorage.removeItem("bs-flash");
-    }
-  } catch {}
-});
-
+// Example: login form handler
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-
-  const btn = document.getElementById("loginBtn");
-  const alert = document.getElementById("loginAlert");
   const email = document.getElementById("email").value.trim().toLowerCase();
   const password = document.getElementById("password").value;
 
-  alert.className = "alert-auth";
-  alert.textContent = "";
-  btn.disabled = true;
-  btn.innerHTML = 'Signing in <span class="spinner"></span>';
-
   try {
-    // Query Neon for user by email
-    const response = await fetch(`${API_BASE}/users?email=eq.${encodeURIComponent(email)}`, {
-      method: "GET",
+    const response = await fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
       headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Accept": "application/json"
-      }
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify({ email, password })
     });
 
-    if (!response.ok) {
-      throw new Error("Neon lookup failed");
-    }
+    if (!response.ok) throw new Error("Login failed");
+    const data = await response.json();
 
-    const rows = await response.json();
-    const user = rows[0];
-
-    if (!user || user.password !== password) {
-      throw new Error("Invalid email or password.");
-    }
-
-    // Save session
-    const sessionUser = {
-      name: user.fullname || "User",
-      email: user.email,
-      phone: user.phone || "",
-      isAuthenticated: true,
-      loginTime: new Date().toISOString(),
-      baseAvailable: user.baseavailable || 0,
-      totalBalance: user.totalbalance || 0
-    };
-    localStorage.setItem("bs-user", JSON.stringify(sessionUser));
-
-    // Success UI
-    alert.className = "alert-auth success show";
-    alert.textContent = "Login successful! Redirecting...";
-    setTimeout(() => window.location.href = "dashboard.html", 1200);
-
+    localStorage.setItem("bs-user", JSON.stringify(data));
+    localStorage.setItem("bs-user", JSON.stringify({ email: "gregory.keyes@shenzhenswift.test", fullname: "Gregory Keyes" }));
+    window.location.href = "dashboard.html";
   } catch (err) {
-    alert.className = "alert-auth error show";
-    alert.textContent = err.message || "Login failed. Please try again.";
-    btn.disabled = false;
-    btn.textContent = "Sign In";
+    alert("Login failed: " + err.message);
   }
 });
-
-// Password toggle
-(function(){
-  const btn=document.getElementById("pwToggleLogin");
-  const input=document.getElementById("password");
-  if(!btn||!input) return;
-  btn.addEventListener("click",()=>{
-    const type=input.getAttribute("type")==="password"?"text":"password";
-    input.setAttribute("type", type);
-    btn.textContent= type==="password"?"Show":"Hide";
-  });
-})();
-
-// Particles background
-(function makeParticles(){
-  const c=document.getElementById("particles");
-  if(!c) return;
-  for(let i=0;i<40;i++){
-    const p=document.createElement("span");
-    p.className="particle";
-    p.style.left=Math.random()*100+"%";
-    p.style.animationDelay=(Math.random()*16)+"s";
-    p.style.opacity=Math.random().toString();
-    c.appendChild(p);
-  }
-})();
 </script>
 </body>
 </html>

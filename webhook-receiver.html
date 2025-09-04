@@ -18,25 +18,30 @@
     header h1{font-size:1.2rem;margin:0;font-weight:800;color:#1e3c72}
   </style>
   <script>
-    async function sendWebhook(){
-      const ref = document.getElementById('ref').value.trim();
-      const status = document.getElementById('status').value.trim() || 'Completed';
-      if (!ref) return alert('Reference required');
-      // For demo: call our own API's webhook receiver with a pre-computed HMAC using the shared secret
-      const secret = document.getElementById('secret').value.trim() || 'change-me';
-      const payload = JSON.stringify({ event: 'transfer.updated', data: { reference: ref, status }, sentAt: new Date().toISOString() });
-      const sig = await window.crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']).then(k => window.crypto.subtle.sign('HMAC', k, new TextEncoder().encode(payload))).then(buf => Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''));
-    // API/webhook logic removed. Demo only.
-    // const res = await fetch('http://localhost:3001/api/webhooks/transfer-updated', {
-  //   method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature': sig }, body: payload
-  //   // For production, use Neon endpoint:
-  //   // const res = await fetch('https://app-cold-paper-96026916.dpl.myneon.app/api/webhooks/transfer-updated', {
-  //   //   method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature': sig }, body: payload
-  //   // });
-    // });
-      document.getElementById('log').textContent = JSON.stringify(await res.json(), null, 2);
-    }
-  </script>
+const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
+const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
+
+// Simulate webhook event (manual trigger)
+async function sendWebhookTest() {
+  try {
+    const res = await fetch(`${API_BASE}/webhooks/test`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify({ event: "transfer.completed", data: { id: "demo123", amount: 500 } })
+    });
+
+    if (!res.ok) throw new Error("Webhook send failed");
+    const data = await res.json();
+
+    document.getElementById("webhookResult").textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    document.getElementById("webhookResult").textContent = "Error: " + err.message;
+  }
+}
+</script>
 </head>
 <body>
   <header>
@@ -82,5 +87,7 @@
     <h3>Response</h3>
     <pre id="log" class="log"></pre>
   </main>
+  <button onclick="sendWebhookTest()" class="btn-shared btn-primary-shared">Send Test Webhook</button>
+<pre id="webhookResult" style="margin-top:20px; padding:15px; background:rgba(255,255,255,.05); border-radius:8px; color:#fff;"></pre>
 </body>
 </html>

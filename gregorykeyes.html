@@ -139,213 +139,94 @@
   <script>
   let BASE_AVAILABLE = 127400.20;
   let TOTAL_BALANCE = 127401.78;
-  const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/3g36t35kn6po0';
+const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
+const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
 
-    // Gate: only logged-in, authenticated users (set by login/register after SheetDB confirm)
-    // Read new auth key (with legacy migration)
-    try { if(!localStorage.getItem('bs-user')){ const legacy = sessionStorage.getItem('loggedInUser'); if(legacy){ localStorage.setItem('bs-user', legacy); sessionStorage.removeItem('loggedInUser'); } } } catch {}
-    let user = null;
-    try {
-      user = JSON.parse(localStorage.getItem('bs-user') || 'null');
-      if (!user || user.isAuthenticated !== true) {
-        window.location.href = 'index.html';
-      }
-    } catch {
-      window.location.href = 'index.html';
+let user = null;
+
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    user = JSON.parse(localStorage.getItem("bs-user"));
+    if (!user || !user.email) {
+      window.location.href = "login.html";
+      return;
     }
 
-    function currency(n){ try{ return Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) }catch{ return `$${n}` } }
-    async function loadTransfers(){
-      if(window.Platform && Platform.fetchTransfersUnified){
-        return Platform.fetchTransfersUnified({ email: (user && user.email)||'' });
-      }
-      // fallback to session only
-      try { const arr = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]'); return Array.isArray(arr)?arr:[]; } catch { return []; }
-    }
+    document.getElementById("userNameLine").textContent = `Welcome, ${user.fullname || user.email}`;
 
-  async function loadUserBalances(){
-    try {
-      if(!user || !user.email) return;
-  const res = await fetch(`https://app-cold-paper-96026916.dpl.myneon.app/users?email=eq.${encodeURIComponent(user.email)}`);
-      if(!res.ok) return;
-      const rows = await res.json();
-      if(Array.isArray(rows) && rows.length){
-        const r = rows[0];
-        if(r.baseAvailable) BASE_AVAILABLE = Number(r.baseAvailable);
-        if(r.totalBalance) TOTAL_BALANCE = Number(r.totalBalance);
-      }
-    } catch {}
+    // Load data
+    await loadBalances(user.email);
+    await loadTransactions(user.email);
+  } catch (err) {
+    console.error("Dashboard init error:", err);
   }
+  // Auto-refresh when a transfer is completed
+window.addEventListener("transfer-completed", async (e) => {
+  console.log("Transfer event received:", e.detail);
+  await loadBalances(user.email);
+  await loadTransactions(user.email);
+});
 
-  window.addEventListener('DOMContentLoaded', async () => {
-      // Welcome line
-      const nameEl = document.getElementById('userNameLine');
-      if (nameEl) {
-        const displayName = (user && (user.name || user.fullname)) || (user && user.email ? user.email.split('@')[0] : 'User');
-        nameEl.textContent = `Welcome, ${displayName}`;
-      }
-
-      await loadUserBalances();
-      
-  let txs = await loadTransfers();
-      // Merge any locally initiated (session) that might not yet be in API/Sheet
-      try {
-  const local = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');
-        if(Array.isArray(local)){
-          const existingRefs = new Set(txs.map(t=>t.reference));
-          for(const l of local){ if(l && l.reference && !existingRefs.has(l.reference)) txs.unshift(l); }
-        }
-      } catch {}
-
-      // Available balance = base - sum of COMPLETED transfer amounts
-  const spent = txs.filter(t => String(t.status||'').toLowerCase()==='completed').reduce((s,t)=> s + (Number(t.amount)||0),0);
-      const availableNow = Math.max(0, BASE_AVAILABLE - spent);
-
-      // KPIs
-      const kpiSection = document.getElementById('kpiSection');
-      kpiSection.innerHTML = `
-        <div class="card">
-          <h3>Total balance</h3>
-          <div class="kpi"><div class="value">${currency(TOTAL_BALANCE)}</div><div class="muted">All accounts</div></div>
-        </div>
-        <div class="card">
-          <h3>Available</h3>
-          <div class="kpi"><div class="value">${currency(availableNow)}</div><div class="muted">After holds</div></div>
-        </div>
-        <div class="card">
-          <h3>Month-to-date</h3>
-          <div class="kpi"><div class="value">+$4,920.11</div><div class="muted">Net cash flow</div></div>
-        </div>
-      `;
-
-      // Recent transactions (only from transfer page)
-  const txListHtml = txs.length
-        ? txs.map(t => {
-            const date = t.date ? t.date : (t.dateISO ? new Date(t.dateISO).toLocaleDateString() : new Date().toLocaleDateString());
-            const delta = t.delta || (t.amount ? '- ' + currency(t.amount) : '');
-            const signClass = delta.trim().startsWith('+') ? 'pos' : 'neg';
-            const name = t.name || t.type || 'Transfer';
-            const meta = [
-              date,
-              t.network || 'Transfer',
-              t.from ? t.from : null,
-              t.to ? `→ ${t.to}` : null,
-              t.status ? t.status : null
-            ].filter(Boolean).join(' • ');
-            const ref = encodeURIComponent(t.reference || t.ref || t.id || '');
-            return `
-              <div class="tx" data-ref="${ref}">
-                <div class="name">${name}</div>
-                <div class="delta ${signClass}">${delta}</div>
-                <div class="meta">${meta}</div>
-              </div>
-            `;
-          }).join('')
-        : `<div style="color:var(--muted);text-align:center;padding:24px 0;">No recent transactions yet.</div>`;
-
-      // Accounts + Recent transactions
-      const accountSection = document.getElementById('accountSection');
-      accountSection.innerHTML = `
-        <div class="card">
-          <h3>Your accounts</h3>
-          <div class="accounts" style="margin-top:10px;">
-            <div class="account-row">
-              <div class="left">
-                <span class="pill">Checking</span>
-                <div>
-                  <div style="font-weight:800;">Everyday Checking</div>
-                  <div class="muted" style="font-size:.9rem;">••• 3482</div>
-                </div>
-              </div>
-              <div class="amount">$127,401.78</div>
-            </div>
-            <div class="account-row">
-              <div class="left">
-                <span class="pill">Savings</span>
-                <div>
-                  <div style="font-weight:800;">High-Yield Savings</div>
-                  <div class="muted" style="font-size:.9rem;">••• 9015</div>
-                </div>
-              </div>
-              <div class="amount">$0.98</div>
-            </div>
-            <div class="account-row">
-              <div class="left">
-                <span class="pill">Brokerage</span>
-                <div>
-                  <div style="font-weight:800;">Invest Portfolio</div>
-                  <div class="muted" style="font-size:.9rem;">••• 1170</div>
-                </div>
-              </div>
-              <div class="amount">$0.80</div>
-            </div>
-          </div>
-          <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-            <a class="btn btn-primary" href="transfer.html">Transfer money</a>
-            <button class="btn btn-action" type="button">Deposit funds</button>
-            <button class="btn btn-action" type="button">Statements</button>
-          </div>
-        </div>
-        <div class="card">
-          <h3>Recent transactions</h3>
-          <div class="tx-list" style="margin-top:10px;" id="txList">${txListHtml}</div>
-          <div style="margin-top:12px;">
-            <a class="btn btn-primary" id="viewDetailsBtn" href="transaction-details.html">View details</a>
-          </div>
-        </div>
-      `;
-
-      // Click a transaction row to open its details
-      const listEl = document.getElementById('txList');
-      if (listEl) {
-        listEl.addEventListener('click', (e) => {
-          const row = e.target.closest('.tx');
-          if (!row) return;
-          const ref = row.getAttribute('data-ref');
-          if (ref) {
-            window.location.href = `transaction-details.html?ref=${ref}`;
-          }
-        });
-      }
-
-      // “View details” opens most recent tx if present
-      const btn = document.getElementById('viewDetailsBtn');
-      if (btn && txs.length > 0) {
-        const latestRef = encodeURIComponent(txs[0].reference || txs[0].ref || txs[0].id || '');
-        btn.href = latestRef ? `transaction-details.html?ref=${latestRef}` : 'transaction-details.html';
-      }
-
-      // Real-time updates: replace SSE (removed) with periodic polling
-      const rebuilder = async () => {
-        let fresh = await loadTransfers();
-        try {
-          const local2 = JSON.parse(sessionStorage.getItem('initiatedTransactions')||'[]');
-          if(Array.isArray(local2)){
-            const existingRefs = new Set(fresh.map(t=>t.reference));
-            for(const l of local2){ if(l && l.reference && !existingRefs.has(l.reference)) fresh.unshift(l); }
-          }
-        } catch {}
-        txs = fresh;
-        const spent2 = txs.filter(t => String(t.status||'').toLowerCase()==='completed')
-          .reduce((s,t)=> s + (Number(t.amount)||0),0);
-        const availableNow2 = Math.max(0, BASE_AVAILABLE - spent2);
-        const kpiAvailEl = document.getElementById('kpiSection')?.children[1]?.querySelector('.value');
-        if(kpiAvailEl) kpiAvailEl.textContent = currency(availableNow2);
-        const listEl2 = document.getElementById('txList');
-        if(listEl2){
-          listEl2.innerHTML = txs.length ? txs.slice(0, listEl2.children.length || 50).map(t => {
-            const date = t.date ? t.date : (t.dateISO ? new Date(t.dateISO).toLocaleDateString() : new Date().toLocaleDateString());
-            const delta = t.delta || (t.amount ? '- ' + currency(t.amount) : '');
-            const signClass = delta.trim().startsWith('+') ? 'pos' : 'neg';
-            const name = t.name || t.type || 'Transfer';
-            const meta = [date, t.network || 'Transfer', t.from ? t.from : null, t.to ? `→ ${t.to}` : null, t.status ? t.status : null].filter(Boolean).join(' • ');
-            const ref = encodeURIComponent(t.reference || t.ref || t.id || '');
-            return `<div class="tx" data-ref="${ref}"><div class="name">${name}</div><div class="delta ${signClass}">${delta}</div><div class="meta">${meta}</div></div>`;
-          }).join('') : `<div style="color:var(--muted);text-align:center;padding:24px 0;">No recent transactions yet.</div>`;
-        }
-      };
-      setInterval(rebuilder, 15000); // every 15 seconds
+// Fetch balances
+async function loadBalances(email) {
+  try {
+    const res = await fetch(`${API_BASE}/transactions?user_email=eq.${encodeURIComponent(email)}`, {
+      headers: { Authorization: `Bearer ${API_KEY}` }
     });
-  </script>
+
+    if (!res.ok) throw new Error("Failed to fetch balances");
+    const rows = await res.json();
+
+    let balance = 0;
+    rows.forEach(tx => {
+      if (tx.type === "credit") balance += Number(tx.amount);
+      if (tx.type === "debit") balance -= Number(tx.amount);
+    });
+
+    const kpiSection = document.getElementById("kpiSection");
+    kpiSection.innerHTML = `
+      <div class="card"><h3>Available Balance</h3>
+        <div class="kpi"><span class="value">$${balance.toFixed(2)}</span>
+        <span class="muted">Current Funds</span></div>
+      </div>
+      <div class="card"><h3>Total Transactions</h3>
+        <div class="kpi"><span class="value">${rows.length}</span>
+        <span class="muted">History Records</span></div>
+      </div>
+    `;
+  } catch (err) {
+    console.error("Balance error:", err);
+  }
+}
+
+// Fetch recent transactions
+async function loadTransactions(email) {
+  try {
+    const res = await fetch(`${API_BASE}/transactions?user_email=eq.${encodeURIComponent(email)}&order=created_at.desc&limit=5`, {
+      headers: { Authorization: `Bearer ${API_KEY}` }
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch transactions");
+    const rows = await res.json();
+
+    const accountSection = document.getElementById("accountSection");
+    accountSection.innerHTML = rows.map(tx => `
+      <div class="account-row">
+        <div class="left">
+          <div>
+            <div class="name">${tx.description || "Transaction"}</div>
+            <div class="meta">${new Date(tx.created_at).toLocaleString()}</div>
+          </div>
+        </div>
+        <div class="amount ${tx.type === "credit" ? "pos" : "neg"}">
+          ${tx.type === "credit" ? "+" : "-"}$${Number(tx.amount).toFixed(2)}
+        </div>
+      </div>
+    `).join("");
+  } catch (err) {
+    console.error("Transaction error:", err);
+  }
+}
+</script>
 </body>
 </html>

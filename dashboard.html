@@ -504,56 +504,92 @@
     </div>
   </main>
 
-  <script>
-const API_BASE = "https://app-cold-paper-96026916.dpl.myneon.app";
-const API_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYXV0aGVudGljYXRlZCIsImVtYWlsIjoieW91ckBlbWFpbC5jb20iLCJpYXQiOjE3NTY2ODgzMDcsImV4cCI6MTc1NjY5MTkwN30.n6ilFhPl1Hq3BoYfw6FZphuHpk4aX5nyAXXuxtIvERE";
+ <script>
+const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
+const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
 
-async function fetchUserFromNeon(email) {
+let user = null;
+
+document.addEventListener("DOMContentLoaded", async () => {
   try {
-    const response = await fetch(`${API_BASE}/users?email=eq.${encodeURIComponent(email)}`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Accept": "application/json"
-      }
-    });
-    if (!response.ok) throw new Error("Failed to fetch user data from Neon");
-    const rows = await response.json();
-    return rows[0] || null;
+    user = JSON.parse(localStorage.getItem("bs-user"));
+    if (!user || !user.email) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    document.getElementById("userNameLine").textContent = `Welcome, ${user.fullname || user.email}`;
+
+    // Load balances + transactions
+    await loadBalances(user.email);
+    await loadTransactions(user.email);
   } catch (err) {
-    console.error("Neon fetch error:", err);
-    return null;
+    console.error("Dashboard init error:", err);
+  }
+  // Auto-refresh when a transfer is completed
+window.addEventListener("transfer-completed", async (e) => {
+  console.log("Transfer event received:", e.detail);
+  await loadBalances(user.email);
+  await loadTransactions(user.email);
+});
+});
+
+// Fetch balances
+async function loadBalances(email) {
+  try {
+    const res = await fetch(`${API_BASE}/transactions?user_email=eq.${encodeURIComponent(email)}`, {
+      headers: { Authorization: `Bearer ${API_KEY}` }
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch balances");
+    const rows = await res.json();
+
+    let balance = 0;
+    rows.forEach(tx => {
+      if (tx.type === "credit") balance += Number(tx.amount);
+      if (tx.type === "debit") balance -= Number(tx.amount);
+    });
+
+    // Populate balance cards
+    const kpiSection = document.getElementById("kpiSection");
+    kpiSection.innerHTML = `
+      <div class="card"><h3>Available Balance</h3><div class="kpi"><span class="value">$${balance.toFixed(2)}</span></div></div>
+      <div class="card"><h3>Total Transactions</h3><div class="kpi"><span class="value">${rows.length}</span></div></div>
+    `;
+  } catch (err) {
+    console.error("Balance error:", err);
   }
 }
 
-async function loadDashboard() {
-  const user = JSON.parse(localStorage.getItem("bs-user") || "null");
-  if (!user || !user.isAuthenticated) {
-    window.location.href = "login.html";
-    return;
+// Fetch recent transactions
+async function loadTransactions(email) {
+  try {
+    const res = await fetch(`${API_BASE}/transactions?user_email=eq.${encodeURIComponent(email)}&order=created_at.desc&limit=10`, {
+      headers: { Authorization: `Bearer ${API_KEY}` }
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch transactions");
+    const rows = await res.json();
+
+    const txList = document.createElement("section");
+    txList.className = "tx-list";
+    txList.innerHTML = rows.map(tx => `
+      <div class="tx">
+        <div>
+          <div class="name">${tx.description || "Transaction"}</div>
+          <div class="meta">${new Date(tx.created_at).toLocaleString()}</div>
+        </div>
+        <div class="delta ${tx.type === "credit" ? "pos" : "neg"}">
+          ${tx.type === "credit" ? "+" : "-"}$${Number(tx.amount).toFixed(2)}
+        </div>
+      </div>
+    `).join("");
+
+    document.querySelector(".container").appendChild(txList);
+  } catch (err) {
+    console.error("Transaction error:", err);
   }
-
-  // Try to fetch live balances from Neon
-  const neonUser = await fetchUserFromNeon(user.email);
-
-  if (neonUser) {
-    user.baseAvailable = neonUser.baseavailable || 0;
-    user.totalBalance  = neonUser.totalbalance || 0;
-    localStorage.setItem("bs-user", JSON.stringify(user));
-  }
-
-  // Update dashboard UI
-  document.getElementById("welcomeUser").textContent = user.name || "User";
-  document.getElementById("availableBalance").textContent =
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })
-      .format(user.baseAvailable || 0);
-  document.getElementById("totalBalance").textContent =
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })
-      .format(user.totalBalance || 0);
 }
-
-// Run on page load
-document.addEventListener("DOMContentLoaded", loadDashboard);
 </script>
 </body>
 </html>

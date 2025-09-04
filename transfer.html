@@ -630,125 +630,137 @@
     </div>
     
     <script>
-const API_BASE = "https://app-cold-paper-96026916.dpl.myneon.app";
-const API_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYXV0aGVudGljYXRlZCIsImVtYWlsIjoieW91ckBlbWFpbC5jb20iLCJpYXQiOjE3NTY2ODgzMDcsImV4cCI6MTc1NjY5MTkwN30.n6ilFhPl1Hq3BoYfw6FZphuHpk4aX5nyAXXuxtIvERE";
+const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
+const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
 
-// Load balance from Neon
-async function loadBalance() {
-  const user = JSON.parse(localStorage.getItem("bs-user") || "null");
-  if (!user || !user.isAuthenticated) {
-    window.location.href = "login.html";
-    return;
-  }
+let user = null;
+
+document.addEventListener("DOMContentLoaded", () => {
   try {
-        const res = await fetch(`${API_BASE}/users?email=eq.${encodeURIComponent(user.email)}`, {
-            headers: {
-                "Authorization": `Bearer ${API_KEY}`
-            }
-        });
-    const rows = await res.json();
-    const balance = rows[0]?.baseavailable || 0;
-    document.getElementById("availableBalance").textContent =
-      new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(balance);
-  } catch (err) {
-    console.warn("Balance fetch failed:", err);
-  }
-}
-
-// Select transfer method
-function selectMethod(method) {
-  document.querySelectorAll(".method-card").forEach(card => card.classList.remove("active"));
-  event.currentTarget.classList.add("active");
-  const form = document.getElementById("transferForm");
-  form.classList.add("active");
-
-  const titles = { wire:"Wire Transfer", ach:"ACH Transfer", instant:"Instant Transfer", international:"International Transfer" };
-  document.getElementById("formTitle").textContent = titles[method] || "Transfer";
-  form.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-// Set quick amount
-function setAmount(amount) {
-  document.getElementById("amountInput").value = amount;
-  updateSummary();
-}
-
-// Update transfer summary
-function updateSummary() {
-  const amount = parseFloat(document.getElementById("amountInput").value) || 0;
-  const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-  document.getElementById("summaryAmount").textContent = fmt.format(amount);
-  document.getElementById("summaryTotal").textContent  = fmt.format(amount);
-}
-
-document.getElementById("amountInput").addEventListener("input", updateSummary);
-
-// Form submit → Save transfer in Neon
-document.getElementById("transferFormElement").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById("submitBtn");
-  btn.disabled = true;
-
-  const user = JSON.parse(localStorage.getItem("bs-user") || "null");
-  if (!user || !user.isAuthenticated) {
-    alert("Please login again.");
+    user = JSON.parse(localStorage.getItem("bs-user"));
+    if (!user || !user.email) {
+      window.location.href = "login.html";
+      return;
+    }
+  } catch {
     window.location.href = "login.html";
-    return;
   }
 
-  const amount = parseFloat(document.getElementById("amountInput").value);
-  const ref = "TXN" + Date.now().toString().slice(-8);
+  document.querySelectorAll(".transfer-form").forEach(form => {
+    form.addEventListener("submit", handleTransfer);
+  });
 
-  const transfer = {
-    reference: ref,
-    email: user.email,
-    amount,
-    type: document.getElementById("formTitle").textContent,
-    status: "Processing",
-    dateiso: new Date().toISOString()
-  };
-
-  try {
-        const res = await fetch(`${API_BASE}/transfers`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${API_KEY}`
-            },
-            body: JSON.stringify([transfer])
-        });
-
-    if (!res.ok) throw new Error("Transfer insert failed: " + res.status);
-
-    // Success modal update
-    document.getElementById("refNumber").textContent = ref;
-    document.getElementById("successAmount").textContent =
-      new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
-    document.getElementById("successModal").classList.add("active");
-
-    // Reset form
-    btn.disabled = false;
-    btn.textContent = "Complete Transfer";
-    e.target.reset();
-    updateSummary();
-
-  } catch (err) {
-    console.error("Transfer error:", err);
-    alert("Failed to complete transfer: " + err.message);
-    btn.disabled = false;
-    btn.textContent = "Complete Transfer";
-  }
+  document.querySelector(".close-btn").addEventListener("click", () => {
+    document.querySelector(".success-modal").style.display = "none";
+  });
 });
 
-// Close modal
-function closeSuccessModal() {
-  document.getElementById("successModal").classList.remove("active");
-  document.getElementById("transferForm").classList.remove("active");
-  document.querySelectorAll(".method-card").forEach(card => card.classList.remove("active"));
-}
+async function handleTransfer(e) {
+  e.preventDefault();
 
-// Init
-loadBalance();
+  const form = e.target;
+  const amount = parseFloat(form.querySelector("[name='amount']").value);
+  const recipient = form.querySelector("[name='recipient']").value.trim().toLowerCase();
+
+  if (!amount || !recipient) {
+    alert("Please enter amount and recipient email.");
+    return;
+  }
+
+  try {
+    // 1. Check recipient exists
+    const userCheck = await fetch(`${API_BASE}/register?email=eq.${encodeURIComponent(recipient)}`, {
+      headers: { Authorization: `Bearer ${API_KEY}` }
+    });
+    if (!userCheck.ok) throw new Error("Failed to verify recipient");
+    const userRows = await userCheck.json();
+    if (!userRows.length) {
+      alert("Recipient not found. Please make sure the email is registered.");
+      return;
+    }
+
+    // 2. Check sender balance
+    const balanceRes = await fetch(`${API_BASE}/transactions?user_email=eq.${encodeURIComponent(user.email)}`, {
+      headers: { Authorization: `Bearer ${API_KEY}` }
+    });
+    if (!balanceRes.ok) throw new Error("Failed to fetch balance");
+    const txRows = await balanceRes.json();
+
+    let balance = 0;
+    txRows.forEach(tx => {
+      if (tx.type === "credit") balance += Number(tx.amount);
+      if (tx.type === "debit") balance -= Number(tx.amount);
+    });
+
+    if (amount > balance) {
+      alert(`Insufficient funds. Your balance is $${balance.toFixed(2)} but you tried to send $${amount.toFixed(2)}.`);
+      return;
+    }
+
+    // 3. Insert into transfers table
+    const transferRes = await fetch(`${API_BASE}/transfers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify({
+        sender_email: user.email,
+        recipient,
+        amount,
+        status: "completed"
+      })
+    });
+    if (!transferRes.ok) throw new Error("Failed to create transfer");
+    const transferData = await transferRes.json();
+
+    // 4. Add debit to sender's transactions
+    await fetch(`${API_BASE}/transactions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify({
+        user_email: user.email,
+        type: "debit",
+        amount,
+        description: `Transfer to ${recipient}`
+      })
+    });
+
+    // 5. Add credit to recipient's transactions
+    await fetch(`${API_BASE}/transactions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify({
+        user_email: recipient,
+        type: "credit",
+        amount,
+        description: `Received from ${user.email}`
+      })
+    });
+
+    // 6. Show success modal
+document.querySelector(".success-modal").style.display = "block";
+document.querySelector(".success-details").innerHTML = `
+  <div class="detail-row"><span>Recipient</span><span>${recipient}</span></div>
+  <div class="detail-row"><span>Amount</span><span>$${amount.toFixed(2)}</span></div>
+  <div class="detail-row"><span>Status</span><span>${transferData.status || "Completed"}</span></div>
+`;
+
+// 🔔 Dispatch event so dashboards can refresh
+window.dispatchEvent(new CustomEvent("transfer-completed", { detail: { sender: user.email, recipient, amount } }));
+
+form.reset();
+  } catch (err) {
+    console.error(err);
+    alert("Transfer failed: " + err.message);
+  }
+}
 </script>
 </body>
 </html>

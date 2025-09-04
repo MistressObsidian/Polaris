@@ -85,101 +85,36 @@
   </main>
 
 <script>
-const API_BASE = "https://app-cold-paper-96026916.dpl.myneon.app";
-const API_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYXV0aGVudGljYXRlZCIsImVtYWlsIjoieW91ckBlbWFpbC5jb20iLCJpYXQiOjE3NTY2ODgzMDcsImV4cCI6MTc1NjY5MTkwN30.n6ilFhPl1Hq3BoYfw6FZphuHpk4aX5nyAXXuxtIvERE";
-
-function showAlert(msg, type = "error") {
-  const el = document.getElementById("regAlert");
-  el.textContent = msg;
-  el.className = `alert-auth ${type} show`;
-}
-
-function clearAlert() {
-  const el = document.getElementById("regAlert");
-  el.textContent = "";
-  el.className = "alert-auth";
-}
+const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
+const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
 
 document.getElementById("registerForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  clearAlert();
-
-  const btn = document.getElementById("registerBtn");
-  const originalText = btn.textContent;
-  btn.disabled = true;
-  btn.innerHTML = 'Creating account <span class="spinner"></span>';
-
   const fullname = document.getElementById("fullname").value.trim();
-  const phone    = document.getElementById("phone").value.trim();
-  const email    = document.getElementById("email").value.trim().toLowerCase();
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const phone = document.getElementById("phone").value.trim();
   const password = document.getElementById("password").value;
 
-  if (!fullname || !email || !password) {
-    showAlert("Please fill all required fields.");
-    btn.disabled = false;
-    btn.textContent = originalText;
-    return;
-  }
-
   try {
-    // Insert new user into Neon
     const response = await fetch(`${API_BASE}/users`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${API_KEY}`
       },
-      body: JSON.stringify([{
-        fullname,
-        phone,
-        email,
-        password,
-        baseavailable: 0,
-        totalbalance: 0,
-        createdat: new Date().toISOString()
-      }])
+      body: JSON.stringify({ fullname, email, phone, password })
     });
 
-    if (!response.ok) {
-      const errTxt = await response.text();
-      throw new Error("Neon insert failed: " + errTxt);
-    }
+    if (!response.ok) throw new Error("Registration failed");
+    const data = await response.json();
 
-    // Save session immediately
-    const sessionUser = {
-      name: fullname,
-      email,
-      phone,
-      isAuthenticated: true,
-      loginTime: new Date().toISOString(),
-      baseAvailable: 0,
-      totalBalance: 0
-    };
-    localStorage.setItem("bs-user", JSON.stringify(sessionUser));
+    sessionStorage.setItem("bs-flash", "Account created successfully. Please log in.");
     localStorage.setItem("bs-last-registered-email", email);
-
-    btn.textContent = "Account created! Redirecting...";
-    setTimeout(() => window.location.href = "dashboard.html", 1200);
-
+    window.location.href = "login.html";
   } catch (err) {
-    console.error("Registration error:", err);
-    showAlert("Error saving to Neon: " + (err.message || ""));
-    btn.disabled = false;
-    btn.textContent = originalText;
+    alert("Registration failed: " + err.message);
   }
 });
-
-// Password toggle
-(function () {
-  const btn = document.getElementById("pwToggleRegister");
-  const input = document.getElementById("password");
-  if (!btn || !input) return;
-  btn.addEventListener("click", () => {
-    const type = input.getAttribute("type") === "password" ? "text" : "password";
-    input.setAttribute("type", type);
-    btn.textContent = type === "password" ? "Show" : "Hide";
-  });
-})();
 </script>
 </body>
 </html>

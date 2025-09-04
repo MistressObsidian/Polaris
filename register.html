@@ -86,25 +86,39 @@
   </main>
 
 <script>
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
+const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
+const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
+
+// Handle registration form
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const fullname = document.getElementById('fullname').value.trim();
-  const email = document.getElementById('email').value.trim().toLowerCase();
-  const phone = document.getElementById('phone').value.trim();
-  const password = document.getElementById('password').value;
+
+  const fullname = document.getElementById("fullname").value.trim();
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const phone = document.getElementById("phone").value.trim();
+  const password = document.getElementById("password").value;
+
   try {
-    const res = await fetch(`${window.API_BASE}/users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    // 🔎 Insert directly into register table
+    const response = await fetch(`${API_BASE}/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${API_KEY}`
+      },
       body: JSON.stringify({ fullname, email, phone, password })
     });
-    if(!res.ok) throw new Error('Registration failed');
-  const data = await res.json();
-  // auto-login after register (stores token)
-  localStorage.setItem('bs-user', JSON.stringify(data));
-    window.location.href = 'dashboard.html';
-  } catch(err){
-    alert('Registration failed: ' + err.message);
+
+    if (!response.ok) throw new Error("Registration failed");
+    const data = await response.json();
+
+    // ✅ Save last email for convenience
+    localStorage.setItem("bs-last-registered-email", email);
+    sessionStorage.setItem("bs-flash", "Account created successfully. Please log in.");
+
+    window.location.href = "login.html";
+  } catch (err) {
+    alert("Registration failed: " + err.message);
   }
 });
 </script>

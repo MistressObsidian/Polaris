@@ -56,25 +56,39 @@
   </main>
 
   <script>
-  // Local API login
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value.trim().toLowerCase();
-    const password = document.getElementById('password').value;
-    try {
-      const res = await fetch(`${window.API_BASE}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      if(!res.ok) throw new Error('Invalid credentials');
-    const data = await res.json();
-    localStorage.setItem('bs-user', JSON.stringify(data));
-      window.location.href = 'dashboard.html';
-    } catch(err){
-      alert('Login failed: ' + err.message);
+const API_BASE = "https://app-silent-bird-08639041.dpl.myneon.app";
+const API_KEY  = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f";
+
+// Handle login form
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const password = document.getElementById("password").value;
+
+  try {
+    // 🔎 Check user directly in register table
+    const response = await fetch(
+      `${API_BASE}/register?email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}`,
+      {
+        headers: { Authorization: `Bearer ${API_KEY}` }
+      }
+    );
+
+    if (!response.ok) throw new Error("Login request failed");
+    const users = await response.json();
+
+    if (users.length) {
+      // ✅ Success → save user in localStorage
+      const user = users[0];
+      localStorage.setItem("bs-user", JSON.stringify(user));
+      window.location.href = "dashboard.html";
+    } else {
+      throw new Error("Invalid email or password");
     }
-  });
-  </script>
+  } catch (err) {
+    alert("Login failed: " + err.message);
+  }
+});
+</script>
   </body>
   </html>

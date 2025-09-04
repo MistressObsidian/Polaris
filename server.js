@@ -77,7 +77,8 @@ async function ensureTables(){
     created_at TIMESTAMPTZ DEFAULT now()
   );`);
 }
-ensureTables().catch(e=>console.error('Table init failed', e));
+// Will be awaited before server starts (see bottom)
+const tablesReady = ensureTables().catch(e=>{ console.error('Table init failed', e); throw e; });
 
 // Get users from DB
 app.get("/api/users", async (req,res) => {
@@ -91,7 +92,8 @@ app.get("/api/users", async (req,res) => {
 
 // Example: add new user (direct SQL insert)
 app.post("/api/users", async (req, res) => {
-  const { fullname, email, phone, password } = req.body;
+  let { fullname, email, phone, password } = req.body;
+  email = (email||'').toLowerCase().trim();
   const client = await pool.connect();
   try {
     // Hash password before storing
@@ -104,7 +106,10 @@ app.post("/api/users", async (req, res) => {
     const token = jwt.sign({ sub: safe.id, email: safe.email }, JWT_SECRET, { expiresIn: '2h' });
     res.json({ ...safe, token });
   } catch (err) {
-    console.error(err);
+    console.error('User registration error', err);
+    if (err.code === '23505') { // unique_violation
+      return res.status(409).json({ error: 'Email already registered' });
+    }
     res.status(500).json({ error: "Failed to add user" });
   } finally {
     client.release();
@@ -113,7 +118,8 @@ app.post("/api/users", async (req, res) => {
 
 // Login route with password verification
 app.post("/api/login", async (req, res) => {
-  const { email, password } = req.body;
+  let { email, password } = req.body;
+  email = (email||'').toLowerCase().trim();
   if (!email || !password) return res.status(400).json({ error: "Email and password required" });
   try {
     const result = await pool.query("SELECT * FROM register WHERE email = $1", [email]);
@@ -168,7 +174,7 @@ app.post('/api/transfers', auth, async (req,res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const tr = await client.query('INSERT INTO transfers (sender_email,recipient,amount,status) VALUES ($1,$2,$3,$4) RETURNING *',[sender_email,recipient,amount,status||'completed']);
+    const tr = await client.query('INSERT INTO finance (sender_email,recipient,amount,status) VALUES ($1,$2,$3,$4) RETURNING *',[sender_email,recipient,amount,status||'completed']);
     await client.query('INSERT INTO transactions (user_email,type,amount,description) VALUES ($1,$2,$3,$4)', [sender_email,'debit',amount,`Transfer to ${recipient}`]);
     await client.query('INSERT INTO transactions (user_email,type,amount,description) VALUES ($1,$2,$3,$4)', [recipient,'credit',amount,`Received from ${sender_email}`]);
     await client.query('COMMIT');
@@ -180,4 +186,12 @@ app.post('/api/transfers', auth, async (req,res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+(async () => {
+  try {
+    await tablesReady;
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (e) {
+    console.error('Startup aborted due to table init failure');
+    process.exit(1);
+  }
+})();

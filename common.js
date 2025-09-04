@@ -1,105 +1,33 @@
 (function(global) {
-// Shared platform utilities: session + transfer sync (Neon backend)
-// Central API key management
-const API_BASE = "https://app-autumn-bird-87897612.dpl.myneon.app";
-function getApiKey() {
-  return localStorage.getItem("NEON_API_KEY") || "";
+// Client helper utilities for local API
+const API_BASE = window.API_BASE || '/api';
+
+function authUser(){
+  const raw = localStorage.getItem('bs-user') || sessionStorage.getItem('bs-user');
+  if(!raw) return null; try { return JSON.parse(raw); } catch { return null; }
 }
-function setApiKey(key) {
-  localStorage.setItem("NEON_API_KEY", key);
+function authToken(){ return authUser()?.token || ''; }
+
+async function api(path, options = {}) {
+  const headers = Object.assign({ 'Content-Type': 'application/json', Authorization: `Bearer ${authToken()}` }, options.headers||{});
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  if(!res.ok) throw new Error(`API ${res.status}`); return res.json();
 }
 
-  // ---------- Neon Helpers ----------
-  async function neonFetch(path, options = {}) {
-    const url = `${API_BASE}${path}`;
-    const apiKey = getApiKey();
-    const headers = Object.assign(
-      {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        Accept: "application/json"
-      },
-      options.headers || {}
-    );
-    const res = await fetch(url, { ...options, headers });
-    if (!res.ok) throw new Error(`Neon API ${res.status}`);
-    return res.json();
-  }
-
-  // ---------- Users ----------
-  async function sheetSearch(params = {}) {
-    if (!params.email) return [];
-    const email = encodeURIComponent(params.email);
-    return await neonFetch(`/users?email=eq.${email}`);
-  }
-
-  async function sheetInsert(rows) {
-    if (!Array.isArray(rows) || !rows.length) return false;
-    try {
-      await neonFetch(`/users`, {
-        method: "POST",
-        body: JSON.stringify(rows)
-      });
-      return true;
-    } catch (err) {
-      console.error("Neon insert failed", err);
-      return false;
-    }
-  }
-
-  async function registerUser(user) {
-    if (!user || !user.email) throw new Error("Missing user/email");
-    const email = user.email.toLowerCase();
-
-    // Duplicate check
-    const existing = await sheetSearch({ email });
-    if (existing && existing.length) throw new Error("Email already registered");
-
-    const row = Object.assign(
-      {
-        formType: "Registration",
-        date: new Date().toISOString(),
-        baseAvailable: 0,
-        totalBalance: 0
-      },
-      user,
-      { email }
-    );
-
-    await sheetInsert([row]);
-    return row;
-  }
-
-  async function fetchUserFinancials(email) {
-    if (!email) return { baseAvailable: 0, totalBalance: 0 };
-    try {
-      const rows = await sheetSearch({ email });
-      if (rows.length > 0) {
-        return {
-          baseAvailable: Number(rows[0].baseavailable || 0),
-          totalBalance: Number(rows[0].totalbalance || 0)
-        };
-      }
-    } catch (e) {
-      console.warn("fetchUserFinancials fallback", e);
-    }
-    return { baseAvailable: 0, totalBalance: 0 };
-  }
+async function fetchUserFinancials(email){
+  // Derive from transactions
+  if(!email) return { baseAvailable:0, totalBalance:0 };
+  try {
+    const tx = await api(`/transactions?user_email=${encodeURIComponent(email)}`);
+    let balance = 0; tx.forEach(t=>{ if(t.type==='credit') balance+=Number(t.amount); else if(t.type==='debit') balance-=Number(t.amount); });
+    return { baseAvailable: balance, totalBalance: balance };
+  } catch { return { baseAvailable:0, totalBalance:0 }; }
+}
 
   // ---------- Session ----------
-  const AUTH_KEY = "bs-user";
-  function getUser() {
-    try { return JSON.parse(localStorage.getItem(AUTH_KEY) || "null"); }
-    catch { return null; }
-  }
-  function setUser(u) {
-    try { localStorage.setItem(AUTH_KEY, JSON.stringify(u)); }
-    catch {}
-  }
-  function isAuthenticated() {
-    const u = getUser();
-    return u && u.isAuthenticated === true;
-  }
+  function getUser(){ return authUser(); }
+  function setUser(u){ if(u) localStorage.setItem('bs-user', JSON.stringify(u)); }
+  function isAuthenticated(){ return !!authToken(); }
 
   // ---------- Inject Header/Footer ----------
   function buildLogoSVG() {
@@ -154,7 +82,7 @@ function setApiKey(key) {
     header.querySelectorAll("#globalNavLinks a").forEach(a => { if (a.getAttribute("data-page")===page) a.classList.add("active"); });
 
     const logout = document.getElementById("logoutBtn");
-    if (logout) logout.addEventListener("click", () => { localStorage.removeItem(AUTH_KEY); location.href="login.html"; });
+  if (logout) logout.addEventListener("click", () => { localStorage.removeItem('bs-user'); sessionStorage.removeItem('bs-user'); location.href="login.html"; });
   }
 
   if (document.readyState==="loading") {
@@ -181,6 +109,6 @@ function setApiKey(key) {
   }
 
   // Export
-  global.Platform = { sheetSearch, sheetInsert, registerUser, fetchUserFinancials, getUser, setUser, isAuthenticated, injectHeaderFooter, showBalanceWidget, getApiKey, setApiKey };
+  global.Platform = { fetchUserFinancials, getUser, setUser, isAuthenticated, injectHeaderFooter, showBalanceWidget };
 
 })(window);

@@ -174,7 +174,7 @@ app.post('/api/transfers', auth, async (req,res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const tr = await client.query('INSERT INTO finance (sender_email,recipient,amount,status) VALUES ($1,$2,$3,$4) RETURNING *',[sender_email,recipient,amount,status||'completed']);
+  const tr = await client.query('INSERT INTO transfers (sender_email,recipient,amount,status) VALUES ($1,$2,$3,$4) RETURNING *',[sender_email,recipient,amount,status||'completed']);
     await client.query('INSERT INTO transactions (user_email,type,amount,description) VALUES ($1,$2,$3,$4)', [sender_email,'debit',amount,`Transfer to ${recipient}`]);
     await client.query('INSERT INTO transactions (user_email,type,amount,description) VALUES ($1,$2,$3,$4)', [recipient,'credit',amount,`Received from ${sender_email}`]);
     await client.query('COMMIT');
@@ -186,6 +186,12 @@ app.post('/api/transfers', auth, async (req,res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+app.post('/api/forgot-password', async (req,res)=>{
+  const { email } = req.body;
+  if(!email) return res.status(400).json({ error:'Email required'});
+  // Placeholder: would generate token & email link
+  res.json({ message: 'If that account exists, a reset link will be sent.' });
+});
 (async () => {
   try {
     await tablesReady;

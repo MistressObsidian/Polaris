@@ -18,6 +18,7 @@
     <section class="auth-card" aria-labelledby="regTitle">
       <div class="auth-head">
         <div class="auth-logo" aria-hidden="true">
+          <!-- Logo SVG -->
           <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -43,17 +44,7 @@
         <p class="auth-sub">Join the future of digital banking in seconds</p>
       </div>
       <div id="regAlert" class="alert-auth" role="alert"></div>
-      <div id="regSuccessModal" class="modal-success" style="display:none;">
-        <div class="modal-content">
-          <div class="modal-icon">
-            <svg width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="url(#logoGrad1)"/><path d="M14 25l6 6 14-14" stroke="#fff" stroke-width="3" fill="none"/></svg>
-          </div>
-          <h2>Account Created!</h2>
-          <p>Welcome to Bank Swift.<br>Your account is ready and you are now logged in.</p>
-          <a href="dashboard.html" class="btn btn-primary" style="margin-top:1.2rem;">Go to Dashboard</a>
-        </div>
-      </div>
-  <form id="registerForm" autocomplete="off" novalidate="">
+      <form id="registerForm" autocomplete="off" novalidate>
         <div class="form-row-2">
           <div class="field">
             <label for="fullname">Full Name</label>
@@ -85,39 +76,107 @@
     </section>
   </main>
 
-<script src="config.js"></script>
 <script>
-// Use server-side proxied API
-const API_BASE = window.API_BASE;
+document.addEventListener("DOMContentLoaded", () => {
+  const API_BASE = window.API_BASE;
+  const form = document.getElementById('registerForm');
+  const alertBox = document.getElementById('regAlert');
+  const pw = document.getElementById('password');
+  const cpw = document.getElementById('confirmPassword');
+  const pwToggle = document.getElementById('pwToggleRegister');
 
-document.getElementById("registerForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const fullname = document.getElementById("fullname").value.trim();
-  const phone = document.getElementById("phone").value.trim();
-  const email = document.getElementById("email").value.trim().toLowerCase();
-  const password = document.getElementById("password").value;
-  const confirm = document.getElementById("confirmPassword").value;
+  pwToggle.addEventListener('click', () => {
+    const isHidden = pw.type === 'password';
+    pw.type = isHidden ? 'text' : 'password';
+    cpw.type = isHidden ? 'text' : 'password';
+    pwToggle.textContent = isHidden ? 'Hide' : 'Show';
+  });
 
-  if (password !== confirm) {
-    document.getElementById("regAlert").textContent = "Passwords do not match.";
-    return;
-  }
-
+  // If already logged in, redirect
   try {
-    const res = await fetch(`${API_BASE}/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullname, phone, email, password })
-    });
-    const data = await res.json();
+    const existing = localStorage.getItem('bs-user');
+    if (existing) {
+      const u = JSON.parse(existing);
+      if (u && u.token) {
+        window.location.replace('dashboard.html');
+        return;
+      }
+    }
+  } catch {}
 
-    if (!res.ok) throw new Error(data.error || "Registration failed");
+  // Accessibility live region
+  let statusRegion = document.createElement('div');
+  statusRegion.id = 'regStatusLive';
+  statusRegion.setAttribute('aria-live','polite');
+  statusRegion.style.position='absolute';
+  statusRegion.style.left='-9999px';
+  document.body.appendChild(statusRegion);
 
-    // Success modal
-    document.getElementById("regSuccessModal").style.display = "block";
-  } catch (err) {
-    document.getElementById("regAlert").textContent = err.message;
-  }
+  function setStatus(msg){ statusRegion.textContent = msg || ''; }
+  function showError(msg){ alertBox.textContent = msg; setStatus(msg); }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    alertBox.textContent='';
+
+    const fullname = document.getElementById('fullname').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const password = pw.value;
+    const confirm = cpw.value;
+
+    console.log("Create Account clicked", { fullname, phone, email });
+
+    if (!fullname) return showError('Full name is required.');
+    if (password.length < 6) return showError('Password must be at least 6 characters.');
+    if (password !== confirm) return showError('Passwords do not match.');
+
+    const btn = document.getElementById('registerBtn');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent='Creating...';
+    setStatus('Creating account...');
+
+    try {
+      const res = await fetch(`${API_BASE}/users`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ fullname, phone, email, password })
+      });
+
+      console.log("API response status:", res.status);
+      const data = await res.json();
+      console.log("API response data:", data);
+
+      if (!res.ok) throw new Error(data.error || 'Registration failed');
+
+      const userObj = {
+        id: data.id,
+        fullname: data.fullname,
+        email: data.email,
+        token: data.token,
+        isAuthenticated: true,
+        ts: Date.now()
+      };
+      localStorage.setItem('bs-user', JSON.stringify(userObj));
+
+      btn.textContent='Created!';
+      setStatus('Account created successfully');
+
+      // ✅ Redirect immediately after success
+      window.location.href = 'dashboard.html';
+
+    } catch(err) {
+      console.error("Registration error:", err);
+      showError(err.message);
+    } finally {
+      if (btn.textContent !== 'Created!') {
+        btn.disabled = false;
+        btn.textContent='Create Account';
+        setStatus('');
+      }
+    }
+  });
 });
 </script>
 </body>

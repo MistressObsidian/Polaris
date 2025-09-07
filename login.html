@@ -136,18 +136,23 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.textContent = 'Signing in...';
 
     try {
-      const res = await fetch(`${API_BASE}/login`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, password })
-});
+      const base = (API_BASE || '').replace(/\/+$/,'');
+      const url = /\/api(\/|$)/.test(base) ? `${base}/login` : `${base}/api/login`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      console.log("API response status:", res.status);
 
-console.log("API response status:", res.status);
+      const raw = await res.text();
+      let data = {};
+      try { data = JSON.parse(raw); } catch { /* raw not JSON */ }
 
-// safer parser (parse once)
-const data = await response.json();
-console.log("API response data:", data);
-      if (!res.ok) throw new Error(data.error || data.message || "Login failed");
+      if (!res.ok) {
+        const msg = data.error || data.message || raw || `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
 
       // Save user object
       const userObj = {

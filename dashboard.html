@@ -511,55 +511,51 @@ let user = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    // Load user from localStorage/sessionStorage
-    user = JSON.parse(localStorage.getItem("bs-user") || sessionStorage.getItem("bs-user"));
-    if (!user || !user.email) {
+    user = JSON.parse(localStorage.getItem("bs-user"));
+    if (!user || !user.token) {
       window.location.href = "login.html";
       return;
     }
 
-    // Populate welcome section
+    // Welcome header
     document.getElementById("userName").textContent = user.fullname || user.email;
-    const avatar = document.querySelector(".user-avatar");
-    if (avatar) {
-      avatar.textContent = (user.fullname ? user.fullname[0] : user.email[0]).toUpperCase();
-    }
 
     // Logout handler
     const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
+    if(logoutBtn){
       logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('bs-user');
         sessionStorage.removeItem('bs-user');
-        window.location.href = 'login.html';
+        window.location.href='login.html';
       });
     }
 
-    // Load balances from Neon DB
-    await loadBalances(user.email);
+    // Load balances directly from /users/me
+    await loadUserProfile();
 
   } catch (err) {
     console.error("Dashboard init error:", err);
   }
 });
 
-// Fetch balances directly from Neon DB users table
-async function loadBalances(email) {
+// Fetch user profile from /api/users/me
+async function loadUserProfile() {
   try {
-    const rows = await bsApiFetch(`/users?email=eq.${encodeURIComponent(email)}`, { method: "GET" });
+    const res = await fetch(`${window.API_BASE}/users/me`, {
+      headers: { Authorization: `Bearer ${user.token}` }
+    });
 
-    if (!rows || !rows.length) throw new Error("User not found in database");
+    if (!res.ok) throw new Error("Failed to fetch user profile");
 
-    const dbUser = rows[0];
+    const profile = await res.json();
+    console.log("Loaded profile:", profile);
 
     // Update balance cards
-    document.getElementById("totalBalance").textContent = `$${Number(dbUser.totalbalance || 0).toFixed(2)}`;
-    document.getElementById("availableBalance").textContent = `$${Number(dbUser.baseavailable || 0).toFixed(2)}`;
+    document.getElementById("totalBalance").textContent = `$${Number(profile.totalbalance).toFixed(2)}`;
+    document.getElementById("availableBalance").textContent = `$${Number(profile.baseavailable).toFixed(2)}`;
 
   } catch (err) {
-    console.error("Balance error:", err);
-    document.getElementById("totalBalance").textContent = "$0.00";
-    document.getElementById("availableBalance").textContent = "$0.00";
+    console.error("Profile load error:", err);
   }
 }
 </script>

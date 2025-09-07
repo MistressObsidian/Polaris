@@ -56,41 +56,32 @@ function validateEmail(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email
 // POST /api/users  (registration)
 app.post('/api/users', async (req,res) => {
   try {
-    const { fullname, phone, email, password, accountname } = req.body || {};
-    if(!fullname || typeof fullname !== 'string' || !fullname.trim()) {
-      return res.status(400).json({ error: 'Full name required' });
-    }
-    if(!email || !validateEmail(email)) {
-      return res.status(400).json({ error: 'Invalid email' });
-    }
-    if(!password || password.length < 6){
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
+    const { fullname, phone='', email, password, accountname='' } = req.body || {};
+    if(!fullname || typeof fullname !== 'string' || !fullname.trim())
+      return res.status(400).json({ error:'Full name required' });
+    if(!email || !validateEmail(email))
+      return res.status(400).json({ error:'Valid email required' });
+    if(!password || password.length < 6)
+      return res.status(400).json({ error:'Password min 6 chars' });
 
     const normEmail = email.toLowerCase();
     const existing = await pool.query('SELECT id FROM users WHERE email=$1', [normEmail]);
-    if(existing.rowCount){
-      return res.status(409).json({ error: 'Email already registered' });
-    }
+    if(existing.rowCount)
+      return res.status(409).json({ error:'Email already registered' });
 
     const passwordHash = await bcrypt.hash(password, 10);
     const ins = await pool.query(
       `INSERT INTO users(fullname, phone, email, password_hash, accountname, baseavailable, totalbalance)
        VALUES($1,$2,$3,$4,$5,$6,$7)
        RETURNING id, fullname, email, accountname, baseavailable, totalbalance`,
-      [fullname.trim(), phone || '', normEmail, passwordHash, accountname || '', 0, 0]
+      [fullname.trim(), phone, normEmail, passwordHash, accountname, 0, 0]
     );
     const user = ins.rows[0];
     const token = issueToken(user);
-
-    // Optional: log to sheet
-    logToSheet({ type:'registration', fullname:user.fullname, email:user.email, phone: phone||'', accountname: user.accountname }).catch(()=>{});
-
     return res.status(201).json({ ...user, token });
   } catch(err){
-    if(err.code === '23505') return res.status(409).json({ error: 'Email already registered' });
-    console.error('Registration error', err);
-    return res.status(500).json({ error: 'Server error' });
+    console.error('Register error', err);
+    return res.status(500).json({ error:'Server error' });
   }
 });
 

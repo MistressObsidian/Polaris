@@ -46,15 +46,12 @@
       <div id="loginAlert" class="alert-auth" role="alert"></div>
   <form id="loginForm" class="form-grid" novalidate>
         <div class="field">
-          <label for="email">Email Address</label>
-          <input class="input-base" type="email" id="email" name="email" placeholder="you@example.com" required />
+          <label for="email">Email</label>
+          <input id="email" type="email" required />
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <div class="pw-wrap">
-            <input class="input-base" type="password" id="password" name="password" placeholder="••••••••" required />
-            <button type="button" class="pw-toggle" id="pwToggleLogin">Show</button>
-          </div>
+          <input id="password" type="password" required />
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; font-size:.7rem;">
           <label style="display:flex; align-items:center; gap:.45rem; cursor:pointer; color:rgba(255,255,255,.7);">
@@ -119,69 +116,34 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
   // Form submission
-  form.addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async (e)=>{
     e.preventDefault();
     alertBox.textContent = '';
-
     const email = document.getElementById('email').value.trim().toLowerCase();
     const password = pwField.value;
-
-    if (!email || !password) {
+    if(!email || !password){
       alertBox.textContent = 'Email and password required';
       return;
     }
-
     const btn = document.getElementById('loginBtn');
+    if(btn.disabled) return;
     btn.disabled = true;
     btn.textContent = 'Signing in...';
-
     try {
       const base = (API_BASE || '').replace(/\/+$/,'');
       const url = /\/api(\/|$)/.test(base) ? `${base}/login` : `${base}/api/login`;
       const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify({ email, password })
       });
-      console.log("API response status:", res.status);
-
       const raw = await res.text();
-      let data = {};
-      try { data = JSON.parse(raw); } catch { /* raw not JSON */ }
-
-      if (!res.ok) {
-        const msg = data.error || data.message || raw || `HTTP ${res.status}`;
-        throw new Error(msg);
-      }
-
-      // Save user object
-      const userObj = {
-        id: data.id,
-        fullname: data.fullname,
-        email: data.email,
-        accountname: data.accountname,
-        baseavailable: data.baseavailable,
-        totalbalance: data.totalbalance,
-        token: data.token,
-        isAuthenticated: true,
-        ts: Date.now()
-      };
-
-      if (rememberBox.checked) {
-        localStorage.setItem('bs-user', JSON.stringify(userObj));
-      } else {
-        sessionStorage.setItem('bs-user', JSON.stringify(userObj));
-        localStorage.removeItem('bs-user');
-      }
-
+      let data={}; try { data = JSON.parse(raw); } catch {}
+      if(!res.ok) throw new Error(data.error || data.message || raw || `HTTP ${res.status}`);
+      localStorage.setItem('bs-user', JSON.stringify(data));
       window.location.href = 'dashboard.html';
-
-    } catch (err) {
-      console.error("Login error:", err);
-      alertBox.textContent = err.message;
-      alertBox.classList.add('show'); 
-      setTimeout(()=>alertBox.classList.remove('show'),700);
-    } finally {
+    } catch(err){
+      alertBox.textContent = err.message || 'Login failed';
       btn.disabled = false;
       btn.textContent = 'Sign In';
     }

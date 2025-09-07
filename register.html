@@ -47,41 +47,31 @@
 
       <!-- FORM -->
       <form id="registerForm" class="form-grid" autocomplete="off" novalidate>
-        <div class="form-row-2">
-          <div class="field">
-            <label for="fullname">Full Name</label>
-            <input class="input-base" id="fullname" name="fullname" placeholder="Jane Doe" required />
-          </div>
-          <div class="field">
-            <label for="phone">Phone (optional)</label>
-            <input class="input-base" id="phone" name="phone" inputmode="tel" placeholder="+1 555 123 4567" />
-          </div>
-        </div>
-
         <div class="field">
-          <label for="accountName">Account Name</label>
-          <input class="input-base" id="accountName" name="accountName" placeholder="myaccount123" required />
+          <label for="fullname">Full Name</label>
+          <input id="fullname" type="text" required />
         </div>
-
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input id="phone" type="text" />
+        </div>
         <div class="field">
           <label for="email">Email</label>
-          <input class="input-base" type="email" id="email" name="email" placeholder="you@example.com" required />
+          <input id="email" type="email" required />
         </div>
-
-        <div class="field" id="pwField">
+        <div class="field">
+          <label for="accountName">Account Name</label>
+          <input id="accountName" type="text" required />
+        </div>
+        <div class="field">
           <label for="password">Password</label>
-          <div class="pw-wrap">
-            <input class="input-base" type="password" id="password" name="password" minlength="6" placeholder="Minimum 6 characters" required />
-            <button type="button" class="pw-toggle" id="pwToggleRegister" aria-label="Show password">Show</button>
-          </div>
+          <input id="password" type="password" required minlength="6" />
         </div>
-
         <div class="field">
           <label for="confirmPassword">Confirm Password</label>
-          <input class="input-base" type="password" id="confirmPassword" name="confirmPassword" minlength="6" placeholder="Re-enter password" required />
+          <input id="confirmPassword" type="password" required minlength="6" />
         </div>
-
-        <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
+        <button id="registerBtn" type="submit" class="btn-full">Create Account</button>
       </form>
 
       <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
@@ -134,57 +124,24 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const base = (window.API_BASE || '').replace(/\/+$/,'');
       const url = /\/api(\/|$)/.test(base) ? `${base}/users` : `${base}/api/users`;
-      console.log('POST', url);
 
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullname,
-          phone,
-          email,
-          password,
-          accountname: accountName
-        })
+        body: JSON.stringify({ fullname, phone, email, password, accountname: accountName })
       });
 
-      console.log('Registration response status:', res.status, 'ct:', res.headers.get('content-type'));
-
-      async function safeParse(r){
-        const text = await r.text();
-        if (!text.trim()) return { _empty: true };
-        try { return JSON.parse(text); }
-        catch (e) { 
-          return { _raw: text, parseError: true, parseMsg: e.message };
-        }
-      }
-
-      const data = await safeParse(res);
+      const raw = await res.text();
+      let data = {};
+      try { data = JSON.parse(raw); } catch {}
       if(!res.ok){
-        const msg = data.error || data.message || data._raw || `HTTP ${res.status}`;
-        throw new Error(msg);
+        throw new Error(data.error || data.message || raw || `HTTP ${res.status}`);
       }
 
-      // Save user locally with token
-      const userObj = {
-        id: data.id,
-        fullname: data.fullname,
-        email: data.email,
-        accountname: data.accountname,
-        baseavailable: data.baseavailable,
-        totalbalance: data.totalbalance,
-        token: data.token,
-        isAuthenticated: true,
-        ts: Date.now()
-      };
-      localStorage.setItem('bs-user', JSON.stringify(userObj));
-
-      btn.textContent = 'Created!';
+      localStorage.setItem('bs-user', JSON.stringify(data));
       window.location.href = 'dashboard.html';
-
-    } catch(err) {
-      console.error("Registration error:", err);
-      showError(err.message);
+    } catch(err){
+      showError(err.message || 'Registration failed');
       btn.disabled = false;
       btn.textContent = 'Create Account';
     }

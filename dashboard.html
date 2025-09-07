@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard • Bank Swift</title>
   <link rel="stylesheet" href="ui.css" />
+  <script src="config.js"></script>
+  <script src="common.js"></script>
     <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -466,8 +468,8 @@
         </div>
       </div>
       <div class="header-actions">
-        <button class="header-btn" onclick="window.location.href='transfer.html'">Send Money</button>
-        <button class="header-btn" style="background:rgba(255,255,255,0.1);">Logout</button>
+    <button class="header-btn" onclick="window.location.href='transfer.html'">Send Money</button>
+  <button class="header-btn" id="logoutBtn" style="background:rgba(255,255,255,0.1);">Logout</button>
       </div>
 
     </div>
@@ -504,87 +506,60 @@
     </div>
   </main>
 
- <script>
-// Local API config (uses config.js -> window.API_BASE = '/api')
-
+<script>
 let user = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    user = JSON.parse(localStorage.getItem("bs-user"));
+    // Load user from localStorage/sessionStorage
+    user = JSON.parse(localStorage.getItem("bs-user") || sessionStorage.getItem("bs-user"));
     if (!user || !user.email) {
       window.location.href = "login.html";
       return;
     }
 
-    document.getElementById("userNameLine").textContent = `Welcome, ${user.fullname || user.email}`;
+    // Populate welcome section
+    document.getElementById("userName").textContent = user.fullname || user.email;
+    const avatar = document.querySelector(".user-avatar");
+    if (avatar) {
+      avatar.textContent = (user.fullname ? user.fullname[0] : user.email[0]).toUpperCase();
+    }
 
-    // Load balances + transactions
+    // Logout handler
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('bs-user');
+        sessionStorage.removeItem('bs-user');
+        window.location.href = 'login.html';
+      });
+    }
+
+    // Load balances from Neon DB
     await loadBalances(user.email);
-    await loadTransactions(user.email);
+
   } catch (err) {
     console.error("Dashboard init error:", err);
   }
-  // Auto-refresh when a transfer is completed
-window.addEventListener("transfer-completed", async (e) => {
-  console.log("Transfer event received:", e.detail);
-  await loadBalances(user.email);
-  await loadTransactions(user.email);
-});
 });
 
-// Fetch balances
+// Fetch balances directly from Neon DB users table
 async function loadBalances(email) {
   try {
-  const u = JSON.parse(localStorage.getItem('bs-user')||'null');
-  const res = await fetch(`${window.API_BASE}/transactions?user_email=${encodeURIComponent(email)}`, { headers: { Authorization: `Bearer ${u?.token||''}` }});
+    const rows = await bsApiFetch(`/users?email=eq.${encodeURIComponent(email)}`, { method: "GET" });
 
-    if (!res.ok) throw new Error("Failed to fetch balances");
-    const rows = await res.json();
+    if (!rows || !rows.length) throw new Error("User not found in database");
 
-    let balance = 0;
-    rows.forEach(tx => {
-      if (tx.type === "credit") balance += Number(tx.amount);
-      if (tx.type === "debit") balance -= Number(tx.amount);
-    });
+    const dbUser = rows[0];
 
-    // Populate balance cards
-    const kpiSection = document.getElementById("kpiSection");
-    kpiSection.innerHTML = `
-      <div class="card"><h3>Available Balance</h3><div class="kpi"><span class="value">$${balance.toFixed(2)}</span></div></div>
-      <div class="card"><h3>Total Transactions</h3><div class="kpi"><span class="value">${rows.length}</span></div></div>
-    `;
+    // Update balance cards
+    document.getElementById("totalBalance").textContent = `$${Number(dbUser.totalbalance || 0).toFixed(2)}`;
+    document.getElementById("availableBalance").textContent = `$${Number(dbUser.baseavailable || 0).toFixed(2)}`;
+
   } catch (err) {
     console.error("Balance error:", err);
-  }
-}
-
-// Fetch recent transactions
-async function loadTransactions(email) {
-  try {
-  const u = JSON.parse(localStorage.getItem('bs-user')||'null');
-  const res = await fetch(`${window.API_BASE}/transactions?user_email=${encodeURIComponent(email)}`, { headers: { Authorization: `Bearer ${u?.token||''}` }});
-
-    if (!res.ok) throw new Error("Failed to fetch transactions");
-    const rows = await res.json();
-
-    const txList = document.createElement("section");
-    txList.className = "tx-list";
-    txList.innerHTML = rows.map(tx => `
-      <div class="tx">
-        <div>
-          <div class="name">${tx.description || "Transaction"}</div>
-          <div class="meta">${new Date(tx.ts || Date.now()).toLocaleString()}</div>
-        </div>
-        <div class="delta ${tx.type === "credit" ? "pos" : "neg"}">
-          ${tx.type === "credit" ? "+" : "-"}$${Number(tx.amount).toFixed(2)}
-        </div>
-      </div>
-    `).join("");
-
-    document.querySelector(".container").appendChild(txList);
-  } catch (err) {
-    console.error("Transaction error:", err);
+    document.getElementById("totalBalance").textContent = "$0.00";
+    document.getElementById("availableBalance").textContent = "$0.00";
   }
 }
 </script>

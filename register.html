@@ -14,11 +14,11 @@
   <div class="hero-background"></div>
   <div class="particles" id="particles"></div>
   <main class="auth-wrapper">
-  <button onclick="window.history.back()" class="btn-shared btn-outline" style="position:absolute;top:18px;left:18px;z-index:100;">← Go Back</button>
+    <button onclick="window.history.back()" class="btn-shared btn-outline" style="position:absolute;top:18px;left:18px;z-index:100;">← Go Back</button>
     <section class="auth-card" aria-labelledby="regTitle">
       <div class="auth-head">
         <div class="auth-logo" aria-hidden="true">
-          <!-- Logo SVG -->
+         <!-- Logo SVG -->
           <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -44,7 +44,9 @@
         <p class="auth-sub">Join the future of digital banking in seconds</p>
       </div>
       <div id="regAlert" class="alert-auth" role="alert"></div>
-      <form id="registerForm" autocomplete="off" novalidate>
+
+      <!-- FORM -->
+      <form id="registerForm" class="form-grid" autocomplete="off" novalidate>
         <div class="form-row-2">
           <div class="field">
             <label for="fullname">Full Name</label>
@@ -55,30 +57,39 @@
             <input class="input-base" id="phone" name="phone" inputmode="tel" placeholder="+1 555 123 4567" />
           </div>
         </div>
+
+        <div class="field">
+          <label for="accountName">Account Name</label>
+          <input class="input-base" id="accountName" name="accountName" placeholder="myaccount123" required />
+        </div>
+
         <div class="field">
           <label for="email">Email</label>
           <input class="input-base" type="email" id="email" name="email" placeholder="you@example.com" required />
         </div>
-        <div class="field">
+
+        <div class="field" id="pwField">
           <label for="password">Password</label>
           <div class="pw-wrap">
             <input class="input-base" type="password" id="password" name="password" minlength="6" placeholder="Minimum 6 characters" required />
             <button type="button" class="pw-toggle" id="pwToggleRegister" aria-label="Show password">Show</button>
           </div>
         </div>
+
         <div class="field">
           <label for="confirmPassword">Confirm Password</label>
           <input class="input-base" type="password" id="confirmPassword" name="confirmPassword" minlength="6" placeholder="Re-enter password" required />
         </div>
+
         <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
       </form>
+
       <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
     </section>
   </main>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = window.API_BASE;
   const form = document.getElementById('registerForm');
   const alertBox = document.getElementById('regAlert');
   const pw = document.getElementById('password');
@@ -92,89 +103,90 @@ document.addEventListener("DOMContentLoaded", () => {
     pwToggle.textContent = isHidden ? 'Hide' : 'Show';
   });
 
-  // If already logged in, redirect
-  try {
-    const existing = localStorage.getItem('bs-user');
-    if (existing) {
-      const u = JSON.parse(existing);
-      if (u && u.token) {
-        window.location.replace('dashboard.html');
-        return;
-      }
-    }
-  } catch {}
-
-  // Accessibility live region
-  let statusRegion = document.createElement('div');
-  statusRegion.id = 'regStatusLive';
-  statusRegion.setAttribute('aria-live','polite');
-  statusRegion.style.position='absolute';
-  statusRegion.style.left='-9999px';
-  document.body.appendChild(statusRegion);
-
-  function setStatus(msg){ statusRegion.textContent = msg || ''; }
-  function showError(msg){ alertBox.textContent = msg; setStatus(msg); }
+  function showError(msg){
+    alertBox.textContent = msg;
+    alertBox.classList.add('show');
+    setTimeout(()=>alertBox.classList.remove('show'),700);
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    alertBox.textContent='';
+    alertBox.textContent = '';
 
     const fullname = document.getElementById('fullname').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const email = document.getElementById('email').value.trim().toLowerCase();
+    const accountName = document.getElementById('accountName').value.trim();
     const password = pw.value;
     const confirm = cpw.value;
 
-    console.log("Create Account clicked", { fullname, phone, email });
-
     if (!fullname) return showError('Full name is required.');
+    if (!email) return showError('Email is required.');
+    if (!accountName) return showError('Account name is required.');
     if (password.length < 6) return showError('Password must be at least 6 characters.');
     if (password !== confirm) return showError('Passwords do not match.');
 
     const btn = document.getElementById('registerBtn');
     if (btn.disabled) return;
     btn.disabled = true;
-    btn.textContent='Creating...';
-    setStatus('Creating account...');
+    btn.textContent = 'Creating...';
 
     try {
-      const res = await fetch(`${API_BASE}/users`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ fullname, phone, email, password })
+      const base = (window.API_BASE || '').replace(/\/+$/,'');
+      const url = /\/api(\/|$)/.test(base) ? `${base}/users` : `${base}/api/users`;
+      console.log('POST', url);
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullname,
+          phone,
+          email,
+          password,
+          accountname: accountName
+        })
       });
 
-      console.log("API response status:", res.status);
-      const data = await res.json();
-      console.log("API response data:", data);
+      console.log('Registration response status:', res.status, 'ct:', res.headers.get('content-type'));
 
-      if (!res.ok) throw new Error(data.error || 'Registration failed');
+      async function safeParse(r){
+        const text = await r.text();
+        if (!text.trim()) return { _empty: true };
+        try { return JSON.parse(text); }
+        catch (e) { 
+          return { _raw: text, parseError: true, parseMsg: e.message };
+        }
+      }
 
+      const data = await safeParse(res);
+      if(!res.ok){
+        const msg = data.error || data.message || data._raw || `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
+
+      // Save user locally with token
       const userObj = {
         id: data.id,
         fullname: data.fullname,
         email: data.email,
+        accountname: data.accountname,
+        baseavailable: data.baseavailable,
+        totalbalance: data.totalbalance,
         token: data.token,
         isAuthenticated: true,
         ts: Date.now()
       };
       localStorage.setItem('bs-user', JSON.stringify(userObj));
 
-      btn.textContent='Created!';
-      setStatus('Account created successfully');
-
-      // ✅ Redirect immediately after success
+      btn.textContent = 'Created!';
       window.location.href = 'dashboard.html';
 
     } catch(err) {
       console.error("Registration error:", err);
       showError(err.message);
-    } finally {
-      if (btn.textContent !== 'Created!') {
-        btn.disabled = false;
-        btn.textContent='Create Account';
-        setStatus('');
-      }
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
     }
   });
 });

@@ -8,7 +8,7 @@
   <script src="config.js"></script>
   <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>.auth-wrapper{padding-top:120px;}</style>
+  <!-- Inline style removed; spacing handled by ui.css for consistency -->
 </head>
 <body>
   <div class="hero-background"></div>
@@ -44,7 +44,7 @@
         <p class="auth-sub">Sign in to your Bank Swift account</p>
       </div>
       <div id="loginAlert" class="alert-auth" role="alert"></div>
-      <form id="loginForm" class="form-grid" novalidate>
+  <form id="loginForm" class="form-grid" novalidate>
         <div class="field">
           <label for="email">Email Address</label>
           <input class="input-base" type="email" id="email" name="email" placeholder="you@example.com" required />
@@ -74,14 +74,31 @@
     </section>
   </main>
 
+<script src="common.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = window.API_BASE;
   const form = document.getElementById('loginForm');
   const pwField = document.getElementById('password');
   const toggleBtn = document.getElementById('pwToggleLogin');
   const alertBox = document.getElementById('loginAlert');
   const rememberBox = document.getElementById('remember');
+
+  // Validation
+  function setState(el,state,msg){ bsSetFieldState(el,state,msg); }
+  function validateEmail(){
+    const el = document.getElementById('email');
+    const v = el.value.trim().toLowerCase();
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if(!re.test(v)){ setState(el,'error','Invalid'); return false; }
+    setState(el,'success',''); return true;
+  }
+  function validatePassword(){
+    const el = pwField; const v = el.value.trim();
+    if(!v){ setState(el,'error','Required'); return false; }
+    setState(el,'success',''); return true;
+  }
+  document.getElementById('email').addEventListener('blur', validateEmail);
+  pwField.addEventListener('blur', validatePassword);
 
   // Password show/hide
   toggleBtn.addEventListener('click', () => {
@@ -94,20 +111,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Social + forgot placeholders
-  document.querySelectorAll('.social-row a').forEach(a =>
-    a.addEventListener('click', (e) => {
-      e.preventDefault();
-      alert('Social login coming soon.');
-    })
-  );
-  const forgot = document.querySelector('a[href="#"]');
-  if (forgot) {
-    forgot.addEventListener('click', (e) => {
-      e.preventDefault();
-      alert('Password reset flow not implemented yet.');
-    });
-  }
+  async function safeJson(res) {
+  return res.text().then(t => {
+    try { return JSON.parse(t); }
+    catch { return { raw: t }; }
+  });
+}
 
   // Form submission
   form.addEventListener('submit', async (e) => {
@@ -116,8 +125,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const email = document.getElementById('email').value.trim().toLowerCase();
     const password = pwField.value;
-
-    console.log("Login attempt", { email });
 
     if (!email || !password) {
       alertBox.textContent = 'Email and password required';
@@ -130,22 +137,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const res = await fetch(`${API_BASE}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email, password })
+});
 
-      console.log("API response status:", res.status);
-      const data = await res.json();
-      console.log("API response data:", data);
+console.log("API response status:", res.status);
 
-      if (!res.ok) throw new Error(data.error || 'Login failed');
+// safer parser (parse once)
+const data = await response.json();
+console.log("API response data:", data);
+      if (!res.ok) throw new Error(data.error || data.message || "Login failed");
 
       // Save user object
       const userObj = {
         id: data.id,
         fullname: data.fullname,
         email: data.email,
+        accountname: data.accountname,
+        baseavailable: data.baseavailable,
+        totalbalance: data.totalbalance,
         token: data.token,
         isAuthenticated: true,
         ts: Date.now()
@@ -158,12 +169,13 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.removeItem('bs-user');
       }
 
-      // ✅ Redirect immediately after success
       window.location.href = 'dashboard.html';
 
     } catch (err) {
       console.error("Login error:", err);
       alertBox.textContent = err.message;
+      alertBox.classList.add('show'); 
+      setTimeout(()=>alertBox.classList.remove('show'),700);
     } finally {
       btn.disabled = false;
       btn.textContent = 'Sign In';

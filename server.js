@@ -1,203 +1,209 @@
-import express from "express";
-import pkg from "pg";
-import dotenv from "dotenv";
-import cors from "cors";
-import fetch from "node-fetch";
-import bcrypt from "bcryptjs";
-import path from "path";
-import { fileURLToPath } from "url";
-import jwt from "jsonwebtoken";
-import rateLimit from "express-rate-limit";
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Pool } from 'pg';
+// Node 18+ has global fetch; if older: import fetch from 'node-fetch';
 
 dotenv.config();
-const { Pool } = pkg;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// PostgreSQL pool (Neon)
+const pool = new Pool({
+	connectionString: process.env.DATABASE_URL,
+	ssl: process.env.PGSSLMODE ? { rejectUnauthorized: false } : false
+});
+
+async function ensureSchema(){
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      fullname TEXT NOT NULL,
+      phone TEXT DEFAULT '',
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      accountname TEXT DEFAULT '',
+      baseavailable NUMERIC DEFAULT 0,
+      totalbalance NUMERIC DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+  `);
+}
+ensureSchema().catch(e=> console.error('Schema init error', e));
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(morgan('dev'));
 
-// Resolve directory for static hosting
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
-// Serve all static assets (HTML, CSS, JS, images) from project root
-app.use(express.static(__dirname));
 
-// Root route -> index.html (works even if a client-side router added later)
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
-});
-
-const { PGHOST, PGDATABASE, PGUSER, PGPASSWORD, NEON_API_BASE, NEON_PERSONAL_KEY, JWT_SECRET = "dev_secret" } = process.env;
-
-const pool = new Pool({
-  host: PGHOST,
-  database: PGDATABASE,
-  user: PGUSER,
-  password: PGPASSWORD,
-  ssl: { rejectUnauthorized: false },
-});
-
-// Rate limiter
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
-app.use('/api/', authLimiter);
-
-// Helper: auth middleware
-function auth(req,res,next){
-  const hdr = req.headers.authorization || '';
-  const token = hdr.startsWith('Bearer ')? hdr.slice(7): null;
-  if(!token) return res.status(401).json({ error: 'Missing token' });
-  try { req.user = jwt.verify(token, JWT_SECRET); return next(); } catch { return res.status(401).json({ error: 'Invalid token' }); }
+function issueToken(user){
+	return jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
 }
 
-// Ensure tables exist (simple auto-migrate)
-async function ensureTables(){
-  await pool.query(`CREATE TABLE IF NOT EXISTS register (
-    id SERIAL PRIMARY KEY,
-    fullname TEXT,
-    email TEXT UNIQUE NOT NULL,
-    phone TEXT,
-    password TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now()
-  );`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS transactions (
-    id SERIAL PRIMARY KEY,
-    user_email TEXT NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('credit','debit')),
-    amount NUMERIC NOT NULL,
-    description TEXT,
-    created_at TIMESTAMPTZ DEFAULT now()
-  );`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS transfers (
-    id SERIAL PRIMARY KEY,
-    sender_email TEXT NOT NULL,
-    recipient TEXT NOT NULL,
-    amount NUMERIC NOT NULL,
-    status TEXT DEFAULT 'completed',
-    created_at TIMESTAMPTZ DEFAULT now()
-  );`);
-}
-// Will be awaited before server starts (see bottom)
-const tablesReady = ensureTables().catch(e=>{ console.error('Table init failed', e); throw e; });
+// Validation helper
+function validateEmail(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email); }
 
-// Get users from DB
-app.get("/api/users", async (req,res) => {
+// POST /api/users  (registration)
+app.post('/api/users', async (req,res) => {
   try {
-    const r = await pool.query("SELECT id, fullname, email, phone, created_at FROM register ORDER BY id DESC" );
-    res.json(r.rows);
-  } catch(err){
-    console.error(err);res.status(500).json({ error: 'Failed to fetch users'});
-  }
-});
+    const { fullname, phone, email, password, accountname } = req.body || {};
+    if(!fullname || typeof fullname !== 'string' || !fullname.trim()) {
+      return res.status(400).json({ error: 'Full name required' });
+    }
+    if(!email || !validateEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email' });
+    }
+    if(!password || password.length < 6){
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
 
-// Example: add new user (direct SQL insert)
-app.post("/api/users", async (req, res) => {
-  let { fullname, email, phone, password } = req.body;
-  email = (email||'').toLowerCase().trim();
-  const client = await pool.connect();
-  try {
-    // Hash password before storing
-    const hashed = await bcrypt.hash(password, 10);
-    const result = await client.query(
-      "INSERT INTO register (fullname, email, phone, password) VALUES ($1, $2, $3, $4) RETURNING *",
-      [fullname, email, phone, hashed]
-    );
-    const { password: _, ...safe } = result.rows[0];
-    const token = jwt.sign({ sub: safe.id, email: safe.email }, JWT_SECRET, { expiresIn: '2h' });
-    res.json({ ...safe, token });
-  } catch (err) {
-    console.error('User registration error', err);
-    if (err.code === '23505') { // unique_violation
+    const normEmail = email.toLowerCase();
+    const existing = await pool.query('SELECT id FROM users WHERE email=$1', [normEmail]);
+    if(existing.rowCount){
       return res.status(409).json({ error: 'Email already registered' });
     }
-    res.status(500).json({ error: "Failed to add user" });
-  } finally {
-    client.release();
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const ins = await pool.query(
+      `INSERT INTO users(fullname, phone, email, password_hash, accountname, baseavailable, totalbalance)
+       VALUES($1,$2,$3,$4,$5,$6,$7)
+       RETURNING id, fullname, email, accountname, baseavailable, totalbalance`,
+      [fullname.trim(), phone || '', normEmail, passwordHash, accountname || '', 0, 0]
+    );
+    const user = ins.rows[0];
+    const token = issueToken(user);
+
+    // Optional: log to sheet
+    logToSheet({ type:'registration', fullname:user.fullname, email:user.email, phone: phone||'', accountname: user.accountname }).catch(()=>{});
+
+    return res.status(201).json({ ...user, token });
+  } catch(err){
+    if(err.code === '23505') return res.status(409).json({ error: 'Email already registered' });
+    console.error('Registration error', err);
+    return res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Login route with password verification
-app.post("/api/login", async (req, res) => {
-  let { email, password } = req.body;
-  email = (email||'').toLowerCase().trim();
-  if (!email || !password) return res.status(400).json({ error: "Email and password required" });
+// POST /api/login
+app.post('/api/login', async (req,res) => {
   try {
-    const result = await pool.query("SELECT * FROM register WHERE email = $1", [email]);
-    if (!result.rows.length) return res.status(401).json({ error: "Invalid email or password" });
-    const user = result.rows[0];
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(401).json({ error: "Invalid email or password" });
-    const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
-    res.json({ id: user.id, fullname: user.fullname, email: user.email, token });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Login failed" });
+    const { email, password } = req.body || {};
+    if(!email || !password) return res.status(400).json({ error:'Email and password required' });
+
+    const normEmail = email.toLowerCase();
+    const q = await pool.query(
+      'SELECT id, fullname, email, password_hash, accountname, baseavailable, totalbalance FROM users WHERE email=$1',
+      [normEmail]
+    );
+    if(!q.rowCount) return res.status(401).json({ error:'Invalid credentials' });
+
+    const user = q.rows[0];
+    const ok = await bcrypt.compare(password, user.password_hash);
+    if(!ok) return res.status(401).json({ error:'Invalid credentials' });
+
+    const token = issueToken(user);
+
+    return res.json({
+      id: user.id,
+      fullname: user.fullname,
+      email: user.email,
+      accountname: user.accountname,
+      baseavailable: user.baseavailable,
+      totalbalance: user.totalbalance,
+      token
+    });
+  } catch(err){
+    console.error('Login error', err);
+    return res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Transactions
-app.get('/api/transactions', auth, async (req,res) => {
-  const { user_email } = req.query;
-  if(!user_email) return res.json([]);
+// GET /api/users/me
+app.get('/api/users/me', async (req,res) => {
   try {
-    const r = await pool.query('SELECT id,user_email,type,amount,description,created_at FROM transactions WHERE user_email = $1 ORDER BY id DESC', [user_email]);
-    res.json(r.rows);
-  } catch(e){ console.error(e); res.status(500).json({ error: 'Failed to fetch transactions'}); }
+    const auth = req.headers.authorization || '';
+    const token = auth.replace('Bearer ', '');
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    const q = await pool.query(
+      'SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1',
+      [decoded.sub]
+    );
+
+    if(!q.rowCount) return res.status(404).json({ error:'Not found' });
+    return res.json(q.rows[0]);
+  } catch(err){
+    console.error('Get me error', err);
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 });
 
-app.post('/api/transactions', auth, async (req,res) => {
-  const { user_email, type, amount, description } = req.body;
-  if(!user_email || !type || !amount) return res.status(400).json({ error: 'Missing fields' });
+// (B) Sync Neon rows to Google Sheet (manual trigger)
+app.post('/api/sync/users-to-sheet', async (req,res) => {
   try {
-    const r = await pool.query('INSERT INTO transactions (user_email,type,amount,description) VALUES ($1,$2,$3,$4) RETURNING id,user_email,type,amount,description,created_at',[user_email,type,amount,description||'']);
-    res.json(r.rows[0]);
-  } catch(e){ console.error(e); res.status(500).json({ error: 'Failed to add transaction'}); }
-});
-
-// Transfers
-app.get('/api/transfers', auth, async (req,res) => {
-  const { user_email } = req.query;
-  try {
-    let r;
-    if(user_email){
-      r = await pool.query('SELECT * FROM transfers WHERE sender_email = $1 OR recipient = $1 ORDER BY id DESC', [user_email]);
-    } else {
-      r = await pool.query('SELECT * FROM transfers ORDER BY id DESC');
+    const { auth } = req.headers;
+    if(!auth || auth !== (process.env.INTERNAL_SYNC_TOKEN||'')){
+      return res.status(401).json({ error:'Unauthorized' });
     }
-    res.json(r.rows);
-  } catch(e){ console.error(e); res.status(500).json({ error: 'Failed to fetch transfers'}); }
-});
-
-app.post('/api/transfers', auth, async (req,res) => {
-  const { sender_email, recipient, amount, status } = req.body;
-  if(!sender_email || !recipient || !amount) return res.status(400).json({ error: 'Missing fields' });
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-  const tr = await client.query('INSERT INTO transfers (sender_email,recipient,amount,status) VALUES ($1,$2,$3,$4) RETURNING *',[sender_email,recipient,amount,status||'completed']);
-    await client.query('INSERT INTO transactions (user_email,type,amount,description) VALUES ($1,$2,$3,$4)', [sender_email,'debit',amount,`Transfer to ${recipient}`]);
-    await client.query('INSERT INTO transactions (user_email,type,amount,description) VALUES ($1,$2,$3,$4)', [recipient,'credit',amount,`Received from ${sender_email}`]);
-    await client.query('COMMIT');
-    res.json(tr.rows[0]);
-  } catch(e){
-    await client.query('ROLLBACK');
-    console.error(e); res.status(500).json({ error: 'Transfer failed'});
-  } finally { client.release(); }
-});
-
-const PORT = process.env.PORT || 5000;
-app.post('/api/forgot-password', async (req,res)=>{
-  const { email } = req.body;
-  if(!email) return res.status(400).json({ error:'Email required'});
-  // Placeholder: would generate token & email link
-  res.json({ message: 'If that account exists, a reset link will be sent.' });
-});
-(async () => {
-  try {
-    await tablesReady;
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  } catch (e) {
-    console.error('Startup aborted due to table init failure');
-    process.exit(1);
+    const rows = await pool.query('SELECT id, fullname, email, password_hash, accountname, baseavailable, totalbalance FROM users ORDER BY id');
+    await Promise.all(rows.rows.map(r=> logToSheet({ type:'user_sync', ...r })));
+    return res.json({ ok:true, count: rows.rowCount });
+  } catch(err){
+    console.error('sync users->sheet error', err);
+    return res.status(500).json({ error:'Server error' });
   }
-})();
+});
+
+// (C) Pull Google Sheet rows into app
+app.get('/api/sheet/users', async (req,res) => {
+  try {
+    const url = process.env.GS_USERS_ENDPOINT;
+    if(!url) return res.status(500).json({ error:'Sheet endpoint not configured' });
+    const fetchRes = await fetch(url);
+    let data = [];
+    try { data = await fetchRes.json(); } catch { data = []; }
+    return res.json({ ok:true, rows: data });
+  } catch(err){
+    console.error('sheet pull error', err);
+    return res.status(500).json({ error:'Server error' });
+  }
+});
+
+// Health check
+app.get('/api/health', async (req,res)=> {
+	try {
+		const r = await pool.query('SELECT count(*)::int AS c FROM users');
+		res.json({ ok:true, users: r.rows[0].c });
+	} catch { res.json({ ok:true, users: 'n/a' }); }
+});
+
+// Simple sheet logging util (server side) using Apps Script (expects no auth) or SheetDB
+async function logToSheet(entry){
+	const appsScriptUrl = process.env.GS_LOG_ENDPOINT; // Provide in .env
+	if(!appsScriptUrl) return; // silently skip if not set
+	try {
+		await fetch(appsScriptUrl, {
+			method:'POST',
+			headers:{ 'Content-Type':'application/json', 'X-APP-TOKEN': process.env.GS_SHARED_SECRET||'' },
+			body: JSON.stringify(entry)
+		});
+	} catch(_){ /* swallow */ }
+}
+
+// Serve static files (frontend)
+app.use(express.static(__dirname));
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+	console.log(`Server running on http://localhost:${PORT}`);
+});

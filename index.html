@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bank Swift - Premier Digital Banking & Financial Services</title>
+    <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
         :root {
@@ -764,6 +765,8 @@
         <button id="closeMenu" aria-label="Close menu">×</button>
         <ul>
             <li><a href="#home">Home</a></li>
+            <li><a href="#login">Login</a></li>
+            <li><a href="#register">Register</a></li>
             <li><a href="#features">Features</a></li>
             <li><a href="#services">Services</a></li>
             <li><a href="#about">About</a></li>
@@ -1122,35 +1125,46 @@
         });
 
         // Contact form handling
-        document.getElementById('contactForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const statusEl = document.getElementById('contactStatus');
-            const submitBtn = this.querySelector('button[type="submit"]');
-            
-            // Show loading state
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Sending...';
-            
-            // Simulate form submission
-            setTimeout(() => {
-                statusEl.style.display = 'block';
-                statusEl.textContent = 'Message sent successfully!';
-                statusEl.classList.remove('error');
-                
-                // Reset form
-                this.reset();
-                
-                // Reset button
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Send Message';
-                
-                // Hide status after 3 seconds
-                setTimeout(() => {
-                    statusEl.style.display = 'none';
-                }, 3000);
-            }, 1000);
-        });
+                document.getElementById('contactForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const statusEl = document.getElementById('contactStatus');
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    statusEl.style.display='none';
+                    statusEl.classList.remove('error');
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Sending...';
+
+                    const name = document.getElementById('cName').value.trim();
+                    const email = document.getElementById('cEmail').value.trim();
+                    const message = document.getElementById('cMessage').value.trim();
+
+                    try {
+                        // Send to SheetDB (Google Sheet)
+                                    await bsLogToSheet({ type:'contact', name, email, message }, { await:true });
+
+                        // Optional: also forward to backend API if endpoint exists
+                        if(window.API_BASE){
+                            fetch(`${window.API_BASE}/contact`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name, email, message })
+                            }).catch(()=>{}); // non-blocking
+                        }
+
+                        statusEl.style.display='block';
+                        statusEl.textContent='Message sent successfully!';
+                        statusEl.classList.remove('error');
+                        this.reset();
+                    } catch(err){
+                        statusEl.style.display='block';
+                        statusEl.textContent='Failed to send. Please try again.';
+                        statusEl.classList.add('error');
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Send Message';
+                        setTimeout(()=>{ statusEl.style.display='none'; }, 4000);
+                    }
+                });
 
         // Add scroll animations
         const observerOptions = {

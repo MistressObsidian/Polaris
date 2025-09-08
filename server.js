@@ -210,6 +210,73 @@ async function logToSheet(entry){
 // Serve static files (frontend)
 app.use(express.static(__dirname));
 
+// SSE: Stream user balance updates (JWT protected)
+app.get('/api/stream/user/:id', async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    // Accept token from query string or Authorization header
+    let token = req.query.token || '';
+    if (!token) {
+      const auth = req.headers.authorization || '';
+      token = auth.replace('Bearer ', '');
+    }
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized: no token provided' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    // Ensure the user can only connect to their own stream
+    if (String(decoded.sub) !== String(userId)) {
+      return res.status(403).json({ error: 'Forbidden: mismatched user' });
+    }
+
+    // SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    console.log(`🔌 SSE client connected for user ${userId}`);
+
+    let lastData = null;
+
+    // Poll Neon every 2 seconds for balance changes
+    const interval = setInterval(async () => {
+      try {
+        const q = await pool.query(
+          'SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1',
+          [userId]
+        );
+        if (!q.rowCount) return;
+
+        const profile = q.rows[0];
+        const data = JSON.stringify(profile);
+
+        // Send only if changed
+        if (data !== lastData) {
+          res.write(`data: ${data}\n\n`);
+          lastData = data;
+        }
+      } catch (err) {
+        console.error("SSE query error", err);
+      }
+    }, 2000);
+
+    // Cleanup when client disconnects
+    req.on('close', () => {
+      clearInterval(interval);
+      console.log(`❌ SSE client disconnected for user ${userId}`);
+    });
+
+  } catch (err) {
+    console.error("SSE auth error", err);
+    return res.status(401).json({ error: 'Unauthorized: invalid token' });
+  }
+});
+
 const PORT = Number(process.env.PORT) || 4000;
 const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

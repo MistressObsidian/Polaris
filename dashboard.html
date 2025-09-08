@@ -522,23 +522,54 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Logout handler
     const logoutBtn = document.getElementById('logoutBtn');
-    if(logoutBtn){
+    if (logoutBtn) {
       logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('bs-user');
         sessionStorage.removeItem('bs-user');
-        window.location.href='login.html';
+        window.location.href = 'login.html';
       });
     }
 
-    // Load balances directly from /users/me
+    // Initial profile load (so dashboard shows instantly)
     await loadUserProfile();
+
+    // ✅ Start SSE connection after initial load
+    connectSSE();
 
   } catch (err) {
     console.error("Dashboard init error:", err);
   }
 });
 
-// Fetch user profile from /api/users/me
+// 🔹 SSE with auto-reconnect
+function connectSSE() {
+  const evtSource = new EventSource(
+    `${window.API_BASE}/stream/user/${user.id}?token=${user.token}`
+  );
+
+  evtSource.onmessage = (event) => {
+    const profile = JSON.parse(event.data);
+    console.log("Live update:", profile);
+
+    // Update balances
+    document.getElementById("totalBalance").textContent =
+      `$${Number(profile.totalbalance).toFixed(2)}`;
+    document.getElementById("availableBalance").textContent =
+      `$${Number(profile.baseavailable).toFixed(2)}`;
+
+    // Keep localStorage in sync
+    const newUser = { ...user, ...profile };
+    localStorage.setItem("bs-user", JSON.stringify(newUser));
+  };
+
+  evtSource.onerror = () => {
+    console.warn("SSE connection lost, retrying in 5s...");
+    evtSource.close();
+    setTimeout(connectSSE, 5000);
+  };
+}
+
+// 🔹 Fallback one-time fetch
 async function loadUserProfile() {
   try {
     const res = await fetch(`${window.API_BASE}/users/me`, {
@@ -548,12 +579,11 @@ async function loadUserProfile() {
     if (!res.ok) throw new Error("Failed to fetch user profile");
 
     const profile = await res.json();
-    console.log("Loaded profile:", profile);
 
-    // Update balance cards
-    document.getElementById("totalBalance").textContent = `$${Number(profile.totalbalance).toFixed(2)}`;
-    document.getElementById("availableBalance").textContent = `$${Number(profile.baseavailable).toFixed(2)}`;
-
+    document.getElementById("totalBalance").textContent =
+      `$${Number(profile.totalbalance).toFixed(2)}`;
+    document.getElementById("availableBalance").textContent =
+      `$${Number(profile.baseavailable).toFixed(2)}`;
   } catch (err) {
     console.error("Profile load error:", err);
   }

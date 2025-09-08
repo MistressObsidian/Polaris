@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transfer Money • Bank Swift</title>
-    <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="config.js"></script>
-    <style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transfer Money • Bank Swift</title>
+  <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="config.js"></script>
+  <style>
         * {
             margin: 0;
             padding: 0;
@@ -428,6 +428,26 @@
             100% { transform: rotate(360deg); }
         }
         
+        .balance-box {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1.2rem 1rem;
+      margin: 1.5rem 0 2rem;
+      text-align: center;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    .balance-box div:first-child {
+      font-size: 1.05rem;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 0.5rem;
+    }
+    .balance-box div:last-child {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
         @media (max-width: 900px) {
             .container {
                 max-width: 100vw;
@@ -492,263 +512,171 @@
     </style>
 </head>
 <body>
-    <div class="container" style="display: flex; flex-direction: row; gap: 2rem; align-items: flex-start;">
-        <div style="min-width:180px;max-width:220px;flex:0 0 180px;">
-            <div style="background:rgba(255,255,255,0.08);border-radius:16px;padding:1.2rem 1rem;margin-bottom:2rem;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.08);color:#fff;">
-                <div style="font-size:1.05rem;color:rgba(255,255,255,0.7);margin-bottom:0.5rem;">Available Balance</div>
-                <div id="availableBalance" style="font-size:1.5rem;font-weight:700;letter-spacing:1px;">$0.00</div>
-            </div>
-        </div>
-        <div style="flex:1;min-width:0;">
-            <button class="back-btn" onclick="goBack()" title="Go Back">←</button>
-            <div class="header">
-                <div class="logo">Bank Swift</div>
-                <h2>Transfer Money</h2>
-                <p class="subtitle">Choose your preferred transfer method</p>
-            </div>
-            <!-- Wire Transfer -->
-        <button class="transfer-method-btn" onclick="toggleForm('wireForm')" id="wireBtn">
-            <span class="method-icon">🏦</span>
-            <span class="method-text">Wire Transfer</span>
-            <span class="method-arrow">▶</span>
-        </button>
-        <div id="wireForm" class="transfer-form">
-            <h3>Wire Transfer</h3>
-            <div class="form-group">
-                <label for="wireAccount">Account Number</label>
-                <input type="text" id="wireAccount" name="account" placeholder="Enter account number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="wireRouting">Routing Number</label>
-                <input type="text" id="wireRouting" name="routing" placeholder="Enter routing number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="wireAmount">Amount</label>
-                <input type="number" id="wireAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>
-            </div>
-            <div class="form-group">
-                <label for="wireRecipient">Recipient Name</label>
-                <input type="text" id="wireRecipient" placeholder="Enter recipient name" class="transfer-input" required>
-            </div>
-            <p class="message" id="wireMessage"></p>
-            <button class="submit-btn" onclick="submitTransfer('wireForm')" id="wireSubmit">Submit Wire Transfer</button>
-        </div>
-        
-        <!-- EFT Transfer -->
-        <button class="transfer-method-btn" onclick="toggleForm('eftForm')" id="eftBtn">
-            <span class="method-icon">💳</span>
-            <span class="method-text">EFT Transfer</span>
-            <span class="method-arrow">▶</span>
-        </button>
-        <div id="eftForm" class="transfer-form">
-            <h3>EFT Transfer</h3>
-            <div class="form-group">
-                <label for="eftBank">Bank Name</label>
-                <input type="text" id="eftBank" placeholder="Enter bank name" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="eftAccount">Account Number</label>
-                <input type="text" id="eftAccount" name="account" placeholder="Enter account number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="eftRouting">Routing Number</label>
-                <input type="text" id="eftRouting" name="routing" placeholder="Enter routing number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="eftAmount">Amount</label>
-                <input type="number" id="eftAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>
-            </div>
-            <p class="message" id="eftMessage"></p>
-            <button class="submit-btn" onclick="submitTransfer('eftForm')" id="eftSubmit">Submit EFT Transfer</button>
-        </div>
-        
-        <!-- ACH Transfer -->
-        <button class="transfer-method-btn" onclick="toggleForm('achForm')" id="achBtn">
-            <span class="method-icon">🔄</span>
-            <span class="method-text">ACH Transfer</span>
-            <span class="method-arrow">▶</span>
-        </button>
-        <div id="achForm" class="transfer-form">
-            <h3>ACH Transfer</h3>
-            <div class="form-group">
-                <label for="achAccount">Account Number</label>
-                <input type="text" id="achAccount" name="account" placeholder="Enter account number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="achRouting">Routing Number</label>
-                <input type="text" id="achRouting" name="routing" placeholder="Enter routing number" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="achAmount">Amount</label>
-                <input type="number" id="achAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>
-            </div>
-            <div class="form-group">
-                <label for="achRecipient">Recipient Name</label>
-                <input type="text" id="achRecipient" placeholder="Enter recipient name" class="transfer-input" required>
-            </div>
-            <p class="message" id="achMessage"></p>
-            <button class="submit-btn" onclick="submitTransfer('achForm')" id="achSubmit">Submit ACH Transfer</button>
-        </div>
-        
-        <!-- Convert & Send to BTC -->
-        <button class="transfer-method-btn" onclick="toggleForm('btcForm')" id="btcBtn">
-            <span class="method-icon">₿</span>
-            <span class="method-text">Convert & Send to BTC</span>
-            <span class="method-arrow">▶</span>
-        </button>
-        <div id="btcForm" class="transfer-form">
-            <h3>Convert & Send to BTC</h3>
-            <div class="form-group">
-                <label for="btcAddress">Bitcoin Address</label>
-                <input type="text" id="btcAddress" placeholder="Enter BTC address" class="transfer-input" required>
-            </div>
-            <div class="form-group">
-                <label for="btcAmount">Amount in USD</label>
-                <input type="number" id="btcAmount" placeholder="Enter amount" class="transfer-input" min="1" step="0.01" required>
-            </div>
-            <div class="form-group">
-                <label for="btcEmail">Email Address</label>
-                <input type="email" id="btcEmail" placeholder="Enter your email" class="transfer-input" required>
-            </div>
-            <p class="message" id="btcMessage"></p>
-            <button class="submit-btn" onclick="submitTransfer('btcForm')" id="btcSubmit">Submit BTC Conversion</button>
-        </div>
+  <div class="container">
+    <button class="back-btn" onclick="window.location.href='dashboard.html'" title="Go Back">←</button>
+    <div class="header">
+      <div class="logo">Bank Swift</div>
+      <h2>Transfer Money</h2>
+      <p class="subtitle">Choose your preferred transfer method</p>
     </div>
-    
-    <!-- Success Modal -->
-    <div id="successModal" class="success-modal">
-        <div class="success-content">
-            <div class="success-icon">✅</div>
-            <h2 style="color: #28a745; margin-bottom: 15px;">Transfer Successful!</h2>
-            <div id="successDetails" class="success-details"></div>
-            <button class="close-btn" onclick="goToTransactionDetails()">Continue</button>
-        </div>
+
+    <!-- Available Balance in main section -->
+    <div class="balance-box">
+      <div>Available Balance</div>
+      <div id="availableBalance">$0.00</div>
     </div>
-    
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay">
-        <div class="loading-spinner"></div>
+
+    <!-- Wire Transfer -->
+    <button class="transfer-method-btn" onclick="toggleForm('wireForm')">
+      <span class="method-icon">🏦</span><span class="method-text">Wire Transfer</span><span class="method-arrow">▶</span>
+    </button>
+    <form id="wireForm" class="transfer-form">
+      <h3>Wire Transfer</h3>
+      <div class="form-group"><label>Account Number</label><input type="text" name="account" class="transfer-input" required></div>
+      <div class="form-group"><label>Routing Number</label><input type="text" name="routing" class="transfer-input" required></div>
+      <div class="form-group"><label>Amount</label><input type="number" name="amount" class="transfer-input" min="1" step="0.01" required></div>
+      <div class="form-group"><label>Recipient Email</label><input type="email" name="recipient" class="transfer-input" required></div>
+      <p class="message"></p>
+      <button type="submit" class="submit-btn">Submit Wire Transfer</button>
+    </form>
+
+    <!-- EFT Transfer -->
+    <button class="transfer-method-btn" onclick="toggleForm('eftForm')">
+      <span class="method-icon">💳</span><span class="method-text">EFT Transfer</span><span class="method-arrow">▶</span>
+    </button>
+    <form id="eftForm" class="transfer-form">
+      <h3>EFT Transfer</h3>
+      <div class="form-group"><label>Bank Name</label><input type="text" name="bank" class="transfer-input" required></div>
+      <div class="form-group"><label>Account Number</label><input type="text" name="account" class="transfer-input" required></div>
+      <div class="form-group"><label>Routing Number</label><input type="text" name="routing" class="transfer-input" required></div>
+      <div class="form-group"><label>Amount</label><input type="number" name="amount" class="transfer-input" min="1" step="0.01" required></div>
+      <div class="form-group"><label>Recipient Email</label><input type="email" name="recipient" class="transfer-input" required></div>
+      <p class="message"></p>
+      <button type="submit" class="submit-btn">Submit EFT Transfer</button>
+    </form>
+
+    <!-- ACH Transfer -->
+    <button class="transfer-method-btn" onclick="toggleForm('achForm')">
+      <span class="method-icon">🔄</span><span class="method-text">ACH Transfer</span><span class="method-arrow">▶</span>
+    </button>
+    <form id="achForm" class="transfer-form">
+      <h3>ACH Transfer</h3>
+      <div class="form-group"><label>Account Number</label><input type="text" name="account" class="transfer-input" required></div>
+      <div class="form-group"><label>Routing Number</label><input type="text" name="routing" class="transfer-input" required></div>
+      <div class="form-group"><label>Amount</label><input type="number" name="amount" class="transfer-input" min="1" step="0.01" required></div>
+      <div class="form-group"><label>Recipient Email</label><input type="email" name="recipient" class="transfer-input" required></div>
+      <p class="message"></p>
+      <button type="submit" class="submit-btn">Submit ACH Transfer</button>
+    </form>
+
+    <!-- BTC Transfer -->
+    <button class="transfer-method-btn" onclick="toggleForm('btcForm')">
+      <span class="method-icon">₿</span><span class="method-text">Convert & Send to BTC</span><span class="method-arrow">▶</span>
+    </button>
+    <form id="btcForm" class="transfer-form">
+      <h3>Convert & Send to BTC</h3>
+      <div class="form-group"><label>BTC Address</label><input type="text" name="btcAddress" class="transfer-input" required></div>
+      <div class="form-group"><label>Amount in USD</label><input type="number" name="amount" class="transfer-input" min="1" step="0.01" required></div>
+      <div class="form-group"><label>Recipient Email</label><input type="email" name="recipient" class="transfer-input" required></div>
+      <p class="message"></p>
+      <button type="submit" class="submit-btn">Submit BTC Conversion</button>
+    </form>
+  </div>
+
+  <!-- Success Modal -->
+  <div id="successModal" class="success-modal">
+    <div class="success-content">
+      <div class="success-icon">✅</div>
+      <h2 style="color:#28a745;">Transfer Successful!</h2>
+      <div id="successDetails" class="success-details"></div>
+      <button class="close-btn" onclick="window.location.href='dashboard.html'">Continue</button>
     </div>
-    
-    <script>
-// Local API via Express
+  </div>
 
-let user = null;
+  <script>
+    let user = null;
 
-document.addEventListener("DOMContentLoaded", () => {
-  try {
-    user = JSON.parse(localStorage.getItem("bs-user"));
-    if (!user || !user.email) {
-      window.location.href = "login.html";
-      return;
-    }
-  } catch {
-    window.location.href = "login.html";
-  }
+    document.addEventListener("DOMContentLoaded", () => {
+      user = JSON.parse(localStorage.getItem("bs-user") || "null");
+      if (!user || !user.token) {
+        window.location.href = "login.html";
+        return;
+      }
 
-  document.querySelectorAll(".transfer-form").forEach(form => {
-    form.addEventListener("submit", handleTransfer);
-  });
+      document.querySelectorAll(".transfer-form").forEach(f => f.addEventListener("submit", handleTransfer));
 
-  document.querySelector(".close-btn").addEventListener("click", () => {
-    document.querySelector(".success-modal").style.display = "none";
-  });
-});
+      // Start SSE for live balance updates
+      connectSSE();
+    });
 
-async function handleTransfer(e) {
-  e.preventDefault();
-
-  const form = e.target;
-  const amount = parseFloat(form.querySelector("[name='amount']").value);
-  const recipient = form.querySelector("[name='recipient']").value.trim().toLowerCase();
-
-  if (!amount || !recipient) {
-    alert("Please enter amount and recipient email.");
-    return;
-  }
-
-  try {
-    // 1. Check recipient exists
-    const authUser = JSON.parse(localStorage.getItem('bs-user')||'null');
-    const userRes = await fetch(`${window.API_BASE}/users`, { headers: { Authorization: `Bearer ${authUser?.token||''}` }});
-    const allUsers = userRes.ok ? await userRes.json() : [];
-    const exists = Array.isArray(allUsers) ? allUsers.some(u => (u.email||'').toLowerCase() === recipient) : false;
-    if (!exists) {
-      alert("Recipient not found. Please make sure the email is registered.");
-      return;
+    function toggleForm(id) {
+      document.querySelectorAll(".transfer-form").forEach(f => f.style.display = "none");
+      document.getElementById(id).style.display = "block";
     }
 
-    // 2. Check sender balance
-    const balanceRes = await fetch(`${window.API_BASE}/transactions?user_email=${encodeURIComponent(user.email)}`, { headers: { Authorization: `Bearer ${authUser?.token||''}` }});
-    if (!balanceRes.ok) throw new Error("Failed to fetch balance");
-    const txRows = await balanceRes.json();
+    async function handleTransfer(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = Object.fromEntries(new FormData(form).entries());
 
-    let balance = 0;
-    txRows.forEach(tx => {
-      if (tx.type === "credit") balance += Number(tx.amount);
-      if (tx.type === "debit") balance -= Number(tx.amount);
-    });
+      const amount = parseFloat(formData.amount);
+      const recipient = (formData.recipient || "").toLowerCase();
 
-    if (amount > balance) {
-      alert(`Insufficient funds. Your balance is $${balance.toFixed(2)} but you tried to send $${amount.toFixed(2)}.`);
-      return;
+      if (!amount || !recipient) {
+        alert("Please fill in all required fields.");
+        return;
+      }
+
+      try {
+        // 1. Create transfer
+        const res = await fetch(`${window.API_BASE}/transfers`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
+          body: JSON.stringify({ sender_email: user.email, recipient, amount, status: "completed" })
+        });
+        if (!res.ok) throw new Error("Transfer failed");
+        const tx = await res.json();
+
+        // 2. Record debit for sender
+        await fetch(`${window.API_BASE}/transactions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
+          body: JSON.stringify({ user_email: user.email, type: "debit", amount, description: `Transfer to ${recipient}` })
+        });
+
+        // 3. Record credit for recipient
+        await fetch(`${window.API_BASE}/transactions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
+          body: JSON.stringify({ user_email: recipient, type: "credit", amount, description: `Received from ${user.email}` })
+        });
+
+        // 4. Show success modal
+        document.getElementById("successModal").style.display = "block";
+        document.getElementById("successDetails").innerHTML = `
+          <div class="detail-row"><span>Recipient</span><span>${recipient}</span></div>
+          <div class="detail-row"><span>Amount</span><span>$${amount.toFixed(2)}</span></div>
+          <div class="detail-row"><span>Status</span><span>${tx.status}</span></div>
+        `;
+
+        // 5. Dispatch event so dashboard refreshes
+        window.dispatchEvent(new CustomEvent("transfer-completed", { detail: { sender: user.email, recipient, amount } }));
+
+        form.reset();
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Transfer failed");
+      }
     }
 
-    // 3. Insert into transfers table
-            const transferRes = await fetch(`${window.API_BASE}/transfers`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${authUser?.token||''}` },
-      body: JSON.stringify({
-        sender_email: user.email,
-        recipient,
-        amount,
-        status: "completed"
-      })
-    });
-    if (!transferRes.ok) throw new Error("Failed to create transfer");
-    const transferData = await transferRes.json();
-
-    // 4. Add debit to sender's transactions
-            await fetch(`${window.API_BASE}/transactions`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${authUser?.token||''}` },
-      body: JSON.stringify({
-        user_email: user.email,
-        type: "debit",
-        amount,
-        description: `Transfer to ${recipient}`
-      })
-    });
-
-    // 5. Add credit to recipient's transactions
-            await fetch(`${window.API_BASE}/transactions`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${authUser?.token||''}` },
-      body: JSON.stringify({
-        user_email: recipient,
-        type: "credit",
-        amount,
-        description: `Received from ${user.email}`
-      })
-    });
-
-    // 6. Show success modal
-document.querySelector(".success-modal").style.display = "block";
-document.querySelector(".success-details").innerHTML = `
-  <div class="detail-row"><span>Recipient</span><span>${recipient}</span></div>
-  <div class="detail-row"><span>Amount</span><span>$${amount.toFixed(2)}</span></div>
-  <div class="detail-row"><span>Status</span><span>${transferData.status || "Completed"}</span></div>
-`;
-
-// 🔔 Dispatch event so dashboards can refresh
-window.dispatchEvent(new CustomEvent("transfer-completed", { detail: { sender: user.email, recipient, amount } }));
-
-form.reset();
-  } catch (err) {
-    console.error(err);
-    alert("Transfer failed: " + err.message);
-  }
-}
-</script>
+    function connectSSE() {
+      const evtSource = new EventSource(`${window.API_BASE}/stream/user/${user.id}`);
+      evtSource.onmessage = e => {
+        const profile = JSON.parse(e.data);
+        document.getElementById("availableBalance").textContent = `$${Number(profile.baseavailable).toFixed(2)}`;
+        localStorage.setItem("bs-user", JSON.stringify({ ...user, ...profile }));
+      };
+    }
+  </script>
 </body>
 </html>

@@ -76,74 +76,57 @@
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById('loginForm');
   const pwField = document.getElementById('password');
-  const toggleBtn = document.getElementById('pwToggleLogin');
   const alertBox = document.getElementById('loginAlert');
-  const rememberBox = document.getElementById('remember');
 
-  // Validation
-  function setState(el,state,msg){ bsSetFieldState(el,state,msg); }
-  function validateEmail(){
-    const el = document.getElementById('email');
-    const v = el.value.trim().toLowerCase();
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-    if(!re.test(v)){ setState(el,'error','Invalid'); return false; }
-    setState(el,'success',''); return true;
+  function showError(msg){
+    alertBox.textContent = msg;
+    alertBox.classList.add('show');
+    setTimeout(()=>alertBox.classList.remove('show'),1500);
   }
-  function validatePassword(){
-    const el = pwField; const v = el.value.trim();
-    if(!v){ setState(el,'error','Required'); return false; }
-    setState(el,'success',''); return true;
-  }
-  document.getElementById('email').addEventListener('blur', validateEmail);
-  pwField.addEventListener('blur', validatePassword);
 
-  // Password show/hide
-  toggleBtn.addEventListener('click', () => {
-    if (pwField.type === 'password') {
-      pwField.type = 'text'; 
-      toggleBtn.textContent = 'Hide';
-    } else {
-      pwField.type = 'password'; 
-      toggleBtn.textContent = 'Show';
-    }
-  });
-
-  async function safeJson(res) {
-  return res.text().then(t => {
-    try { return JSON.parse(t); }
-    catch { return { raw: t }; }
-  });
-}
-
-  // Form submission
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
     alertBox.textContent = '';
+
     const email = document.getElementById('email').value.trim().toLowerCase();
     const password = pwField.value;
+
     if(!email || !password){
-      alertBox.textContent = 'Email and password required';
-      return;
+      return showError('Email and password required');
     }
+
     const btn = document.getElementById('loginBtn');
     if(btn.disabled) return;
     btn.disabled = true;
     btn.textContent = 'Signing in...';
+
     try {
-      const base = (API_BASE || '').replace(/\/+$/,'');
-      const url = /\/api(\/|$)/.test(base) ? `${base}/login` : `${base}/api/login`;
-      const res = await fetch(url, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
+      // 🔑 use bsApiFetch with your API wrapper
+      const data = await window.bsApiFetch("/login", {
+        method: "POST",
         body: JSON.stringify({ email, password })
       });
-      const raw = await res.text();
-      let data={}; try { data = JSON.parse(raw); } catch {}
-      if(!res.ok) throw new Error(data.error || data.message || raw || `HTTP ${res.status}`);
-      localStorage.setItem('bs-user', JSON.stringify(data));
+
+      // Store user locally
+      const userObj = {
+        id: data.id,
+        fullname: data.fullname,
+        email: data.email,
+        accountname: data.accountname,
+        baseavailable: data.baseavailable,
+        totalbalance: data.totalbalance,
+        token: data.token,
+        isAuthenticated: true,
+        ts: Date.now()
+      };
+      localStorage.setItem('bs-user', JSON.stringify(userObj));
+
+      btn.textContent = 'Success!';
       window.location.href = 'dashboard.html';
-    } catch(err){
-      alertBox.textContent = err.message || 'Login failed';
+
+    } catch(err) {
+      console.error("Login error:", err);
+      showError(err.message || "Login failed");
       btn.disabled = false;
       btn.textContent = 'Sign In';
     }

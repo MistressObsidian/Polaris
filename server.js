@@ -56,31 +56,47 @@ function validateEmail(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email
 // POST /api/users  (registration)
 app.post('/api/users', async (req,res) => {
   try {
-    const { fullname, phone='', email, password, accountname='' } = req.body || {};
-    if(!fullname || typeof fullname !== 'string' || !fullname.trim())
+    const { fullname, phone = '', email, password, accountname = '' } = req.body || {};
+
+    if(!fullname || typeof fullname !== 'string' || !fullname.trim()){
       return res.status(400).json({ error:'Full name required' });
-    if(!email || !validateEmail(email))
+    }
+    if(!email || !validateEmail(email)){
       return res.status(400).json({ error:'Valid email required' });
-    if(!password || password.length < 6)
-      return res.status(400).json({ error:'Password min 6 chars' });
+    }
+    if(!password || password.length < 6){
+      return res.status(400).json({ error:'Password must be at least 6 chars' });
+    }
 
     const normEmail = email.toLowerCase();
     const existing = await pool.query('SELECT id FROM users WHERE email=$1', [normEmail]);
-    if(existing.rowCount)
+    if(existing.rowCount){
       return res.status(409).json({ error:'Email already registered' });
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const ins = await pool.query(
-      `INSERT INTO users(fullname, phone, email, password_hash, accountname, baseavailable, totalbalance)
-       VALUES($1,$2,$3,$4,$5,$6,$7)
+
+    const insert = await pool.query(
+      `INSERT INTO users (fullname, phone, email, password_hash, accountname, baseavailable, totalbalance)
+       VALUES ($1,$2,$3,$4,$5,0,0)
        RETURNING id, fullname, email, accountname, baseavailable, totalbalance`,
-      [fullname.trim(), phone, normEmail, passwordHash, accountname, 0, 0]
+      [fullname.trim(), phone.trim(), normEmail, passwordHash, accountname.trim()]
     );
-    const user = ins.rows[0];
+
+    const user = insert.rows[0];
     const token = issueToken(user);
-    return res.status(201).json({ ...user, token });
+
+    return res.status(201).json({
+      id: user.id,
+      fullname: user.fullname,
+      email: user.email,
+      accountname: user.accountname,
+      baseavailable: user.baseavailable,
+      totalbalance: user.totalbalance,
+      token
+    });
   } catch(err){
-    console.error('Register error', err);
+    console.error('Registration error', err);
     return res.status(500).json({ error:'Server error' });
   }
 });
@@ -194,7 +210,18 @@ async function logToSheet(entry){
 // Serve static files (frontend)
 app.use(express.static(__dirname));
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-	console.log(`Server running on http://localhost:${PORT}`);
+const PORT = Number(process.env.PORT) || 4000;
+const server = app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+server.on('error', err => {
+  if(err.code === 'EADDRINUSE'){
+    const alt = PORT + 1;
+    console.warn(`Port ${PORT} in use. Retrying on ${alt}...`);
+    setTimeout(()=> {
+      app.listen(alt, () => console.log(`Server running on http://localhost:${alt}`));
+    }, 300);
+  } else {
+    console.error('Server start error', err);
+  }
 });

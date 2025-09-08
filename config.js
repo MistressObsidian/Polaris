@@ -1,5 +1,5 @@
 (function(){
-    let resolvedApiBase = '/api';
+    let ApiBase;
 
     try {
         const isFile = location.origin.startsWith('file:');
@@ -7,14 +7,16 @@
         const currentPort = location.port || '4000';
 
         if (isFile) {
-            resolvedApiBase = `http://localhost:4000/api`;
+            ApiBase = `http://localhost:4000/api`;
         } else if (isLocalhost) {
-            resolvedApiBase = `http://localhost:${currentPort}/api`;
+            ApiBase = `http://localhost:${currentPort}/api`;
         } else {
             // production
-            resolvedApiBase = '/api';
+            ApiBase = '/api';
         }
-    } catch(_) {}
+    } catch(_) {
+        ApiBase = '/api';
+    }
 
-    window.API_BASE = resolvedApiBase;
+    window.API_BASE = ApiBase;
 })();

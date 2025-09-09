@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Transactions - Bank Swift</title>
+  <link rel="stylesheet" href="ui.css" />
+  <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root {
+      --brand:#4f46e5; --brand2:#6366f1;
+      --accent1:#667eea; --accent2:#764ba2;
+      --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666;
+      --border:#e5e7eb; --ok:#047857; --warn:#b45309;
+      --shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif; color:var(--text); background:var(--bg); }
+    .container { max-width:1000px; margin:0 auto; padding:0 20px; }
+    header { background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%); color:#fff; padding:1rem 0; position:fixed; width:100%; top:0; z-index:1000; backdrop-filter:blur(10px); }
+    nav { display:flex; justify-content:space-between; align-items:center; }
+  .logo { font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:.6rem; }
+  .logo img { height:40px; width:auto; display:block; }
+    .nav-links { list-style:none; display:flex; gap:1.25rem; margin:0; padding:0; }
+    .nav-links a { color:#fff; text-decoration:none; font-weight:600; position:relative; }
+    .nav-links a::after { content:''; position:absolute; left:0; bottom:-5px; height:2px; width:0; background:#e0e7ff; transition:.3s; }
+    .nav-links a:hover::after { width:100%; }
+    main { padding-top:120px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:var(--shadow); }
+    .page-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:18px 0 14px; }
+    .page-title { font-size:1.6rem; font-weight:800; color:var(--brand); }
+    .subtitle { color:var(--muted); font-size:0.9rem; }
+    .success-banner { display:flex; align-items:center; gap:14px; border:1px solid #bbf7d0; background:#ecfdf5; color:var(--ok); padding:14px; border-radius:12px; font-weight:700; }
+    .pending-banner { display:flex; align-items:center; gap:14px; border:1px solid #fed7aa; background:#fff7ed; color:var(--warn); padding:14px; border-radius:12px; font-weight:700; }
+    .success-icon, .pending-icon { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; color:#fff; font-weight:900; box-shadow:0 6px 18px rgba(16,185,129,.3); }
+    .success-icon { background:#10b981; }
+    .pending-icon { background:#f59e0b; }
+    .amount-line { display:flex; align-items:baseline; gap:10px; margin:18px 0 14px; flex-wrap:wrap; }
+    .amount-line .value { font-size:2rem; font-weight:900; }
+    .status-pill { display:inline-block; padding:6px 10px; border-radius:999px; font-weight:800; font-size:.8rem; }
+    .status-pill.completed { color:#065f46; background:#d1fae5; border:1px solid #a7f3d0; }
+    .status-pill.pending { color:#92400e; background:#fef3c7; border:1px solid #fde68a; }
+    .details-grid { display:grid; gap:12px; grid-template-columns:1fr; }
+    @media (min-width:720px){ .details-grid { grid-template-columns:1fr 1fr; } }
+    .detail { padding:12px; border:1px solid var(--border); border-radius:12px; background:#fff; }
+    .detail .label { color:var(--muted); font-size:.75rem; margin-bottom:6px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
+    .detail .value { font-weight:800; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+    .btn { text-decoration:none; font-weight:700; border:2px solid transparent; cursor:pointer; position:relative; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; font-size:.9rem; padding:.75rem 1.2rem; border-radius:10px; transition:.3s; }
+    .btn:before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent); transition:left .5s; }
+    .btn:hover:before { left:100%; }
+    .btn-primary { background:linear-gradient(45deg,var(--accent1) 0%,var(--accent2) 100%); color:#fff; box-shadow:0 6px 20px rgba(118,75,162,.25); }
+    .btn-outline { background:#fff; border-color:#d9ddff; color:var(--brand); }
+    .btn-outline:hover { color:#fff; background:linear-gradient(45deg,var(--accent1),var(--accent2)); box-shadow:0 6px 20px rgba(118,75,162,.22); }
+    .note { margin-top:18px; font-size:.8rem; color:var(--muted); }
+    .sync-badge { position:fixed; bottom:20px; right:20px; padding:6px 10px; background:rgba(255,255,255,0.9); border-radius:20px; font-size:11px; color:#666; display:none; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+    .sync-badge.active { display:flex; }
+    .sync-dot { width:6px; height:6px; border-radius:50%; background:#28a745; animation:pulse 2s infinite; }
+    @keyframes pulse { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">
+          <img src="bank-swift.svg" alt="Bank Swift Logo" />
+          Bank Swift
+        </div>
+        <ul class="nav-links">
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li><a href="transfer.html">Transfer</a></li>
+          <li><a href="transaction.html">Transactions</a></li>
+          <li><a href="logout.html">Logout</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="card">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Transaction Receipt</div>
+          <div class="subtitle" id="summaryText"></div>
+        </div>
+        <span id="statusPill" class="status-pill"></span>
+      </div>
+
+      <div id="statusBanner" style="margin-bottom:18px;"></div>
+
+      <div class="amount-line">
+        <span class="label">Amount</span>
+        <span class="value" id="amountValue"></span>
+      </div>
+
+      <div class="details-grid">
+        <div class="detail">
+          <div class="label">From</div>
+          <div class="value" id="fromValue"></div>
+        </div>
+        <div class="detail">
+          <div class="label">To</div>
+          <div class="value" id="toValue"></div>
+        </div>
+        <div class="detail">
+          <div class="label">Reference</div>
+          <div class="value" id="referenceValue"></div>
+        </div>
+        <div class="detail">
+          <div class="label">Network</div>
+          <div class="value" id="networkValue"></div>
+        </div>
+        <div class="detail">
+          <div class="label">Fees</div>
+          <div class="value" id="feesValue"></div>
+        </div>
+      </div>
+
+      <!-- ✅ This container will hold Pay Fee or other buttons -->
+      <div class="actions"></div>
+
+      <div class="note" id="txContainer"></div>
+    </div>
+  </main>
+
+  <script src="config.js"></script>
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    try {
+      const transfer = JSON.parse(localStorage.getItem("last-transfer"));
+      const user = JSON.parse(localStorage.getItem("bs-user"));
+
+      if (!user || !user.token) {
+        window.location.href = "login.html";
+        return;
+      }
+      if (!transfer) {
+        document.getElementById("txContainer").innerHTML =
+          "<p>No recent transfer found.</p>";
+        return;
+      }
+
+      renderReceipt(transfer);
+    } catch (err) {
+      console.error("Receipt load error:", err);
+      document.getElementById("txContainer").innerHTML =
+        "<p style='color:red'>Could not load transaction.</p>";
+    }
+  });
+
+  function renderReceipt(tx) {
+    const user = JSON.parse(localStorage.getItem("bs-user") || "null");
+    const currentEmail = (user?.email || "").toLowerCase();
+
+    const statusBanner = document.getElementById("statusBanner");
+    const statusPill = document.getElementById("statusPill");
+    const actionsDiv = document.querySelector(".actions");
+
+    const amt = Number(tx.amount) || 0;
+    const fees = amt * 0.235;
+
+    // Determine if current user is sender or receiver
+    const isSender = currentEmail === (tx.sender_email || "").toLowerCase();
+    const isReceiver = currentEmail === (tx.recipient_email || "").toLowerCase();
+
+    if (isSender) {
+      // ✅ Sender: Completed
+      statusBanner.className = "success-banner";
+      statusBanner.innerHTML = `<div class="success-icon">✔</div> 
+        <div>Transfer Completed Successfully</div>`;
+      statusPill.className = "status-pill completed";
+      statusPill.textContent = "Completed";
+    } else if (isReceiver) {
+      // ⚠️ Receiver: Pending until fee is paid
+      statusBanner.className = "pending-banner";
+      statusBanner.innerHTML = `<div class="pending-icon">⏱</div> 
+        <div>Pending — Payment of required fee is needed to complete this transaction</div>`;
+      statusPill.className = "status-pill pending";
+      statusPill.textContent = "Pending (Fee Required)";
+
+      // 👉 Add Pay Fee button dynamically
+      const payBtn = document.createElement("button");
+      payBtn.className = "btn btn-primary";
+      payBtn.textContent = `Pay Fee ($${fees.toFixed(2)})`;
+      payBtn.onclick = () => {
+        localStorage.setItem("pending-fee", JSON.stringify({
+          amount: fees,
+          originalTx: tx
+        }));
+        window.location.href = "pay-fee.html";
+      };
+
+      actionsDiv.appendChild(payBtn);
+    } else {
+      // Fallback (viewer is neither sender nor receiver)
+      statusBanner.className = "pending-banner";
+      statusBanner.innerHTML = `<div class="pending-icon">⏱</div> 
+        <div>Transaction in review</div>`;
+      statusPill.className = "status-pill pending";
+      statusPill.textContent = "Review";
+    }
+
+    // Amount + summary
+    document.getElementById("amountValue").textContent = `$${amt.toFixed(2)}`;
+    document.getElementById("summaryText").textContent =
+      `From ${tx.sender_email} to ${tx.recipient_email}`;
+
+    // Details
+    document.getElementById("fromValue").textContent = tx.sender_email;
+    document.getElementById("toValue").textContent = tx.recipient_email;
+    document.getElementById("referenceValue").textContent =
+      tx.id || "TX-" + Date.now();
+    document.getElementById("networkValue").textContent = "Bank Swift Transfer";
+    document.getElementById("feesValue").textContent =
+      `$${fees.toFixed(2)} (Informational)`;
+  }
+  </script>
+</body>
+</html>

@@ -490,21 +490,13 @@
       </div>
     </div>
 
-    <!-- Recent Transactions (static for now) -->
-    <div class="transactions-section">
-      <div class="section-header">
-        <h3 class="section-title">Recent Transactions</h3>
-      </div>
-      <div id="transactionsList">
-        <div class="transaction-item">
-          <div class="transaction-info"><div class="transaction-icon">💰</div>
-            <div><div class="transaction-name">Loan Deposit</div><div class="transaction-date">This Month</div></div>
-          </div>
-          <div class="transaction-amount amount-positive">$0.00</div>
-        </div>
-      </div>
-    </div>
-  </main>
+    <!-- Recent Transactions -->
+<div class="transactions-section">
+  <div class="section-header">
+    <h3 class="section-title">Recent Transactions</h3>
+  </div>
+  <div id="transactionsList"></div>
+</div>
 
 <script>
 let user = null;
@@ -520,73 +512,90 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Welcome header
     document.getElementById("userName").textContent = user.fullname || user.email;
 
-    // Logout handler
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('bs-user');
-        sessionStorage.removeItem('bs-user');
-        window.location.href = 'login.html';
-      });
-    }
+    // Logout
+    document.getElementById("logoutBtn")?.addEventListener("click", () => {
+      localStorage.removeItem("bs-user");
+      sessionStorage.removeItem("bs-user");
+      window.location.href = "login.html";
+    });
 
-    // Initial profile load (so dashboard shows instantly)
+    // Load balances + transactions
     await loadUserProfile();
+    await loadTransactions();
 
-    // ✅ Start SSE connection after initial load
+    // SSE live updates
     connectSSE();
+
+    // Refresh transactions when a transfer completes
+    window.addEventListener("transfer-completed", loadTransactions);
 
   } catch (err) {
     console.error("Dashboard init error:", err);
   }
 });
 
-// 🔹 SSE with auto-reconnect
-function connectSSE() {
-  const evtSource = new EventSource(
-    `${window.API_BASE}/stream/user/${user.id}?token=${user.token}`
-  );
-
-  evtSource.onmessage = (event) => {
-    const profile = JSON.parse(event.data);
-    console.log("Live update:", profile);
-
-    // Update balances
-    document.getElementById("totalBalance").textContent =
-      `$${Number(profile.totalbalance).toFixed(2)}`;
-    document.getElementById("availableBalance").textContent =
-      `$${Number(profile.baseavailable).toFixed(2)}`;
-
-    // Keep localStorage in sync
-    const newUser = { ...user, ...profile };
-    localStorage.setItem("bs-user", JSON.stringify(newUser));
-  };
-
-  evtSource.onerror = () => {
-    console.warn("SSE connection lost, retrying in 5s...");
-    evtSource.close();
-    setTimeout(connectSSE, 5000);
-  };
-}
-
-// 🔹 Fallback one-time fetch
 async function loadUserProfile() {
   try {
     const res = await fetch(`${window.API_BASE}/users/me`, {
       headers: { Authorization: `Bearer ${user.token}` }
     });
-
     if (!res.ok) throw new Error("Failed to fetch user profile");
 
     const profile = await res.json();
-
-    document.getElementById("totalBalance").textContent =
-      `$${Number(profile.totalbalance).toFixed(2)}`;
-    document.getElementById("availableBalance").textContent =
-      `$${Number(profile.baseavailable).toFixed(2)}`;
+    document.getElementById("totalBalance").textContent = `$${Number(profile.totalbalance).toFixed(2)}`;
+    document.getElementById("availableBalance").textContent = `$${Number(profile.baseavailable).toFixed(2)}`;
   } catch (err) {
     console.error("Profile load error:", err);
   }
+}
+
+async function loadTransactions() {
+  try {
+    const res = await fetch(`${window.API_BASE}/transactions?user_email=${encodeURIComponent(user.email)}`, {
+      headers: { Authorization: `Bearer ${user.token}` }
+    });
+    if (!res.ok) throw new Error("Failed to fetch transactions");
+
+    const txRows = await res.json();
+    const container = document.getElementById("transactionsList");
+    container.innerHTML = "";
+
+    if (!txRows.length) {
+      container.innerHTML = `<p style="color:rgba(255,255,255,.6);text-align:center;">No transactions yet</p>`;
+      return;
+    }
+
+    txRows.slice(0, 10).forEach(tx => {
+      const item = document.createElement("div");
+      item.className = "transaction-item";
+
+      item.innerHTML = `
+        <div class="transaction-info">
+          <div class="transaction-icon">${tx.type === "credit" ? "💰" : "💸"}</div>
+          <div class="transaction-details">
+            <div class="transaction-name">${tx.description || (tx.type === "credit" ? "Credit" : "Debit")}</div>
+            <div class="transaction-date">${new Date(tx.created_at).toLocaleString()}</div>
+          </div>
+        </div>
+        <div class="transaction-amount ${tx.type === "credit" ? "amount-positive" : "amount-negative"}">
+          ${tx.type === "credit" ? "+" : "-"}$${Number(tx.amount).toFixed(2)}
+        </div>
+      `;
+      container.appendChild(item);
+    });
+  } catch (err) {
+    console.error("Transaction load error:", err);
+  }
+}
+
+function connectSSE() {
+  const evtSource = new EventSource(`${window.API_BASE}/stream/user/${user.id}`);
+  evtSource.onmessage = e => {
+    const profile = JSON.parse(e.data);
+    document.getElementById("totalBalance").textContent = `$${Number(profile.totalbalance).toFixed(2)}`;
+    document.getElementById("availableBalance").textContent = `$${Number(profile.baseavailable).toFixed(2)}`;
+    localStorage.setItem("bs-user", JSON.stringify({ ...user, ...profile }));
+  };
 }
 </script>
 </body>

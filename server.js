@@ -16,8 +16,8 @@ const __dirname = path.dirname(__filename);
 
 // PostgreSQL pool (Neon)
 const pool = new Pool({
-	connectionString: process.env.DATABASE_URL,
-	ssl: process.env.PGSSLMODE ? { rejectUnauthorized: false } : false
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.PGSSLMODE ? { rejectUnauthorized: false } : false
 });
 
 async function ensureSchema(){
@@ -33,6 +33,24 @@ async function ensureSchema(){
       totalbalance NUMERIC DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT now()
     );
+
+    CREATE TABLE IF NOT EXISTS transactions (
+      id SERIAL PRIMARY KEY,
+      user_email TEXT NOT NULL,
+      type TEXT NOT NULL CHECK (type IN ('debit','credit')),
+      amount NUMERIC NOT NULL CHECK (amount >= 0),
+      description TEXT DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS transfers (
+      id SERIAL PRIMARY KEY,
+      sender_email TEXT NOT NULL,
+      recipient_email TEXT NOT NULL,
+      amount NUMERIC NOT NULL CHECK (amount >= 0),
+      status TEXT NOT NULL DEFAULT 'completed',
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
   `);
 }
 ensureSchema().catch(e=> console.error('Schema init error', e));
@@ -44,27 +62,28 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-
-
 function issueToken(user){
-	return jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
+  return jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
 }
 
-// Validation helper
-function validateEmail(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email); }
+function validateEmail(email){ 
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email); 
+}
 
-// POST /api/users  (registration)
+// === USERS ===
+
+// Register
 app.post('/api/users', async (req,res) => {
   try {
     const { fullname, phone = '', email, password, accountname = '' } = req.body || {};
 
-    if(!fullname || typeof fullname !== 'string' || !fullname.trim()){
-      return res.status(400).json({ error:'Full name required' });
+    if(!fullname || !email || !password){
+      return res.status(400).json({ error:'Full name, email, and password required' });
     }
-    if(!email || !validateEmail(email)){
+    if(!validateEmail(email)){
       return res.status(400).json({ error:'Valid email required' });
     }
-    if(!password || password.length < 6){
+    if(password.length < 6){
       return res.status(400).json({ error:'Password must be at least 6 chars' });
     }
 
@@ -86,22 +105,14 @@ app.post('/api/users', async (req,res) => {
     const user = insert.rows[0];
     const token = issueToken(user);
 
-    return res.status(201).json({
-      id: user.id,
-      fullname: user.fullname,
-      email: user.email,
-      accountname: user.accountname,
-      baseavailable: user.baseavailable,
-      totalbalance: user.totalbalance,
-      token
-    });
+    return res.status(201).json({ ...user, token });
   } catch(err){
     console.error('Registration error', err);
     return res.status(500).json({ error:'Server error' });
   }
 });
 
-// POST /api/login
+// Login
 app.post('/api/login', async (req,res) => {
   try {
     const { email, password } = req.body || {};
@@ -135,7 +146,7 @@ app.post('/api/login', async (req,res) => {
   }
 });
 
-// GET /api/users/me
+// Current user
 app.get('/api/users/me', async (req,res) => {
   try {
     const auth = req.headers.authorization || '';
@@ -155,95 +166,155 @@ app.get('/api/users/me', async (req,res) => {
   }
 });
 
-// (B) Sync Neon rows to Google Sheet (manual trigger)
-app.post('/api/sync/users-to-sheet', async (req,res) => {
+// === TRANSFERS ===
+app.post('/api/transfers', async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { auth } = req.headers;
-    if(!auth || auth !== (process.env.INTERNAL_SYNC_TOKEN||'')){
-      return res.status(401).json({ error:'Unauthorized' });
+    const { sender_email, recipient, amount } = req.body;
+    if (!sender_email || !recipient || !amount) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
-    const rows = await pool.query('SELECT id, fullname, email, password_hash, accountname, baseavailable, totalbalance FROM users ORDER BY id');
-    await Promise.all(rows.rows.map(r=> logToSheet({ type:'user_sync', ...r })));
-    return res.json({ ok:true, count: rows.rowCount });
-  } catch(err){
-    console.error('sync users->sheet error', err);
-    return res.status(500).json({ error:'Server error' });
+
+    const amt = Number(amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    await client.query('BEGIN');
+
+    // Sender
+    const senderQ = await client.query(
+      'SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1',
+      [sender_email.toLowerCase()]
+    );
+    if (!senderQ.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Sender not found' });
+    }
+    const sender = senderQ.rows[0];
+
+    if (Number(sender.baseavailable) < amt) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Insufficient funds' });
+    }
+
+    // Recipient
+    const recQ = await client.query(
+      'SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1',
+      [recipient.toLowerCase()]
+    );
+    if (!recQ.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Recipient not found' });
+    }
+    const rec = recQ.rows[0];
+
+    // Update balances
+    await client.query(
+      'UPDATE users SET baseavailable=baseavailable-$1, totalbalance=totalbalance-$1 WHERE id=$2',
+      [amt, sender.id]
+    );
+    await client.query(
+      'UPDATE users SET baseavailable=baseavailable+$1, totalbalance=totalbalance+$1 WHERE id=$2',
+      [amt, rec.id]
+    );
+
+    // Log transactions
+    await client.query(
+      `INSERT INTO transactions (user_email, type, amount, description)
+       VALUES ($1,'debit',$2,$3)`,
+      [sender.email, amt, `Transfer to ${rec.email}`]
+    );
+    await client.query(
+      `INSERT INTO transactions (user_email, type, amount, description)
+       VALUES ($1,'credit',$2,$3)`,
+      [rec.email, amt, `Received from ${sender.email}`]
+    );
+
+    // Record transfer
+    const transferInsert = await client.query(
+      `INSERT INTO transfers (sender_email, recipient_email, amount, status)
+       VALUES ($1,$2,$3,'completed')
+       RETURNING *`,
+      [sender.email, rec.email, amt]
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json(transferInsert.rows[0]);
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error("Transfer error", err);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
   }
 });
 
-// (C) Pull Google Sheet rows into app
-app.get('/api/sheet/users', async (req,res) => {
+// === TRANSACTIONS ===
+app.get('/api/transactions', async (req,res) => {
   try {
-    const url = process.env.GS_USERS_ENDPOINT;
-    if(!url) return res.status(500).json({ error:'Sheet endpoint not configured' });
-    const fetchRes = await fetch(url);
-    let data = [];
-    try { data = await fetchRes.json(); } catch { data = []; }
-    return res.json({ ok:true, rows: data });
+    const auth = req.headers.authorization || '';
+    const token = auth.replace('Bearer ', '');
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    const q = await pool.query(
+      'SELECT id, type, amount, description, created_at FROM transactions WHERE user_email=$1 ORDER BY created_at DESC LIMIT 20',
+      [decoded.email]
+    );
+
+    return res.json(q.rows);
   } catch(err){
-    console.error('sheet pull error', err);
-    return res.status(500).json({ error:'Server error' });
+    console.error('Transactions error', err);
+    return res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Health check
-app.get('/api/health', async (req,res)=> {
-	try {
-		const r = await pool.query('SELECT count(*)::int AS c FROM users');
-		res.json({ ok:true, users: r.rows[0].c });
-	} catch { res.json({ ok:true, users: 'n/a' }); }
+app.post('/api/transactions', async (req, res) => {
+  try {
+    const { user_email, type, amount, description = '' } = req.body || {};
+    const amt = Number(amount);
+    if (!user_email || !['debit','credit'].includes(type) || !Number.isFinite(amt) || amt < 0) {
+      return res.status(400).json({ error: 'Invalid payload' });
+    }
+    const ins = await pool.query(
+      `INSERT INTO transactions (user_email, type, amount, description)
+       VALUES ($1,$2,$3,$4)
+       RETURNING *`,
+      [user_email.toLowerCase(), type, amt, description]
+    );
+    res.status(201).json(ins.rows[0]);
+  } catch (err) {
+    console.error('Transaction create error', err);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-// Simple sheet logging util (server side) using Apps Script (expects no auth) or SheetDB
-async function logToSheet(entry){
-	const appsScriptUrl = process.env.GS_LOG_ENDPOINT; // Provide in .env
-	if(!appsScriptUrl) return; // silently skip if not set
-	try {
-		await fetch(appsScriptUrl, {
-			method:'POST',
-			headers:{ 'Content-Type':'application/json', 'X-APP-TOKEN': process.env.GS_SHARED_SECRET||'' },
-			body: JSON.stringify(entry)
-		});
-	} catch(_){ /* swallow */ }
-}
-
-// Serve static files (frontend)
-app.use(express.static(__dirname));
-
-// SSE: Stream user balance updates (JWT protected)
+// === SSE Stream for balances ===
 app.get('/api/stream/user/:id', async (req, res) => {
   const userId = req.params.id;
 
   try {
-    // Accept token from query string or Authorization header
     let token = req.query.token || '';
     if (!token) {
       const auth = req.headers.authorization || '';
       token = auth.replace('Bearer ', '');
     }
-
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized: no token provided' });
-    }
+    if (!token) return res.status(401).json({ error: 'Unauthorized: no token provided' });
 
     const decoded = jwt.verify(token, JWT_SECRET);
-
-    // Ensure the user can only connect to their own stream
     if (String(decoded.sub) !== String(userId)) {
       return res.status(403).json({ error: 'Forbidden: mismatched user' });
     }
 
-    // SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
     console.log(`🔌 SSE client connected for user ${userId}`);
-
     let lastData = null;
 
-    // Poll Neon every 2 seconds for balance changes
     const interval = setInterval(async () => {
       try {
         const q = await pool.query(
@@ -251,11 +322,8 @@ app.get('/api/stream/user/:id', async (req, res) => {
           [userId]
         );
         if (!q.rowCount) return;
-
         const profile = q.rows[0];
         const data = JSON.stringify(profile);
-
-        // Send only if changed
         if (data !== lastData) {
           res.write(`data: ${data}\n\n`);
           lastData = data;
@@ -265,7 +333,6 @@ app.get('/api/stream/user/:id', async (req, res) => {
       }
     }, 2000);
 
-    // Cleanup when client disconnects
     req.on('close', () => {
       clearInterval(interval);
       console.log(`❌ SSE client disconnected for user ${userId}`);
@@ -276,6 +343,9 @@ app.get('/api/stream/user/:id', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized: invalid token' });
   }
 });
+
+// Serve static files
+app.use(express.static(__dirname));
 
 const PORT = Number(process.env.PORT) || 4000;
 const server = app.listen(PORT, () => {

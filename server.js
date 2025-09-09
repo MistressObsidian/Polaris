@@ -167,85 +167,113 @@ app.get('/api/users/me', async (req,res) => {
 });
 
 // === TRANSFERS ===
+// === TRANSFERS ===
 app.post('/api/transfers', async (req, res) => {
   const client = await pool.connect();
   try {
-    const { sender_email, recipient, amount } = req.body;
-    if (!sender_email || !recipient || !amount) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    const {
+      recipientName,
+      recipient,
+      bank,
+      account,
+      routing,
+      btcAddress,
+      amount,
+      method
+    } = req.body;
+
+    // Sender comes from JWT
+    let token = req.headers.authorization?.replace("Bearer ", "") || "";
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const sender_email = decoded.email;
+
+    // Validation
+    if (!recipient || !amount || !method) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
     const amt = Number(amount);
     if (!Number.isFinite(amt) || amt <= 0) {
-      return res.status(400).json({ error: 'Invalid amount' });
+      return res.status(400).json({ error: "Invalid amount" });
     }
 
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
-    // Sender
+    // Verify sender
     const senderQ = await client.query(
-      'SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1',
+      "SELECT id, email, baseavailable FROM users WHERE email=$1",
       [sender_email.toLowerCase()]
     );
     if (!senderQ.rowCount) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Sender not found' });
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Sender not found" });
     }
     const sender = senderQ.rows[0];
 
     if (Number(sender.baseavailable) < amt) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Insufficient funds' });
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Insufficient funds" });
     }
 
-    // Recipient
+    // Verify recipient
     const recQ = await client.query(
-      'SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1',
+      "SELECT id, email FROM users WHERE email=$1",
       [recipient.toLowerCase()]
     );
     if (!recQ.rowCount) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Recipient not found' });
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Recipient not found" });
     }
     const rec = recQ.rows[0];
 
     // Update balances
     await client.query(
-      'UPDATE users SET baseavailable=baseavailable-$1, totalbalance=totalbalance-$1 WHERE id=$2',
+      "UPDATE users SET baseavailable=baseavailable-$1, totalbalance=totalbalance-$1 WHERE id=$2",
       [amt, sender.id]
     );
     await client.query(
-      'UPDATE users SET baseavailable=baseavailable+$1, totalbalance=totalbalance+$1 WHERE id=$2',
+      "UPDATE users SET baseavailable=baseavailable+$1, totalbalance=totalbalance+$1 WHERE id=$2",
       [amt, rec.id]
     );
 
     // Log transactions
     await client.query(
-      `INSERT INTO transactions (user_email, type, amount, description)
-       VALUES ($1,'debit',$2,$3)`,
+      "INSERT INTO transactions (user_email, type, amount, description) VALUES ($1,'debit',$2,$3)",
       [sender.email, amt, `Transfer to ${rec.email}`]
     );
     await client.query(
-      `INSERT INTO transactions (user_email, type, amount, description)
-       VALUES ($1,'credit',$2,$3)`,
+      "INSERT INTO transactions (user_email, type, amount, description) VALUES ($1,'credit',$2,$3)",
       [rec.email, amt, `Received from ${sender.email}`]
     );
 
-    // Record transfer
+    // Record transfer with all fields
     const transferInsert = await client.query(
-      `INSERT INTO transfers (sender_email, recipient_email, amount, status)
-       VALUES ($1,$2,$3,'completed')
+      `INSERT INTO transfers
+       (sender_email, recipient_name, recipient_email, bank_name, account_number, routing_number, btc_address, amount, method, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'completed')
        RETURNING *`,
-      [sender.email, rec.email, amt]
+      [
+        sender.email,
+        recipientName || null,
+        recipient,
+        bank || null,
+        account || null,
+        routing || null,
+        btcAddress || null,
+        amt,
+        method
+      ]
     );
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
     res.status(201).json(transferInsert.rows[0]);
 
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     console.error("Transfer error", err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: "Server error" });
   } finally {
     client.release();
   }

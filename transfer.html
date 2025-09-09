@@ -24,7 +24,9 @@
     .header{text-align:center;margin-bottom:2rem}
     .logo{font-size:1.5rem;font-weight:800;
       background:linear-gradient(135deg,#667eea,#764ba2);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+      -webkit-background-clip:text;
+      background-clip:text;
+      -webkit-text-fill-color:transparent}
     h2{font-size:2rem;font-weight:700;margin-top:.5rem}
     .subtitle{color:rgba(255,255,255,.7);margin-top:.25rem}
     .back-btn{position:absolute;top:20px;left:20px;width:42px;height:42px;
@@ -51,7 +53,7 @@
     .transfer-input::placeholder{color:rgba(255,255,255,.5)}
     .submit-btn{background:linear-gradient(45deg,#28a745,#20c997);
       padding:14px;width:100%;border:none;border-radius:10px;
-      color:#fff;font-weight:600;cursor:pointer;position:relative;overflow:hidden}
+      color:#fff;font-weight:600;cursor:pointer}
     .success-modal{display:none;position:fixed;inset:0;
       background:rgba(0,0,0,.7);backdrop-filter:blur(5px);z-index:1000}
     .success-content{position:absolute;top:50%;left:50%;
@@ -61,14 +63,8 @@
     .success-details{background:#e6f9ec;padding:15px;border-radius:8px;margin:1rem 0;text-align:left}
     .detail-row{display:flex;justify-content:space-between;margin:6px 0}
     .close-btn{background:linear-gradient(45deg,#667eea,#764ba2);
-      border:none;color:#fff;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600}
-    /* Loading overlay */
-    .loading-overlay{display:none;position:fixed;inset:0;z-index:2000;
-      background:rgba(0,0,0,0.6);backdrop-filter:blur(3px);
-      display:flex;align-items:center;justify-content:center}
-    .loading-spinner{width:60px;height:60px;border:5px solid rgba(255,255,255,.3);
-      border-top:5px solid #fff;border-radius:50%;animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
+     border:none;color:#fff;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600}
+    .message{display:none;margin-top:8px;font-size:14px;color:#ff6b6b;font-weight:600;text-align:center}
   </style>
 </head>
 <body>
@@ -86,67 +82,76 @@
       <div id="availableBalance">$0.00</div>
     </div>
 
-    <!-- Method Buttons -->
+    <!-- Wire Transfer -->
     <button class="transfer-method-btn" onclick="toggleForm('wireForm')">Wire Transfer <span>›</span></button>
     <div id="wireForm" class="transfer-form">
       <h3>Wire Transfer</h3>
-      <form onsubmit="handleTransfer(event)">
+      <form>
+        <label>Recipient Name</label>
+        <input type="text" name="recipientName" class="transfer-input" required>
         <label>Recipient Email</label>
-        <input type="email" name="recipient" class="transfer-input" required>
+        <input type="email" name="recipient_email" class="transfer-input" required>
         <label>Account Number</label>
-        <input type="text" name="account" class="transfer-input" required>
+        <input type="text" name="account_number" class="transfer-input" required>
         <label>Routing Number</label>
-        <input type="text" name="routing" class="transfer-input" required>
+        <input type="text" name="routing_number" class="transfer-input" required>
         <label>Amount</label>
         <input type="number" name="amount" class="transfer-input" min="1" step="0.01" required>
+        <p class="message"></p>
         <button class="submit-btn" type="submit">Submit Wire Transfer</button>
       </form>
     </div>
 
+    <!-- EFT Transfer -->
     <button class="transfer-method-btn" onclick="toggleForm('eftForm')">EFT Transfer <span>›</span></button>
     <div id="eftForm" class="transfer-form">
       <h3>EFT Transfer</h3>
-      <form onsubmit="handleTransfer(event)">
+      <form>
         <label>Recipient Email</label>
-        <input type="email" name="recipient" class="transfer-input" required>
+        <input type="email" name="recipient_email" class="transfer-input" required>
         <label>Bank Name</label>
-        <input type="text" name="bank" class="transfer-input" required>
+        <input type="text" name="bank_name" class="transfer-input" required>
         <label>Account Number</label>
-        <input type="text" name="account" class="transfer-input" required>
+        <input type="text" name="account_number" class="transfer-input" required>
         <label>Routing Number</label>
-        <input type="text" name="routing" class="transfer-input" required>
+        <input type="text" name="routing_number" class="transfer-input" required>
         <label>Amount</label>
         <input type="number" name="amount" class="transfer-input" min="1" step="0.01" required>
+        <p class="message"></p>
         <button class="submit-btn" type="submit">Submit EFT Transfer</button>
       </form>
     </div>
 
+    <!-- ACH Transfer -->
     <button class="transfer-method-btn" onclick="toggleForm('achForm')">ACH Transfer <span>›</span></button>
     <div id="achForm" class="transfer-form">
       <h3>ACH Transfer</h3>
-      <form onsubmit="handleTransfer(event)">
+      <form>
         <label>Recipient Email</label>
-        <input type="email" name="recipient" class="transfer-input" required>
+        <input type="email" name="recipient_email" class="transfer-input" required>
         <label>Account Number</label>
-        <input type="text" name="account" class="transfer-input" required>
+        <input type="text" name="account_number" class="transfer-input" required>
         <label>Routing Number</label>
-        <input type="text" name="routing" class="transfer-input" required>
+        <input type="text" name="routing_number" class="transfer-input" required>
         <label>Amount</label>
         <input type="number" name="amount" class="transfer-input" min="1" step="0.01" required>
+        <p class="message"></p>
         <button class="submit-btn" type="submit">Submit ACH Transfer</button>
       </form>
     </div>
 
+    <!-- BTC Transfer -->
     <button class="transfer-method-btn" onclick="toggleForm('btcForm')">Convert & Send BTC <span>›</span></button>
     <div id="btcForm" class="transfer-form">
       <h3>BTC Transfer</h3>
-      <form onsubmit="handleTransfer(event)">
+      <form>
         <label>Recipient Email</label>
-        <input type="email" name="recipient" class="transfer-input" required>
+        <input type="email" name="recipient_email" class="transfer-input" required>
         <label>BTC Address</label>
-        <input type="text" name="btcAddress" class="transfer-input" required>
+        <input type="text" name="btc_address" class="transfer-input" required>
         <label>Amount (USD)</label>
         <input type="number" name="amount" class="transfer-input" min="1" step="0.01" required>
+        <p class="message"></p>
         <button class="submit-btn" type="submit">Submit BTC Transfer</button>
       </form>
     </div>
@@ -162,122 +167,106 @@
     </div>
   </div>
 
-  <!-- Loading Overlay -->
-  <div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-spinner"></div>
-  </div>
+<script>
+let user = null;
 
-  <script>
-  let user = null;
-
-  document.addEventListener("DOMContentLoaded", () => {
-    user = JSON.parse(localStorage.getItem("bs-user") || "null");
-    if (!user || !user.token) {
-      window.location.href = "login.html";
-      return;
-    }
-
-    document.querySelectorAll(".transfer-form").forEach(f =>
-      f.addEventListener("submit", handleTransfer)
-    );
-
-    // Start SSE for live balance updates
-    connectSSE();
-  });
-
-  async function handleTransfer(e) {
-    e.preventDefault();
-    const form = e.target;
-    const formData = Object.fromEntries(new FormData(form).entries());
-
-    const amount = parseFloat(formData.amount);
-    const recipient = (formData.recipient || "").toLowerCase();
-
-    if (!amount || !recipient) {
-      alert("Please fill in all required fields.");
-      return;
-    }
-
-    try {
-      // 1. Create transfer
-      const authUser = user;
-      const res = await fetch(`${window.API_BASE}/transfers`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authUser?.token || ''}`
-        },
-        body: JSON.stringify({ recipient, amount })
-      });
-      if (!res.ok) throw new Error("Transfer failed");
-      const tx = await res.json();
-
-      // 2. Record debit for sender
-      await fetch(`${window.API_BASE}/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
-        body: JSON.stringify({ user_email: user.email, type: "debit", amount, description: `Transfer to ${recipient}` })
-      });
-
-      // 3. Record credit for recipient
-      await fetch(`${window.API_BASE}/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
-        body: JSON.stringify({ user_email: recipient, type: "credit", amount, description: `Received from ${user.email}` })
-      });
-
-      // 4. Show success modal (with live balance if available)
-      document.getElementById("successModal").style.display = "block";
-      const balanceDisplay = user.baseavailable
-        ? `<div class="detail-row"><span>New Balance</span><span>$${Number(user.baseavailable).toFixed(2)}</span></div>`
-        : "";
-
-      document.getElementById("successDetails").innerHTML = `
-        <div class="detail-row"><span>Recipient</span><span>${recipient}</span></div>
-        <div class="detail-row"><span>Amount</span><span>$${amount.toFixed(2)}</span></div>
-        <div class="detail-row"><span>Status</span><span>${tx.status || 'completed'}</span></div>
-        ${balanceDisplay}
-      `;
-
-      // 5. Save last transfer for receipt page
-      localStorage.setItem("last-transfer", JSON.stringify(tx));
-
-      // 6. Dispatch event so dashboard refreshes
-      window.dispatchEvent(new CustomEvent("transfer-completed", { detail: { sender: user.email, recipient, amount } }));
-
-      form.reset();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Transfer failed");
-    }
+document.addEventListener("DOMContentLoaded", () => {
+  user = JSON.parse(localStorage.getItem("bs-user") || "null");
+  if (!user || !user.token) {
+    window.location.href = "login.html";
+    return;
   }
 
-  function connectSSE() {
-    const evtSource = new EventSource(`${window.API_BASE}/stream/user/${user.id}?token=${user.token}`);
-    evtSource.onmessage = e => {
-      const profile = JSON.parse(e.data);
+  document.querySelectorAll(".transfer-form form").forEach(f =>
+    f.addEventListener("submit", handleTransfer)
+  );
 
-      // Update balance box
-      document.getElementById("availableBalance").textContent =
-        `$${Number(profile.baseavailable).toFixed(2)}`;
+  connectSSE();
+});
 
-      // Update cached user
-      user = { ...user, ...profile };
-      localStorage.setItem("bs-user", JSON.stringify(user));
+async function handleTransfer(e) {
+  e.preventDefault();
+  const form = e.target;
+  const formData = Object.fromEntries(new FormData(form).entries());
+  const messageBox = form.querySelector(".message");
 
-      // If success modal is open, also update balance row
-      if (document.getElementById("successModal").style.display === "block") {
-        const balanceRow = document.querySelector("#successDetails .detail-row:last-child");
-        if (balanceRow && balanceRow.firstChild.textContent === "New Balance") {
-          balanceRow.lastChild.textContent = `$${Number(profile.baseavailable).toFixed(2)}`;
-        }
-      }
-    };
+  messageBox.style.display = "none";
+  messageBox.textContent = "";
+
+  if (!formData.amount || !formData.recipient_email) {
+    showError(messageBox, "Please fill in all required fields.");
+    return;
   }
 
-  function goToTransactionDetails() {
-    window.location.href = "transaction.html";
+  // Standardize payload
+  const payload = {
+    sender_email: user.email,
+    recipient_email: formData.recipient_email,
+    amount: parseFloat(formData.amount),
+    account_number: formData.account_number || null,
+    routing_number: formData.routing_number || null,
+    bank_name: formData.bank_name || null,
+    btc_address: formData.btc_address || null,
+    recipient_name: formData.recipientName || null,
+    method: form.closest(".transfer-form").id // wireForm, eftForm, etc.
+  };
+
+  try {
+    const res = await fetch(`${window.API_BASE}/transfers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user?.token || ""}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || `Transfer failed (HTTP ${res.status})`);
+    }
+
+    const tx = data;
+    document.getElementById("successModal").style.display = "block";
+    document.getElementById("successDetails").innerHTML = `
+      <div class="detail-row"><span>Recipient</span><span>${payload.recipient_email}</span></div>
+      <div class="detail-row"><span>Amount</span><span>$${Number(payload.amount).toFixed(2)}</span></div>
+      <div class="detail-row"><span>Status</span><span>${tx.status || "completed"}</span></div>
+    `;
+
+    localStorage.setItem("last-transfer", JSON.stringify(tx));
+    window.dispatchEvent(new CustomEvent("transfer-completed", { detail: payload }));
+
+    form.reset();
+  } catch (err) {
+    console.error("Transfer error:", err);
+    showError(messageBox, err.message || "Transfer failed");
   }
+}
+
+function showError(el, msg) {
+  el.style.display = "block";
+  el.textContent = msg;
+}
+
+function connectSSE() {
+  const evtSource = new EventSource(`${window.API_BASE}/stream/user/${user.id}?token=${user.token}`);
+  evtSource.onmessage = e => {
+    const profile = JSON.parse(e.data);
+    document.getElementById("availableBalance").textContent = `$${Number(profile.baseavailable).toFixed(2)}`;
+    user = { ...user, ...profile };
+    localStorage.setItem("bs-user", JSON.stringify(user));
+  };
+}
+
+function goToTransactionDetails() {
+  window.location.href = "transaction.html";
+}
+
+function toggleForm(id) {
+  document.querySelectorAll(".transfer-form").forEach(f => f.style.display = "none");
+  document.getElementById(id).style.display = "block";
+}
 </script>
 </body>
 </html>

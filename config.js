@@ -16,8 +16,8 @@
       const currentPort = location.port || "4000";
       ApiBase = `http://localhost:${currentPort}/api`;
     } else {
-      // ✅ Production → your deployed backend on Neon
-      ApiBase = "https://app-silent-bird-08639041.dpl.myneon.app/api";
+      // ✅ Production → your deployed backend (Express)
+      ApiBase = "https://shenzhenswift.online/api";
     }
   } catch (err) {
     console.warn("Config detection failed, using fallback:", err);

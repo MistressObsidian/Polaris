@@ -536,12 +536,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadUserProfile() {
   try {
-    const res = await fetch(`${window.API_BASE}/users/me`, {
-      headers: { Authorization: `Bearer ${user.token}` }
-    });
-    if (!res.ok) throw new Error("Failed to fetch user profile");
-
-    const profile = await res.json();
+    const profile = await window.bsApiFetch("/users/me");
     document.getElementById("totalBalance").textContent = `$${Number(profile.totalbalance).toFixed(2)}`;
     document.getElementById("availableBalance").textContent = `$${Number(profile.baseavailable).toFixed(2)}`;
   } catch (err) {
@@ -551,12 +546,7 @@ async function loadUserProfile() {
 
 async function loadTransactions() {
   try {
-    const res = await fetch(`${window.API_BASE}/transactions?user_email=${encodeURIComponent(user.email)}`, {
-      headers: { Authorization: `Bearer ${user.token}` }
-    });
-    if (!res.ok) throw new Error("Failed to fetch transactions");
-
-    const txRows = await res.json();
+    const txRows = await window.bsApiFetch("/transactions");
     const container = document.getElementById("transactionsList");
     container.innerHTML = "";
 
@@ -589,7 +579,8 @@ async function loadTransactions() {
 }
 
 function connectSSE() {
-  const evtSource = new EventSource(`${window.API_BASE}/stream/user/${user.id}`);
+  // 🔑 Pass token in querystring
+  const evtSource = new EventSource(`${window.API_BASE}/stream/user/${user.id}?token=${user.token}`);
   evtSource.onmessage = e => {
     const profile = JSON.parse(e.data);
     document.getElementById("totalBalance").textContent = `$${Number(profile.totalbalance).toFixed(2)}`;

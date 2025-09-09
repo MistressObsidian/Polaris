@@ -198,7 +198,7 @@ async function handleTransfer(e) {
     return;
   }
 
-  // Standardize payload
+  // Standardized payload (backend will ignore extras if not used)
   const payload = {
     sender_email: user.email,
     recipient_email: formData.recipient_email,
@@ -208,25 +208,15 @@ async function handleTransfer(e) {
     bank_name: formData.bank_name || null,
     btc_address: formData.btc_address || null,
     recipient_name: formData.recipientName || null,
-    method: form.closest(".transfer-form").id // wireForm, eftForm, etc.
+    method: form.closest(".transfer-form").id
   };
 
   try {
-    const res = await fetch(`${window.API_BASE}/transfers`, {
+    const tx = await window.bsApiFetch("/transfers", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${user?.token || ""}`
-      },
       body: JSON.stringify(payload)
     });
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data.error || `Transfer failed (HTTP ${res.status})`);
-    }
-
-    const tx = data;
     document.getElementById("successModal").style.display = "block";
     document.getElementById("successDetails").innerHTML = `
       <div class="detail-row"><span>Recipient</span><span>${payload.recipient_email}</span></div>

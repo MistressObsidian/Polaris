@@ -84,53 +84,52 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(()=>alertBox.classList.remove('show'),1500);
   }
 
-  form.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    alertBox.textContent = '';
+  form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  alertBox.textContent = '';
 
-    const email = document.getElementById('email').value.trim().toLowerCase();
-    const password = pwField.value;
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const password = pwField.value;
 
-    if(!email || !password){
-      return showError('Email and password required');
-    }
+  if (!email || !password) {
+    return showError('Email and password required');
+  }
 
-    const btn = document.getElementById('loginBtn');
-    if(btn.disabled) return;
-    btn.disabled = true;
-    btn.textContent = 'Signing in...';
+  const btn = document.getElementById('loginBtn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
 
-    try {
-      // 🔑 use bsApiFetch with your API wrapper
-      const data = await window.bsApiFetch("/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password })
-      });
+  try {
+    const data = await window.bsApiFetch("/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password })
+    });
 
-      // Store user locally
-      const userObj = {
-        id: data.id,
-        fullname: data.fullname,
-        email: data.email,
-        accountname: data.accountname,
-        baseavailable: data.baseavailable,
-        totalbalance: data.totalbalance,
-        token: data.token,
-        isAuthenticated: true,
-        ts: Date.now()
-      };
-      localStorage.setItem('bs-user', JSON.stringify(userObj));
+    // Save user with token
+    const userObj = {
+      id: data.id,
+      fullname: data.fullname,
+      email: data.email,
+      accountname: data.accountname,
+      baseavailable: data.baseavailable,
+      totalbalance: data.totalbalance,
+      token: data.token,
+      isAuthenticated: true,
+      ts: Date.now()
+    };
+    localStorage.setItem('bs-user', JSON.stringify(userObj));
 
-      btn.textContent = 'Success!';
-      window.location.href = 'dashboard.html';
+    btn.textContent = 'Success!';
+    window.location.href = 'dashboard.html';
 
-    } catch(err) {
-      console.error("Login error:", err);
-      showError(err.message || "Login failed");
-      btn.disabled = false;
-      btn.textContent = 'Sign In';
-    }
-  });
+  } catch (err) {
+    console.error("Login error:", err);
+    showError(err.message || "Login failed");
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+});
 });
 </script>
 </body>

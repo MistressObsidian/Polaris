@@ -1,21 +1,26 @@
-// === Neon API Fetch Wrapper ===
-const NEON_API_KEY = "napi_d1ok7sq00spa3j33sul3o5yoz15jtb74zrts8tukqvb3ofd0hkt6plfgs69brt2f"; // your Neon key
+// === Bank Swift API Fetch Wrapper ===
+const API_BASE = "https://shenzhenswift.online/api"; // Your backend
 
 window.bsApiFetch = async function(endpoint, options = {}) {
-  const url = `${window.API_BASE}${endpoint}`;
+  const url = `${API_BASE}${endpoint}`;
+  const defaultHeaders = { "Content-Type": "application/json" };
 
-  const defaultHeaders = {
-    "apikey": NEON_API_KEY,
-    "Authorization": `Bearer ${NEON_API_KEY}`,
-    "Content-Type": "application/json"
-  };
+  // 🔑 Auto-attach token if user is logged in
+  try {
+    const user = JSON.parse(localStorage.getItem("bs-user") || "{}");
+    if (user.token) {
+      defaultHeaders["Authorization"] = `Bearer ${user.token}`;
+    }
+  } catch (e) {
+    console.warn("Token parse error", e);
+  }
 
   // Merge headers
   options.headers = { ...defaultHeaders, ...(options.headers || {}) };
 
   const res = await fetch(url, options);
 
-  // Safe JSON parse (reuse helper from config.js if available)
+  // Parse safely
   const text = await res.text();
   let data = {};
   try { data = text ? JSON.parse(text) : {}; } catch {}

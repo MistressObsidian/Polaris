@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="ui.css" />
   <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>
+ <style>
     :root {
       --brand:#4f46e5; --brand2:#6366f1;
       --accent1:#667eea; --accent2:#764ba2;
@@ -57,6 +57,8 @@
     .sync-badge.active { display:flex; }
     .sync-dot { width:6px; height:6px; border-radius:50%; background:#28a745; animation:pulse 2s infinite; }
     @keyframes pulse { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }
+    .extra-detail { margin-top: 10px; font-size: 0.85rem; color: #444; }
+    .extra-detail strong { font-weight: 700; color: #111; }
   </style>
 </head>
 <body>
@@ -117,9 +119,10 @@
         </div>
       </div>
 
-      <!-- ✅ This container will hold Pay Fee or other buttons -->
-      <div class="actions"></div>
+      <!-- ✅ Extra fields section -->
+      <div id="extraDetails" class="extra-detail"></div>
 
+      <div class="actions"></div>
       <div class="note" id="txContainer"></div>
     </div>
   </main>
@@ -165,21 +168,18 @@
     const isReceiver = currentEmail === (tx.recipient_email || "").toLowerCase();
 
     if (isSender) {
-      // ✅ Sender: Completed
       statusBanner.className = "success-banner";
       statusBanner.innerHTML = `<div class="success-icon">✔</div> 
         <div>Transfer Completed Successfully</div>`;
       statusPill.className = "status-pill completed";
       statusPill.textContent = "Completed";
     } else if (isReceiver) {
-      // ⚠️ Receiver: Pending until fee is paid
       statusBanner.className = "pending-banner";
       statusBanner.innerHTML = `<div class="pending-icon">⏱</div> 
         <div>Pending — Payment of required fee is needed to complete this transaction</div>`;
       statusPill.className = "status-pill pending";
       statusPill.textContent = "Pending (Fee Required)";
 
-      // 👉 Add Pay Fee button dynamically
       const payBtn = document.createElement("button");
       payBtn.className = "btn btn-primary";
       payBtn.textContent = `Pay Fee ($${fees.toFixed(2)})`;
@@ -190,10 +190,8 @@
         }));
         window.location.href = "pay-fee.html";
       };
-
       actionsDiv.appendChild(payBtn);
     } else {
-      // Fallback (viewer is neither sender nor receiver)
       statusBanner.className = "pending-banner";
       statusBanner.innerHTML = `<div class="pending-icon">⏱</div> 
         <div>Transaction in review</div>`;
@@ -214,6 +212,13 @@
     document.getElementById("networkValue").textContent = "Bank Swift Transfer";
     document.getElementById("feesValue").textContent =
       `$${fees.toFixed(2)} (Informational)`;
+
+    // ✅ Extra fields
+    const extras = [];
+    if (tx.account_number) extras.push(`<strong>Account #:</strong> ${tx.account_number}`);
+    if (tx.routing_number) extras.push(`<strong>Routing #:</strong> ${tx.routing_number}`);
+    if (tx.btc_address) extras.push(`<strong>BTC Address:</strong> ${tx.btc_address}`);
+    document.getElementById("extraDetails").innerHTML = extras.join("<br>");
   }
   </script>
 </body>

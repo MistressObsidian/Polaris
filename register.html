@@ -110,64 +110,63 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    alertBox.textContent = '';
+  e.preventDefault();
+  alertBox.textContent = '';
 
-    const fullname = document.getElementById('fullname').value.trim();
-    const phone = document.getElementById('phone').value.trim();
-    const email = document.getElementById('email').value.trim().toLowerCase();
-    const accountName = document.getElementById('accountName').value.trim();
-    const password = pw.value;
-    const confirm = cpw.value;
+  const fullname = document.getElementById('fullname').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const accountName = document.getElementById('accountName').value.trim();
+  const password = pw.value;
+  const confirm = cpw.value;
 
-    if (!fullname) return showError('Full name is required.');
-    if (!email) return showError('Email is required.');
-    if (!accountName) return showError('Account name is required.');
-    if (password.length < 6) return showError('Password must be at least 6 characters.');
-    if (password !== confirm) return showError('Passwords do not match.');
+  if (!fullname) return showError('Full name is required.');
+  if (!email) return showError('Email is required.');
+  if (!accountName) return showError('Account name is required.');
+  if (password.length < 6) return showError('Password must be at least 6 characters.');
+  if (password !== confirm) return showError('Passwords do not match.');
 
-    const btn = document.getElementById('registerBtn');
-    if (btn.disabled) return;
-    btn.disabled = true;
-    btn.textContent = 'Creating...';
+  const btn = document.getElementById('registerBtn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
 
-    try {
-      // 🔑 Use bsApiFetch instead of raw fetch + safeJson
-      const data = await window.bsApiFetch("/users", {
-        method: "POST",
-        body: JSON.stringify({
-          fullname,
-          phone,
-          email,
-          password,
-          accountname: accountName
-        })
-      });
+  try {
+    const data = await window.bsApiFetch("/users", {
+      method: "POST",
+      body: JSON.stringify({
+        fullname,
+        phone,
+        email,
+        password,
+        accountname: accountName
+      })
+    });
 
-      // Save user locally with token
-      const userObj = {
-        id: data.id,
-        fullname: data.fullname,
-        email: data.email,
-        accountname: data.accountname,
-        baseavailable: data.baseavailable,
-        totalbalance: data.totalbalance,
-        token: data.token,
-        isAuthenticated: true,
-        ts: Date.now()
-      };
-      localStorage.setItem('bs-user', JSON.stringify(userObj));
+    // Save user with token
+    const userObj = {
+      id: data.id,
+      fullname: data.fullname,
+      email: data.email,
+      accountname: data.accountname,
+      baseavailable: data.baseavailable,
+      totalbalance: data.totalbalance,
+      token: data.token,
+      isAuthenticated: true,
+      ts: Date.now()
+    };
+    localStorage.setItem('bs-user', JSON.stringify(userObj));
 
-      btn.textContent = 'Created!';
-      window.location.href = 'login.html';
+    btn.textContent = 'Created!';
+    window.location.href = 'dashboard.html';
 
-    } catch(err) {
-      console.error("Registration error:", err);
-      showError(err.message);
-      btn.disabled = false;
-      btn.textContent = 'Create Account';
-    }
-  });
+  } catch (err) {
+    console.error("Registration error:", err);
+    showError(err.message || "Registration failed");
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
+  }
+});
 });
 </script>
 </body>

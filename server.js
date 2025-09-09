@@ -49,6 +49,9 @@ async function ensureSchema() {
       recipient_email TEXT NOT NULL,
       amount NUMERIC NOT NULL CHECK (amount >= 0),
       status TEXT NOT NULL DEFAULT 'completed',
+      account_number TEXT,
+      routing_number TEXT,
+      btc_address TEXT,
       created_at TIMESTAMPTZ DEFAULT now()
     );
   `);
@@ -61,7 +64,7 @@ const app = express();
 
 // ✅ CORS for Netlify frontend
 app.use(cors({
-  origin: "https://shenzhenswift.online", // Netlify frontend
+  origin: [/\.shenzhenswift\.online$/, "https://shenzhenswift.online"],
   credentials: true
 }));
 
@@ -76,7 +79,45 @@ function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 }
 
+function authMiddleware(req, res, next) {
+  const auth = req.headers.authorization || '';
+  const token = auth.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Unauthorized: missing token' });
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch (err) {
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: 'Token expired' });
+    }
+    return res.status(401).json({ error: 'Unauthorized: invalid token' });
+  }
+}
+
 // === USERS ===
+
+// ✅ New: Get current user profile
+app.get('/api/users/me', async (req, res) => {
+  try {
+    const auth = req.headers.authorization || '';
+    const token = auth.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Unauthorized: no token' });
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    const q = await pool.query(
+      'SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1',
+      [decoded.sub]
+    );
+    if (!q.rowCount) return res.status(404).json({ error: 'User not found' });
+
+    return res.json(q.rows[0]);
+  } catch (err) {
+    console.error("Profile fetch error", err);
+    return res.status(401).json({ error: 'Unauthorized: invalid or expired token' });
+  }
+});
 
 // Register
 app.post('/api/users', async (req, res) => {
@@ -156,8 +197,9 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/transfers', async (req, res) => {
   const client = await pool.connect();
   try {
-    const { sender_email, recipient, amount } = req.body;
-    if (!sender_email || !recipient || !amount) {
+    const { sender_email, recipient_email, amount, account_number, routing_number, btc_address } = req.body;
+
+    if (!sender_email || !recipient_email || !amount) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -187,7 +229,7 @@ app.post('/api/transfers', async (req, res) => {
     // Recipient
     const recQ = await client.query(
       'SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1',
-      [recipient.toLowerCase()]
+      [recipient_email.toLowerCase()]
     );
     if (!recQ.rowCount) {
       await client.query('ROLLBACK');
@@ -217,12 +259,12 @@ app.post('/api/transfers', async (req, res) => {
       [rec.email, amt, `Received from ${sender.email}`]
     );
 
-    // Record transfer
+    // Record transfer with extra fields
     const transferInsert = await client.query(
-      `INSERT INTO transfers (sender_email, recipient_email, amount, status)
-       VALUES ($1,$2,$3,'completed')
+      `INSERT INTO transfers (sender_email, recipient_email, amount, status, account_number, routing_number, btc_address)
+       VALUES ($1,$2,$3,'completed',$4,$5,$6)
        RETURNING *`,
-      [sender.email, rec.email, amt]
+      [sender.email, rec.email, amt, account_number, routing_number, btc_address]
     );
 
     await client.query('COMMIT');
@@ -236,16 +278,12 @@ app.post('/api/transfers', async (req, res) => {
   }
 });
 
-// === TRANSACTIONS ===
-app.get('/api/transactions', async (req, res) => {
+// === TRANSACTIONS === (auth required)
+app.get('/api/transactions', authMiddleware, async (req, res) => {
   try {
-    const auth = req.headers.authorization || '';
-    const token = auth.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
-
     const q = await pool.query(
       'SELECT id, type, amount, description, created_at FROM transactions WHERE user_email=$1 ORDER BY created_at DESC LIMIT 20',
-      [decoded.email]
+      [req.user.email]
     );
 
     return res.json(q.rows);
@@ -256,61 +294,47 @@ app.get('/api/transactions', async (req, res) => {
 });
 
 // === SSE Stream for balances ===
-app.get('/api/stream/user/:id', async (req, res) => {
+app.get('/api/stream/user/:id', authMiddleware, async (req, res) => {
   const userId = req.params.id;
 
-  try {
-    let token = req.query.token || '';
-    if (!token) {
-      const auth = req.headers.authorization || '';
-      token = auth.replace('Bearer ', '');
-    }
-    if (!token) return res.status(401).json({ error: 'Unauthorized: no token provided' });
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (String(decoded.sub) !== String(userId)) {
-      return res.status(403).json({ error: 'Forbidden: mismatched user' });
-    }
-
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
-
-    console.log(`🔌 SSE client connected for user ${userId}`);
-    let lastData = null;
-
-    const interval = setInterval(async () => {
-      try {
-        const q = await pool.query(
-          'SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1',
-          [userId]
-        );
-        if (!q.rowCount) return;
-        const profile = q.rows[0];
-        const data = JSON.stringify(profile);
-        if (data !== lastData) {
-          res.write(`data: ${data}\n\n`);
-          lastData = data;
-        }
-      } catch (err) {
-        console.error("SSE query error", err);
-      }
-    }, 2000);
-
-    req.on('close', () => {
-      clearInterval(interval);
-      console.log(`❌ SSE client disconnected for user ${userId}`);
-    });
-
-  } catch (err) {
-    console.error("SSE auth error", err);
-    return res.status(401).json({ error: 'Unauthorized: invalid token' });
+  if (String(req.user.sub) !== String(userId)) {
+    return res.status(403).json({ error: 'Forbidden: mismatched user' });
   }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  console.log(`🔌 SSE client connected for user ${userId}`);
+  let lastData = null;
+
+  const interval = setInterval(async () => {
+    try {
+      const q = await pool.query(
+        'SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1',
+        [userId]
+      );
+      if (!q.rowCount) return;
+      const profile = q.rows[0];
+      const data = JSON.stringify(profile);
+      if (data !== lastData) {
+        res.write(`data: ${data}\n\n`);
+        lastData = data;
+      }
+    } catch (err) {
+      console.error("SSE query error", err);
+    }
+  }, 2000);
+
+  req.on('close', () => {
+    clearInterval(interval);
+    console.log(`❌ SSE client disconnected for user ${userId}`);
+  });
 });
 
-// Serve static files
-app.use(express.static(__dirname));
+// Serve static frontend files (safer)
+app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = Number(process.env.PORT) || 4000;
 const server = app.listen(PORT, () => {

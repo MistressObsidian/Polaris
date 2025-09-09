@@ -7,7 +7,6 @@ import jwt from 'jsonwebtoken';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Pool } from 'pg';
-// Node 18+ has global fetch; if older: import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -20,7 +19,8 @@ const pool = new Pool({
   ssl: process.env.PGSSLMODE ? { rejectUnauthorized: false } : false
 });
 
-async function ensureSchema(){
+// Ensure schema
+async function ensureSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -53,44 +53,50 @@ async function ensureSchema(){
     );
   `);
 }
-ensureSchema().catch(e=> console.error('Schema init error', e));
+ensureSchema().catch(e => console.error('Schema init error', e));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 const app = express();
-app.use(cors());
+
+// ✅ CORS for Netlify frontend
+app.use(cors({
+  origin: "https://shenzhenswift.online", // Netlify frontend
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(morgan('dev'));
 
-function issueToken(user){
+function issueToken(user) {
   return jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
 }
 
-function validateEmail(email){ 
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email); 
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 }
 
 // === USERS ===
 
 // Register
-app.post('/api/users', async (req,res) => {
+app.post('/api/users', async (req, res) => {
   try {
     const { fullname, phone = '', email, password, accountname = '' } = req.body || {};
 
-    if(!fullname || !email || !password){
-      return res.status(400).json({ error:'Full name, email, and password required' });
+    if (!fullname || !email || !password) {
+      return res.status(400).json({ error: 'Full name, email, and password required' });
     }
-    if(!validateEmail(email)){
-      return res.status(400).json({ error:'Valid email required' });
+    if (!validateEmail(email)) {
+      return res.status(400).json({ error: 'Valid email required' });
     }
-    if(password.length < 6){
-      return res.status(400).json({ error:'Password must be at least 6 chars' });
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 chars' });
     }
 
     const normEmail = email.toLowerCase();
     const existing = await pool.query('SELECT id FROM users WHERE email=$1', [normEmail]);
-    if(existing.rowCount){
-      return res.status(409).json({ error:'Email already registered' });
+    if (existing.rowCount) {
+      return res.status(409).json({ error: 'Email already registered' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -106,28 +112,28 @@ app.post('/api/users', async (req,res) => {
     const token = issueToken(user);
 
     return res.status(201).json({ ...user, token });
-  } catch(err){
+  } catch (err) {
     console.error('Registration error', err);
-    return res.status(500).json({ error:'Server error' });
+    return res.status(500).json({ error: 'Server error' });
   }
 });
 
 // Login
-app.post('/api/login', async (req,res) => {
+app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if(!email || !password) return res.status(400).json({ error:'Email and password required' });
+    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
     const normEmail = email.toLowerCase();
     const q = await pool.query(
       'SELECT id, fullname, email, password_hash, accountname, baseavailable, totalbalance FROM users WHERE email=$1',
       [normEmail]
     );
-    if(!q.rowCount) return res.status(401).json({ error:'Invalid credentials' });
+    if (!q.rowCount) return res.status(401).json({ error: 'Invalid credentials' });
 
     const user = q.rows[0];
     const ok = await bcrypt.compare(password, user.password_hash);
-    if(!ok) return res.status(401).json({ error:'Invalid credentials' });
+    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
 
     const token = issueToken(user);
 
@@ -140,147 +146,98 @@ app.post('/api/login', async (req,res) => {
       totalbalance: user.totalbalance,
       token
     });
-  } catch(err){
+  } catch (err) {
     console.error('Login error', err);
     return res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Current user
-app.get('/api/users/me', async (req,res) => {
-  try {
-    const auth = req.headers.authorization || '';
-    const token = auth.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    const q = await pool.query(
-      'SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1',
-      [decoded.sub]
-    );
-
-    if(!q.rowCount) return res.status(404).json({ error:'Not found' });
-    return res.json(q.rows[0]);
-  } catch(err){
-    console.error('Get me error', err);
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-});
-
-// === TRANSFERS ===
 // === TRANSFERS ===
 app.post('/api/transfers', async (req, res) => {
   const client = await pool.connect();
   try {
-    const {
-      recipientName,
-      recipient,
-      bank,
-      account,
-      routing,
-      btcAddress,
-      amount,
-      method
-    } = req.body;
-
-    // Sender comes from JWT
-    let token = req.headers.authorization?.replace("Bearer ", "") || "";
-    if (!token) return res.status(401).json({ error: "Unauthorized" });
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const sender_email = decoded.email;
-
-    // Validation
-    if (!recipient || !amount || !method) {
-      return res.status(400).json({ error: "Missing required fields" });
+    const { sender_email, recipient, amount } = req.body;
+    if (!sender_email || !recipient || !amount) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const amt = Number(amount);
     if (!Number.isFinite(amt) || amt <= 0) {
-      return res.status(400).json({ error: "Invalid amount" });
+      return res.status(400).json({ error: 'Invalid amount' });
     }
 
-    await client.query("BEGIN");
+    await client.query('BEGIN');
 
-    // Verify sender
+    // Sender
     const senderQ = await client.query(
-      "SELECT id, email, baseavailable FROM users WHERE email=$1",
+      'SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1',
       [sender_email.toLowerCase()]
     );
     if (!senderQ.rowCount) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ error: "Sender not found" });
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Sender not found' });
     }
     const sender = senderQ.rows[0];
 
     if (Number(sender.baseavailable) < amt) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Insufficient funds" });
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Insufficient funds' });
     }
 
-    // Verify recipient
+    // Recipient
     const recQ = await client.query(
-      "SELECT id, email FROM users WHERE email=$1",
+      'SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1',
       [recipient.toLowerCase()]
     );
     if (!recQ.rowCount) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ error: "Recipient not found" });
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Recipient not found' });
     }
     const rec = recQ.rows[0];
 
     // Update balances
     await client.query(
-      "UPDATE users SET baseavailable=baseavailable-$1, totalbalance=totalbalance-$1 WHERE id=$2",
+      'UPDATE users SET baseavailable=baseavailable-$1, totalbalance=totalbalance-$1 WHERE id=$2',
       [amt, sender.id]
     );
     await client.query(
-      "UPDATE users SET baseavailable=baseavailable+$1, totalbalance=totalbalance+$1 WHERE id=$2",
+      'UPDATE users SET baseavailable=baseavailable+$1, totalbalance=totalbalance+$1 WHERE id=$2',
       [amt, rec.id]
     );
 
     // Log transactions
     await client.query(
-      "INSERT INTO transactions (user_email, type, amount, description) VALUES ($1,'debit',$2,$3)",
+      `INSERT INTO transactions (user_email, type, amount, description)
+       VALUES ($1,'debit',$2,$3)`,
       [sender.email, amt, `Transfer to ${rec.email}`]
     );
     await client.query(
-      "INSERT INTO transactions (user_email, type, amount, description) VALUES ($1,'credit',$2,$3)",
+      `INSERT INTO transactions (user_email, type, amount, description)
+       VALUES ($1,'credit',$2,$3)`,
       [rec.email, amt, `Received from ${sender.email}`]
     );
 
-    // Record transfer with all fields
+    // Record transfer
     const transferInsert = await client.query(
-      `INSERT INTO transfers
-       (sender_email, recipient_name, recipient_email, bank_name, account_number, routing_number, btc_address, amount, method, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'completed')
+      `INSERT INTO transfers (sender_email, recipient_email, amount, status)
+       VALUES ($1,$2,$3,'completed')
        RETURNING *`,
-      [
-        sender.email,
-        recipientName || null,
-        recipient,
-        bank || null,
-        account || null,
-        routing || null,
-        btcAddress || null,
-        amt,
-        method
-      ]
+      [sender.email, rec.email, amt]
     );
 
-    await client.query("COMMIT");
+    await client.query('COMMIT');
     res.status(201).json(transferInsert.rows[0]);
-
   } catch (err) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
     console.error("Transfer error", err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: 'Server error' });
   } finally {
     client.release();
   }
 });
 
 // === TRANSACTIONS ===
-app.get('/api/transactions', async (req,res) => {
+app.get('/api/transactions', async (req, res) => {
   try {
     const auth = req.headers.authorization || '';
     const token = auth.replace('Bearer ', '');
@@ -292,29 +249,9 @@ app.get('/api/transactions', async (req,res) => {
     );
 
     return res.json(q.rows);
-  } catch(err){
+  } catch (err) {
     console.error('Transactions error', err);
     return res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.post('/api/transactions', async (req, res) => {
-  try {
-    const { user_email, type, amount, description = '' } = req.body || {};
-    const amt = Number(amount);
-    if (!user_email || !['debit','credit'].includes(type) || !Number.isFinite(amt) || amt < 0) {
-      return res.status(400).json({ error: 'Invalid payload' });
-    }
-    const ins = await pool.query(
-      `INSERT INTO transactions (user_email, type, amount, description)
-       VALUES ($1,$2,$3,$4)
-       RETURNING *`,
-      [user_email.toLowerCase(), type, amt, description]
-    );
-    res.status(201).json(ins.rows[0]);
-  } catch (err) {
-    console.error('Transaction create error', err);
-    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -378,15 +315,4 @@ app.use(express.static(__dirname));
 const PORT = Number(process.env.PORT) || 4000;
 const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-});
-server.on('error', err => {
-  if(err.code === 'EADDRINUSE'){
-    const alt = PORT + 1;
-    console.warn(`Port ${PORT} in use. Retrying on ${alt}...`);
-    setTimeout(()=> {
-      app.listen(alt, () => console.log(`Server running on http://localhost:${alt}`));
-    }, 300);
-  } else {
-    console.error('Server start error', err);
-  }
 });

@@ -132,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
   btn.textContent = 'Creating...';
 
   try {
-    const data = await window.bsApiFetch("/api/users", {
+    const data = await window.bsApiFetch("/users", {
       method: "POST",
       body: JSON.stringify({
         fullname,

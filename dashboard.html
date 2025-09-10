@@ -536,7 +536,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadUserProfile() {
   try {
-    const profile = await window.bsApiFetch("/api/users/me");
+    const profile = await window.bsApiFetch("/users/me");
     document.getElementById("totalBalance").textContent = `$${Number(profile.totalbalance).toFixed(2)}`;
     document.getElementById("availableBalance").textContent = `$${Number(profile.baseavailable).toFixed(2)}`;
   } catch (err) {
@@ -579,7 +579,7 @@ async function loadTransactions() {
 }
 
 function connectSSE() {
-  // 🔑 Pass token in querystring
+  // ✅ Attach token for backend auth
   const evtSource = new EventSource(`${window.API_BASE}/stream/user/${user.id}?token=${user.token}`);
   evtSource.onmessage = e => {
     const profile = JSON.parse(e.data);

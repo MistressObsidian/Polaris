@@ -212,7 +212,7 @@ async function handleTransfer(e) {
   };
 
   try {
-    const tx = await window.bsApiFetch(",/api/transfers", {
+    const tx = await window.bsApiFetch(",/transfers", {
       method: "POST",
       body: JSON.stringify(payload)
     });

@@ -62,86 +62,80 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 const app = express();
 
-// ✅ CORS for Netlify frontend
-app.use(cors({
-  origin: [/\.shenzhenswift\.online$/, "https://shenzhenswift.online"],
-  credentials: true
-}));
+// ✅ Universal CORS (works for localhost & production)
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // allow curl, Postman, etc.
+      const allowed = [
+        "http://localhost:4000",
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+        /\.shenzhenswift\.online$/,
+        "https://shenzhenswift.online",
+      ];
+      if (allowed.some((o) => (typeof o === "string" ? o === origin : o.test(origin)))) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(morgan('dev'));
 
+// --- JWT Helpers ---
 function issueToken(user) {
-  return jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
+  return jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: "2h" });
 }
-
 function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 }
-
 function authMiddleware(req, res, next) {
-  const auth = req.headers.authorization || '';
-  const token = auth.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Unauthorized: missing token' });
+  const auth = req.headers.authorization || "";
+  const token = auth.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized: missing token" });
 
   try {
     req.user = jwt.verify(token, JWT_SECRET);
     next();
   } catch (err) {
-    if (err.name === "TokenExpiredError") {
-      return res.status(401).json({ error: 'Token expired' });
-    }
-    return res.status(401).json({ error: 'Unauthorized: invalid token' });
+    return res.status(401).json({ error: "Unauthorized: invalid or expired token" });
   }
 }
 
 // === USERS ===
-
-// ✅ New: Get current user profile
-app.get('/api/users/me', async (req, res) => {
+app.get("/api/users/me", authMiddleware, async (req, res) => {
   try {
-    const auth = req.headers.authorization || '';
-    const token = auth.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Unauthorized: no token' });
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-
     const q = await pool.query(
-      'SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1',
-      [decoded.sub]
+      "SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1",
+      [req.user.sub]
     );
-    if (!q.rowCount) return res.status(404).json({ error: 'User not found' });
-
+    if (!q.rowCount) return res.status(404).json({ error: "User not found" });
     return res.json(q.rows[0]);
   } catch (err) {
     console.error("Profile fetch error", err);
-    return res.status(401).json({ error: 'Unauthorized: invalid or expired token' });
+    return res.status(401).json({ error: "Unauthorized" });
   }
 });
 
-// Register
-app.post('/api/users', async (req, res) => {
+app.post("/api/users", async (req, res) => {
   try {
-    const { fullname, phone = '', email, password, accountname = '' } = req.body || {};
-
+    const { fullname, phone = "", email, password, accountname = "" } = req.body || {};
     if (!fullname || !email || !password) {
-      return res.status(400).json({ error: 'Full name, email, and password required' });
+      return res.status(400).json({ error: "Full name, email, and password required" });
     }
-    if (!validateEmail(email)) {
-      return res.status(400).json({ error: 'Valid email required' });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 chars' });
-    }
+    if (!validateEmail(email)) return res.status(400).json({ error: "Valid email required" });
+    if (password.length < 6) return res.status(400).json({ error: "Password too short" });
 
     const normEmail = email.toLowerCase();
-    const existing = await pool.query('SELECT id FROM users WHERE email=$1', [normEmail]);
-    if (existing.rowCount) {
-      return res.status(409).json({ error: 'Email already registered' });
-    }
+    const existing = await pool.query("SELECT id FROM users WHERE email=$1", [normEmail]);
+    if (existing.rowCount) return res.status(409).json({ error: "Email already registered" });
 
     const passwordHash = await bcrypt.hash(password, 10);
-
     const insert = await pool.query(
       `INSERT INTO users (fullname, phone, email, password_hash, accountname, baseavailable, totalbalance)
        VALUES ($1,$2,$3,$4,$5,0,0)
@@ -151,33 +145,30 @@ app.post('/api/users', async (req, res) => {
 
     const user = insert.rows[0];
     const token = issueToken(user);
-
     return res.status(201).json({ ...user, token });
   } catch (err) {
-    console.error('Registration error', err);
-    return res.status(500).json({ error: 'Server error' });
+    console.error("Registration error", err);
+    return res.status(500).json({ error: "Server error" });
   }
 });
 
-// Login
-app.post('/api/login', async (req, res) => {
+app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+    if (!email || !password) return res.status(400).json({ error: "Email and password required" });
 
     const normEmail = email.toLowerCase();
     const q = await pool.query(
-      'SELECT id, fullname, email, password_hash, accountname, baseavailable, totalbalance FROM users WHERE email=$1',
+      "SELECT id, fullname, email, password_hash, accountname, baseavailable, totalbalance FROM users WHERE email=$1",
       [normEmail]
     );
-    if (!q.rowCount) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!q.rowCount) return res.status(401).json({ error: "Invalid credentials" });
 
     const user = q.rows[0];
     const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!ok) return res.status(401).json({ error: "Invalid credentials" });
 
     const token = issueToken(user);
-
     return res.json({
       id: user.id,
       fullname: user.fullname,
@@ -185,11 +176,11 @@ app.post('/api/login', async (req, res) => {
       accountname: user.accountname,
       baseavailable: user.baseavailable,
       totalbalance: user.totalbalance,
-      token
+      token,
     });
   } catch (err) {
-    console.error('Login error', err);
-    return res.status(500).json({ error: 'Server error' });
+    console.error("Login error", err);
+    return res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -278,66 +269,54 @@ app.post('/api/transfers', async (req, res) => {
   }
 });
 
-// === TRANSACTIONS === (auth required)
-app.get('/api/transactions', authMiddleware, async (req, res) => {
+// === TRANSACTIONS ===
+app.get("/api/transactions", authMiddleware, async (req, res) => {
   try {
     const q = await pool.query(
-      'SELECT id, type, amount, description, created_at FROM transactions WHERE user_email=$1 ORDER BY created_at DESC LIMIT 20',
+      "SELECT id, type, amount, description, created_at FROM transactions WHERE user_email=$1 ORDER BY created_at DESC LIMIT 20",
       [req.user.email]
     );
-
     return res.json(q.rows);
   } catch (err) {
-    console.error('Transactions error', err);
-    return res.status(500).json({ error: 'Server error' });
+    console.error("Transactions error", err);
+    return res.status(500).json({ error: "Server error" });
   }
 });
 
-// === SSE Stream for balances ===
-app.get('/api/stream/user/:id', authMiddleware, async (req, res) => {
-  const userId = req.params.id;
-
-  if (String(req.user.sub) !== String(userId)) {
-    return res.status(403).json({ error: 'Forbidden: mismatched user' });
+// === SSE Stream ===
+app.get("/api/stream/user/:id", authMiddleware, async (req, res) => {
+  if (String(req.user.sub) !== String(req.params.id)) {
+    return res.status(403).json({ error: "Forbidden: mismatched user" });
   }
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
-  console.log(`🔌 SSE client connected for user ${userId}`);
   let lastData = null;
-
   const interval = setInterval(async () => {
-    try {
-      const q = await pool.query(
-        'SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1',
-        [userId]
-      );
-      if (!q.rowCount) return;
+    const q = await pool.query(
+      "SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1",
+      [req.params.id]
+    );
+    if (q.rowCount) {
       const profile = q.rows[0];
       const data = JSON.stringify(profile);
       if (data !== lastData) {
         res.write(`data: ${data}\n\n`);
         lastData = data;
       }
-    } catch (err) {
-      console.error("SSE query error", err);
     }
   }, 2000);
 
-  req.on('close', () => {
-    clearInterval(interval);
-    console.log(`❌ SSE client disconnected for user ${userId}`);
-  });
+  req.on("close", () => clearInterval(interval));
 });
 
-// Serve files from project root instead of "public"
-app.use(express.static(__dirname));
+// === Static frontend fallback ===
+app.use(express.static(__dirname)); // serves login.html, dashboard.html, etc.
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "login.html")));
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "login.html"));
-});
-
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
 

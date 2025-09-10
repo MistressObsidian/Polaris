@@ -49,6 +49,10 @@ async function ensureSchema() {
       btc_address TEXT,
       created_at TIMESTAMPTZ DEFAULT now()
     );
+
+    -- Ensure method column exists for tracking transfer method
+    ALTER TABLE transfers
+      ADD COLUMN IF NOT EXISTS method TEXT NOT NULL DEFAULT 'standard';
   `);
 }
 ensureSchema().catch((e) => console.error("Schema init error", e));
@@ -62,6 +66,8 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000", // React dev
+  "http://localhost:5173", // Static dev server
+  "http://127.0.0.1:5173", // Static dev server
       "http://127.0.0.1:5500", // VS Code Live Server
       /\.shenzhenswift\.online$/, // your domain
       "https://shenzhenswift.online",
@@ -86,7 +92,9 @@ function validateEmail(email) {
 
 function authMiddleware(req, res, next) {
   const auth = req.headers.authorization || "";
-  const token = auth.replace("Bearer ", "");
+  let token = auth.startsWith("Bearer ") ? auth.replace("Bearer ", "") : "";
+  // Fallback: allow token via query for SSE/EventSource where headers aren't supported
+  if (!token && req.query && req.query.token) token = String(req.query.token);
   if (!token) return res.status(401).json({ error: "Unauthorized: missing token" });
 
   try {
@@ -98,6 +106,14 @@ function authMiddleware(req, res, next) {
 }
 
 // === USERS ===
+// Health check
+app.get("/api/health", (req, res) => {
+  res.json({ ok: true, uptime: process.uptime() });
+});
+
+// Avoid favicon 404 when hitting API root in a browser
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
 app.get("/api/users/me", authMiddleware, async (req, res) => {
   try {
     const q = await pool.query(
@@ -190,10 +206,18 @@ app.post("/api/login", async (req, res) => {
 app.post("/api/transfers", authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
-    const { sender_email, recipient_email, amount, account_number, routing_number, btc_address } = req.body;
+  let { sender_email, recipient_email, amount, account_number, routing_number, btc_address, method } = req.body || {};
 
-    if (!sender_email || !recipient_email || !amount) {
+    // Normalize inputs
+    sender_email = (sender_email || req.user?.email || "").toLowerCase().trim();
+    recipient_email = (recipient_email || "").toLowerCase().trim();
+
+    if (!sender_email || !recipient_email || amount == null) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    if (sender_email === recipient_email) {
+      return res.status(400).json({ error: "Cannot transfer to the same account" });
     }
 
     const amt = Number(amount);
@@ -204,9 +228,10 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
     await client.query("BEGIN");
 
     // Sender
-    const senderQ = await client.query("SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1", [
-      sender_email.toLowerCase(),
-    ]);
+    const senderQ = await client.query(
+      "SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1",
+      [sender_email]
+    );
     if (!senderQ.rowCount) {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "Sender not found" });
@@ -219,9 +244,10 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
     }
 
     // Recipient
-    const recQ = await client.query("SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1", [
-      recipient_email.toLowerCase(),
-    ]);
+    const recQ = await client.query(
+      "SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1",
+      [recipient_email]
+    );
     if (!recQ.rowCount) {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "Recipient not found" });
@@ -229,14 +255,14 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
     const rec = recQ.rows[0];
 
     // Update balances
-    await client.query("UPDATE users SET baseavailable=baseavailable-$1, totalbalance=totalbalance-$1 WHERE id=$2", [
-      amt,
-      sender.id,
-    ]);
-    await client.query("UPDATE users SET baseavailable=baseavailable+$1, totalbalance=totalbalance+$1 WHERE id=$2", [
-      amt,
-      rec.id,
-    ]);
+    await client.query(
+      "UPDATE users SET baseavailable=baseavailable-$1, totalbalance=totalbalance-$1 WHERE id=$2",
+      [amt, sender.id]
+    );
+    await client.query(
+      "UPDATE users SET baseavailable=baseavailable+$1, totalbalance=totalbalance+$1 WHERE id=$2",
+      [amt, rec.id]
+    );
 
     // Log transactions
     await client.query(
@@ -250,20 +276,30 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
       [rec.email, amt, `Received from ${sender.email}`]
     );
 
+    // Normalize and validate method
+    const allowedMethods = new Set(["wire","eft","ach","btc","standard"]);
+    let xferMethod = (method || "standard").toString().toLowerCase().trim();
+    if (xferMethod.endsWith("form")) xferMethod = xferMethod.slice(0, -4); // accept wireForm, etc.
+    if (!allowedMethods.has(xferMethod)) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Invalid transfer method" });
+    }
+
     // Record transfer
     const transferInsert = await client.query(
-      `INSERT INTO transfers (sender_email, recipient_email, amount, status, account_number, routing_number, btc_address)
-       VALUES ($1,$2,$3,'completed',$4,$5,$6)
+      `INSERT INTO transfers (sender_email, recipient_email, amount, status, account_number, routing_number, btc_address, method)
+       VALUES ($1,$2,$3,'completed',$4,$5,$6,$7)
        RETURNING *`,
-      [sender.email, rec.email, amt, account_number, routing_number, btc_address]
+      [sender.email, rec.email, amt, account_number || null, routing_number || null, btc_address || null, xferMethod]
     );
 
     await client.query("COMMIT");
     res.status(201).json(transferInsert.rows[0]);
   } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("Transfer error", err);
-    res.status(500).json({ error: "Server error" });
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("Transfer error:", err?.message || err, { body: req.body });
+    const msg = process.env.NODE_ENV === "production" ? "Server error" : (err?.message || "Server error");
+    res.status(500).json({ error: msg });
   } finally {
     client.release();
   }

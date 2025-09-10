@@ -268,20 +268,21 @@
             color: white;
         }
 
-        .quick-action:hover {
-            background: rgba(99, 102, 241, 0.1);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-        .action-icon {
+    .quick-action:hover {
+      background: rgba(99, 102, 241, 0.1);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .action-icon {
             font-size: 2rem;
             margin-bottom: 0.5rem;
             background: linear-gradient(135deg, #667eea, #764ba2);
             background-clip: text;
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-            -webkit-text-fill-color: transparent;
-        }
+      -webkit-text-fill-color: transparent;
+    }
+        
 
         .action-label {
             font-size: 0.9rem;
@@ -546,7 +547,7 @@ async function loadUserProfile() {
 
 async function loadTransactions() {
   try {
-    const txRows = await window.bsApiFetch("/api/transactions");
+  const txRows = await window.bsApiFetch("/transactions");
     const container = document.getElementById("transactionsList");
     container.innerHTML = "";
 

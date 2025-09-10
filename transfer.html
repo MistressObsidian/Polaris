@@ -212,7 +212,7 @@ async function handleTransfer(e) {
   };
 
   try {
-    const tx = await window.bsApiFetch(",/transfers", {
+  const tx = await window.bsApiFetch("/transfers", {
       method: "POST",
       body: JSON.stringify(payload)
     });
@@ -250,7 +250,7 @@ function connectSSE() {
 }
 
 function goToTransactionDetails() {
-  window.location.href = "transaction.html";
+  window.location.href = "transactions.html";
 }
 
 function toggleForm(id) {

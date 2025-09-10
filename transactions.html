@@ -6,6 +6,12 @@
   <link rel="stylesheet" href="ui.css" />
   <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Override API base before config.js; update YOUR-API-HOST for production -->
+  <script>
+    window.BS_API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+      ? 'http://localhost:4000/api'
+      : 'https://shenzhenswift.online/api';
+  </script>
  <style>
     :root {
       --brand:#4f46e5; --brand2:#6366f1;

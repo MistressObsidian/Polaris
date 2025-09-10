@@ -536,7 +536,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadUserProfile() {
   try {
-    const profile = await window.bsApiFetch("/users/me");
+    const profile = await window.bsApiFetch("/api/users/me");
     document.getElementById("totalBalance").textContent = `$${Number(profile.totalbalance).toFixed(2)}`;
     document.getElementById("availableBalance").textContent = `$${Number(profile.baseavailable).toFixed(2)}`;
   } catch (err) {
@@ -546,7 +546,7 @@ async function loadUserProfile() {
 
 async function loadTransactions() {
   try {
-    const txRows = await window.bsApiFetch("/transactions");
+    const txRows = await window.bsApiFetch("/api/transactions");
     const container = document.getElementById("transactionsList");
     container.innerHTML = "";
 

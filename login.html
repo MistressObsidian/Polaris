@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
   btn.textContent = 'Signing in...';
 
   try {
-    const data = await window.bsApiFetch("/login", {
+    const data = await window.bsApiFetch("/api/login", {
       method: "POST",
       body: JSON.stringify({ email, password })
     });

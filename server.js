@@ -333,10 +333,11 @@ app.get('/api/stream/user/:id', authMiddleware, async (req, res) => {
   });
 });
 
-// Serve static frontend files (safer)
-app.use(express.static(path.join(__dirname, "public")));
+// Serve files from project root instead of "public"
+app.use(express.static(__dirname));
 
-const PORT = Number(process.env.PORT) || 4000;
-const server = app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "login.html"));
 });
+
+

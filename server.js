@@ -69,8 +69,7 @@ app.use(
   "http://localhost:5173", // Static dev server
   "http://127.0.0.1:5173", // Static dev server
       "http://127.0.0.1:5500", // VS Code Live Server
-      "http://shenzhenswift.online", // your domain
-      "https://shenzhenswift.online",
+      "https://shenzhenswift.online", // your domain
     ],
     credentials: true,
   })

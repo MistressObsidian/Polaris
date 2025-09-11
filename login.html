@@ -44,7 +44,7 @@
         <p class="auth-sub">Sign in to your Bank Swift account</p>
       </div>
       <div id="loginAlert" class="alert-auth" role="alert"></div>
-  <form id="loginForm" class="form-grid" novalidate>
+  <form id="loginForm" class="form-grid" method="post" novalidate>
         <div class="field">
           <label for="email">Email</label>
           <input id="email" type="email" required />
@@ -71,7 +71,7 @@
     </section>
   </main>
 
-<script src="common.js"></script>
+<!-- removed common.js; using plain fetch directly -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById('loginForm');
@@ -101,10 +101,14 @@ document.addEventListener("DOMContentLoaded", () => {
   btn.textContent = 'Signing in...';
 
   try {
-    const data = await window.bsApiFetch("/login", {
+    const res = await fetch(`${window.API_BASE}/login`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
     });
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : {};
+    if (!res.ok) throw new Error(data?.error || `Login failed (${res.status})`);
 
     // Save user with token
     const userObj = {

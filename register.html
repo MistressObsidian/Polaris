@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  <script src="common.js"></script>
+  <!-- removed common.js; using plain fetch directly -->
   <div class="hero-background"></div>
   <div class="particles" id="particles"></div>
   <main class="auth-wrapper">
@@ -46,7 +46,7 @@
       <div id="regAlert" class="alert-auth" role="alert"></div>
 
       <!-- FORM -->
-      <form id="registerForm" class="form-grid" autocomplete="off" novalidate>
+  <form id="registerForm" class="form-grid" method="post" autocomplete="off" novalidate>
         <div class="form-row-2">
           <div class="field">
             <label for="fullname">Full Name</label>
@@ -132,8 +132,9 @@ document.addEventListener("DOMContentLoaded", () => {
   btn.textContent = 'Creating...';
 
   try {
-    const data = await window.bsApiFetch("/users", {
+    const res = await fetch(`${window.API_BASE}/users`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         fullname,
         phone,
@@ -142,6 +143,9 @@ document.addEventListener("DOMContentLoaded", () => {
         accountname: accountName
       })
     });
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : {};
+    if (!res.ok) throw new Error(data?.error || `Registration failed (${res.status})`);
 
     // Save user with token
     const userObj = {

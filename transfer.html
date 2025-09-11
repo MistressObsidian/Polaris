@@ -212,10 +212,17 @@ async function handleTransfer(e) {
   };
 
   try {
-  const tx = await window.bsApiFetch("/transfers", {
+    const res = await fetch(`${window.API_BASE}/transfers`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user?.token || ''}`
+      },
       body: JSON.stringify(payload)
     });
+    const text = await res.text();
+    const tx = text ? JSON.parse(text) : {};
+    if (!res.ok) throw new Error(tx?.error || `Transfer failed (${res.status})`);
 
     document.getElementById("successModal").style.display = "block";
     document.getElementById("successDetails").innerHTML = `

@@ -61,19 +61,45 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
 const app = express();
 
-// ✅ CORS for frontend (local + Netlify)
+// ✅ CORS for frontend (local + production)
+const allowedOrigins = new Set([
+  "http://localhost:5173", // http-server dev
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5500", // VS Code Live Server
+  "http://localhost:5500",
+  "shenzhenswift.online", // your domain
+  "https://shenzhenswift.online",
+]);
+
+// Allow user-provided extra origins via env (comma-separated)
+if (process.env.CORS_ORIGINS) {
+  process.env.CORS_ORIGINS.split(",").map(s => s.trim()).filter(Boolean).forEach(o => allowedOrigins.add(o));
+}
+
 app.use(
-  cors({
-    origin: [
-      "http://localhost:3000", // React dev
-  "http://localhost:5173", // Static dev server
-  "http://127.0.0.1:5173", // Static dev server
-      "http://127.0.0.1:5500", // VS Code Live Server
-      "https://shenzhenswift.online", // your domain
-    ],
-    credentials: true,
-  })
+  cors(
+    process.env.ALLOW_ANY_ORIGIN === "1"
+      ? { origin: true, credentials: true }
+      : {
+          origin: (origin, callback) => {
+            // Allow same-origin requests (no Origin header)
+            if (!origin) return callback(null, true);
+
+            // Explicit allowlist
+            if (allowedOrigins.has(origin)) return callback(null, true);
+
+            // Optional: allow file:// pages which send Origin "null" when explicitly enabled
+            if (origin === "null" && process.env.ALLOW_FILE_ORIGIN === "1") return callback(null, true);
+
+            return callback(new Error(`Not allowed by CORS: ${origin}`));
+          },
+          credentials: true,
+        }
+  )
 );
+
+// Handle preflight for all routes
+app.options("*", cors());
 
 app.use(express.json());
 app.use(morgan("dev"));

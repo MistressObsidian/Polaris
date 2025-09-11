@@ -6,7 +6,7 @@
   <title>Dashboard • Bank Swift</title>
   <link rel="stylesheet" href="ui.css" />
   <script src="config.js"></script>
-  <script src="common.js"></script>
+  <!-- removed common.js; using plain fetch directly -->
     <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -537,7 +537,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadUserProfile() {
   try {
-    const profile = await window.bsApiFetch("/users/me");
+    const res = await fetch(`${window.API_BASE}/users/me`, {
+      headers: { Authorization: `Bearer ${user?.token || ''}` }
+    });
+    const text = await res.text();
+    const profile = text ? JSON.parse(text) : {};
+    if (!res.ok) throw new Error(profile?.error || `Failed to load profile (${res.status})`);
     document.getElementById("totalBalance").textContent = `$${Number(profile.totalbalance).toFixed(2)}`;
     document.getElementById("availableBalance").textContent = `$${Number(profile.baseavailable).toFixed(2)}`;
   } catch (err) {
@@ -547,7 +552,12 @@ async function loadUserProfile() {
 
 async function loadTransactions() {
   try {
-  const txRows = await window.bsApiFetch("/transactions");
+    const res = await fetch(`${window.API_BASE}/transactions`, {
+      headers: { Authorization: `Bearer ${user?.token || ''}` }
+    });
+    const text = await res.text();
+    const txRows = text ? JSON.parse(text) : [];
+    if (!res.ok) throw new Error(txRows?.error || `Failed to load transactions (${res.status})`);
     const container = document.getElementById("transactionsList");
     container.innerHTML = "";
 

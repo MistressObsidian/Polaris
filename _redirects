@@ -1,4 +1,1 @@
-  from = "/api/*"
-  to = "https://app-silent-bird-08639041.dpl.myneon.tech/api/:splat"
-  status = 200
-  force = true
+/api/*   https://app-silent-bird-08639041.dpl.myneon.app/api/:splat   200

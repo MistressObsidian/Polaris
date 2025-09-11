@@ -24,11 +24,11 @@
       const isLocalhost = origin.includes("localhost") || origin.includes("127.0.0.1");
 
       if (isFile || isLocalhost) {
-        ApiBase = "http://localhost:4000/api";   // local dev
-      } else if (origin.includes("shenzhenswift.online")) {
-        ApiBase = "https://shenzhenswift.online/api"; // production Neon backend
+        // 🖥️ Local dev: Express backend
+        ApiBase = "http://localhost:4000/api";
       } else {
-        ApiBase = `${origin}/api`; // fallback for other hosts
+        // 🌐 Production: always call same-origin /api (Netlify proxy will forward)
+        ApiBase = `${origin}/api`;
       }
     } catch (err) {
       console.warn("⚠️ Config detection failed, fallback to localhost:", err);

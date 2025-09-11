@@ -20,14 +20,14 @@
                  radial-gradient(circle at 80% 80%,rgba(139,92,246,.12)0%,transparent 50%),
                  radial-gradient(circle at 40% 60%,rgba(6,182,212,.08)0%,transparent 50%);
     }
-    .container{max-width:800px;margin:0 auto;padding:40px 20px}
+  .container{max-width:800px;margin:0 auto;padding:24px 16px}
     .header{text-align:center;margin-bottom:2rem}
     .logo{font-size:1.5rem;font-weight:800;
       background:linear-gradient(135deg,#667eea,#764ba2);
       -webkit-background-clip:text;
       background-clip:text;
       -webkit-text-fill-color:transparent}
-    h2{font-size:2rem;font-weight:700;margin-top:.5rem}
+  h2{font-size:clamp(1.4rem, 2vw + 1rem, 2rem);font-weight:700;margin-top:.5rem}
     .subtitle{color:rgba(255,255,255,.7);margin-top:.25rem}
     .back-btn{position:absolute;top:20px;left:20px;width:42px;height:42px;
       border-radius:50%;border:1px solid rgba(255,255,255,.2);
@@ -37,26 +37,26 @@
       padding:1.2rem;margin:1.5rem 0;text-align:center}
     .balance-box div:first-child{font-size:.95rem;color:rgba(255,255,255,.7)}
     .balance-box div:last-child{font-size:1.5rem;font-weight:700;letter-spacing:1px}
-    .transfer-method-btn{padding:14px 18px;margin:.5rem 0;width:100%;
+  .transfer-method-btn{padding:12px 14px;margin:.5rem 0;width:100%;
       background:linear-gradient(45deg,#667eea,#764ba2);color:#fff;border:none;
       border-radius:12px;font-size:15px;cursor:pointer;text-align:left;
       display:flex;align-items:center;justify-content:space-between}
-    .transfer-form{display:none;margin:15px 0;padding:20px;
+  .transfer-form{display:none;margin:12px 0;padding:16px;
       border:2px solid rgba(255,255,255,.15);
       border-radius:12px;background:rgba(255,255,255,.05);
       backdrop-filter:blur(10px)}
     .transfer-form h3{margin-bottom:1rem;text-align:center;border-bottom:1px solid rgba(255,255,255,.2);padding-bottom:.5rem}
     label{display:block;margin-bottom:6px;font-size:14px}
-    .transfer-input{width:100%;padding:12px;margin-bottom:1rem;
+  .transfer-input{width:100%;padding:10px;margin-bottom:0.85rem;
       border:2px solid rgba(255,255,255,.2);border-radius:8px;
       background:rgba(255,255,255,.1);color:#fff}
     .transfer-input::placeholder{color:rgba(255,255,255,.5)}
     .submit-btn{background:linear-gradient(45deg,#28a745,#20c997);
-      padding:14px;width:100%;border:none;border-radius:10px;
+      padding:12px;width:100%;border:none;border-radius:10px;
       color:#fff;font-weight:600;cursor:pointer}
     .success-modal{display:none;position:fixed;inset:0;
       background:rgba(0,0,0,.7);backdrop-filter:blur(5px);z-index:1000}
-    .success-content{position:absolute;top:50%;left:50%;
+  .success-content{position:absolute;top:50%;left:50%;
       transform:translate(-50%,-50%);background:#fff;color:#333;
       padding:30px;border-radius:12px;text-align:center;width:90%;max-width:400px}
     .success-icon{font-size:3rem;color:#28a745;margin-bottom:1rem}
@@ -65,6 +65,13 @@
     .close-btn{background:linear-gradient(45deg,#667eea,#764ba2);
      border:none;color:#fff;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600}
     .message{display:none;margin-top:8px;font-size:14px;color:#ff6b6b;font-weight:600;text-align:center}
+
+    @media (max-width: 420px){
+      .container{padding:16px 12px}
+      .back-btn{top:12px; left:12px; width:38px; height:38px;}
+      .balance-box{padding:.9rem; margin:1rem 0}
+      .detail-row{gap:8px}
+    }
   </style>
 </head>
 <body>

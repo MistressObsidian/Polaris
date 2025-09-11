@@ -14,7 +14,7 @@
   <div class="hero-background"></div>
   <div class="particles" id="particles"></div>
   <main class="auth-wrapper">
-    <button onclick="window.history.back()" class="btn-shared btn-outline" style="position:absolute;top:18px;left:18px;z-index:100;">← Go Back</button>
+  <a href="index.html" class="btn-shared btn-outline" style="position:absolute;top:18px;left:18px;z-index:100;" aria-label="Go to home">← Go Back</a>
     <section class="auth-card" aria-labelledby="regTitle">
       <div class="auth-head">
         <div class="auth-logo" aria-hidden="true">
@@ -76,14 +76,16 @@
           </div>
         </div>
 
-        <div class="field">
+        <div class="field" id="cpwField">
           <label for="confirmPassword">Confirm Password</label>
-          <input class="input-base" type="password" id="confirmPassword" name="confirmPassword" minlength="6" placeholder="Re-enter password" required />
+          <div class="pw-wrap">
+            <input class="input-base" type="password" id="confirmPassword" name="confirmPassword" minlength="6" placeholder="Re-enter password" required />
+            <button type="button" class="pw-toggle" id="pwToggleConfirm" aria-label="Show confirm password">Show</button>
+          </div>
         </div>
 
-        <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
+  <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
       </form>
-
       <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
     </section>
   </main>
@@ -95,13 +97,38 @@ document.addEventListener("DOMContentLoaded", () => {
   const pw = document.getElementById('password');
   const cpw = document.getElementById('confirmPassword');
   const pwToggle = document.getElementById('pwToggleRegister');
-
-  pwToggle.addEventListener('click', () => {
-    const isHidden = pw.type === 'password';
-    pw.type = isHidden ? 'text' : 'password';
-    cpw.type = isHidden ? 'text' : 'password';
-    pwToggle.textContent = isHidden ? 'Hide' : 'Show';
+  const pwToggleConfirm = document.getElementById('pwToggleConfirm');
+  
+  // Ensure the form fits small screens: toggle compact class by viewport height
+  const applyVhCompact = () => {
+    const h = window.innerHeight || document.documentElement.clientHeight;
+    if (h < 600) document.body.classList.add('vh-compact');
+    else document.body.classList.remove('vh-compact');
+  };
+  applyVhCompact();
+  let resizeTo;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTo);
+    resizeTo = setTimeout(applyVhCompact, 120);
   });
+
+  // Sync both toggles: clicking either shows/hides both fields and updates both labels
+  const setToggleLabels = (isShown) => {
+    const label = isShown ? 'Hide' : 'Show';
+    if (pwToggle) pwToggle.textContent = label;
+    if (pwToggleConfirm) pwToggleConfirm.textContent = label;
+  };
+
+  const togglePwVisibility = () => {
+    const isHidden = pw.type === 'password';
+    const type = isHidden ? 'text' : 'password';
+    pw.type = type;
+    cpw.type = type;
+    setToggleLabels(isHidden);
+  };
+
+  if (pwToggle) pwToggle.addEventListener('click', togglePwVisibility);
+  if (pwToggleConfirm) pwToggleConfirm.addEventListener('click', togglePwVisibility);
 
   function showError(msg){
     alertBox.textContent = msg;

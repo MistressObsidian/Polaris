@@ -4,7 +4,13 @@
 *,*::before,*::after { box-sizing:border-box; }
 html,body { height:100%; }
 html { -webkit-text-size-adjust:100%; }
-body { margin:0; font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Fira Sans','Droid Sans','Helvetica Neue',Arial,sans-serif; line-height:1.4; color:#dbe2e9; background:radial-gradient(at 30% 20%,#111a28 0%,#0a1017 60%) fixed; -webkit-font-smoothing:antialiased; overflow:hidden; }
+body { margin:0; font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Fira Sans','Droid Sans','Helvetica Neue',Arial,sans-serif; line-height:1.4; color:#dbe2e9; background:radial-gradient(at 30% 20%,#111a28 0%,#0a1017 60%) fixed; -webkit-font-smoothing:antialiased; overflow-y:auto; overflow-x:hidden; }
+
+/* Media: responsive images/videos */
+img,svg,video,canvas { max-width:100%; height:auto; }
+
+/* Respect safe-area on mobile */
+.auth-wrapper { padding-top: max(0.75rem, env(safe-area-inset-top)); padding-bottom: max(0.9rem, env(safe-area-inset-bottom)); padding-left: max(0.9rem, env(safe-area-inset-left)); padding-right: max(0.9rem, env(safe-area-inset-right)); }
 
 /* Compact vertical mode (for short viewport heights) */
 .vh-compact .auth-card{padding:.85rem .85rem .8rem;gap:.55rem;max-height:100dvh}
@@ -25,7 +31,7 @@ body { margin:0; font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,
 .particles{position:fixed;inset:0;pointer-events:none;z-index:-1;background:repeating-linear-gradient(60deg,rgba(255,255,255,.025) 0 2px,transparent 2px 4px);opacity:.12;mix-blend-mode:overlay}
 
 .auth-wrapper{min-height:100dvh;width:100%;display:flex;align-items:center;justify-content:center;padding:clamp(.75rem,2.2vh,.9rem) .9rem .9rem;position:relative}
-.auth-card{width:100%;max-width:var(--max-auth-width);background:linear-gradient(160deg,rgba(255,255,255,.09) 0%,rgba(255,255,255,.035) 60%);backdrop-filter:blur(22px) saturate(150%);border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-lg);padding:clamp(1.15rem,1.6rem + .8vh,1.9rem) clamp(1.05rem,1.3rem + .6vw,1.75rem);box-shadow:0 4px 18px -6px rgba(0,0,0,.7);display:flex;flex-direction:column;gap:1.05rem;position:relative;overflow:hidden;max-height:92dvh}
+.auth-card{width:100%;max-width:var(--max-auth-width);background:linear-gradient(160deg,rgba(255,255,255,.09) 0%,rgba(255,255,255,.035) 60%);backdrop-filter:blur(22px) saturate(150%);border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-lg);padding:clamp(1rem,1.2rem + .6vh,1.6rem) clamp(0.9rem,1.1rem + .5vw,1.5rem);box-shadow:0 4px 18px -6px rgba(0,0,0,.7);display:flex;flex-direction:column;gap:1rem;position:relative;overflow:auto;max-height:92dvh}
 .auth-card::before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(255,255,255,.05) 0%,rgba(255,255,255,0) 55%);mix-blend-mode:overlay;pointer-events:none}
 .auth-head{text-align:center;display:flex;flex-direction:column;gap:.55rem;margin-bottom:.35rem}
 .auth-logo{width:60px;height:60px;margin-inline:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))}
@@ -68,6 +74,13 @@ form{margin:0;display:flex;flex-direction:column;gap:.85rem}
 a:focus-visible,button:focus-visible,.pw-toggle:focus-visible,.input-base:focus-visible{outline:none;box-shadow:var(--focus-ring)}
 @media (max-height:640px){.auth-card{gap:.7rem;padding:1rem .95rem}.auth-head{gap:.4rem}.auth-title{font-size:1.25rem}.auth-sub{font-size:.68rem}form{gap:.7rem}.field label{font-size:.63rem}.input-base{padding:.6rem .7rem .55rem;font-size:.78rem}.btn-full{padding:.72rem .85rem .68rem;font-size:.74rem}.auth-logo{width:52px;height:52px}}
 @media (max-height:520px){.auth-sub{display:none}.social-row,.divider-auth{display:none}.auth-card{max-height:100dvh}}
+/* Narrow viewport adjustments */
+@media (max-width: 420px){
+	.auth-title{font-size:1.1rem}
+	.auth-card{padding:0.9rem}
+	.input-base{font-size:.8rem}
+	.btn-full{font-size:.74rem}
+}
 /* Light theme removed: single dark theme retained */
 ::-webkit-scrollbar{width:0;height:0}
 .input-msg{font-size:.6rem;font-weight:600;letter-spacing:.4px;margin-top:.2rem;min-height:.75rem;color:rgba(255,255,255,.55);opacity:.9;transition:var(--trans-fast)}

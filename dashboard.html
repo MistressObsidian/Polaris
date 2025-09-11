@@ -369,7 +369,7 @@
             color: var(--danger);
         }
 
-        /* Mobile Responsive */
+  /* Mobile Responsive */
         @media (max-width: 1024px) {
             .sidebar {
                 transform: translateX(-100%);
@@ -384,19 +384,7 @@
                 margin-left: 0;
             }
 
-            .mobile-menu-btn {
-                display: block;
-                position: fixed;
-                top: 1rem;
-                left: 1rem;
-                z-index: 101;
-                background: rgba(99, 102, 241, 0.2);
-                border: 1px solid var(--border);
-                color: white;
-                padding: 10px;
-                border-radius: 10px;
-                cursor: pointer;
-            }
+            .mobile-menu-btn { display:block; position:fixed; top:1rem; left:1rem; z-index:101; background:rgba(15,23,42,.85); border:1px solid var(--border); color:#fff; padding:10px 12px; border-radius:10px; cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,.35); }
         }
 
         @media (max-width: 900px) {
@@ -420,6 +408,9 @@
     </style>
 </head>
 <body>
+  <!-- Mobile menu toggle -->
+  <button class="mobile-menu-btn" id="menuBtn" aria-label="Toggle menu">☰</button>
+
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="logo">
@@ -601,4 +592,12 @@ function connectSSE() {
 }
 </script>
 </body>
+<script>
+  // Toggle sidebar on mobile
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebar = document.getElementById('sidebar');
+  if (menuBtn && sidebar) {
+    menuBtn.addEventListener('click', () => sidebar.classList.toggle('active'));
+  }
+</script>
 </html>

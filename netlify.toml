@@ -1,20 +1,14 @@
-# Netlify config: serve static files from repo root and proxy /api to your backend
 [build]
   publish = "."
-  # No build step needed for plain HTML/CSS/JS; leave command empty or remove
-  command = ""
 
-# Proxy all API calls to the Neon deployment
 [[redirects]]
   from = "/api/*"
   to = "https://app-silent-bird-08639041.dpl.myneon.tech/api/:splat"
   status = 200
   force = true
 
-# Optional: cache headers for static assets (tweak as you prefer)
+# Optional: headers for streaming endpoints to avoid buffering
 [[headers]]
-  for = "/*"
+  for = "/api/stream/*"
   [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
+    Cache-Control = "no-cache"

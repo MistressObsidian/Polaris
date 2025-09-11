@@ -1,14 +1,4 @@
-[build]
-  publish = "."
-
-[[redirects]]
   from = "/api/*"
   to = "https://app-silent-bird-08639041.dpl.myneon.tech/api/:splat"
   status = 200
   force = true
-
-# Optional: headers for streaming endpoints to avoid buffering
-[[headers]]
-  for = "/api/stream/*"
-  [headers.values]
-    Cache-Control = "no-cache"

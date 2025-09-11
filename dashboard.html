@@ -538,7 +538,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function loadUserProfile() {
   try {
     const res = await fetch(`${window.API_BASE}/users/me`, {
-      headers: { Authorization: `Bearer ${user?.token || ''}` }
+      headers: { Authorization: `Bearer ${user.token || ''}` }
     });
     const text = await res.text();
     const profile = text ? JSON.parse(text) : {};
@@ -553,7 +553,7 @@ async function loadUserProfile() {
 async function loadTransactions() {
   try {
     const res = await fetch(`${window.API_BASE}/transactions`, {
-      headers: { Authorization: `Bearer ${user?.token || ''}` }
+      headers: { Authorization: `Bearer ${user.token || ''}` }
     });
     const text = await res.text();
     const txRows = text ? JSON.parse(text) : [];

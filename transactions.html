@@ -7,21 +7,22 @@
   <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <meta name="viewport" content="width=device-width,initial-scale=1">
  <style>
-    :root {
-      --brand:#4f46e5; --brand2:#6366f1;
-      --accent1:#667eea; --accent2:#764ba2;
-      --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666;
-      --border:#e5e7eb; --ok:#047857; --warn:#b45309;
-      --shadow:0 10px 30px rgba(0,0,0,.08);
-    }
-    * { box-sizing:border-box; }
-    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif; color:var(--text); background:var(--bg); }
-    .container { max-width:1000px; margin:0 auto; padding:0 20px; }
-    header { background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%); color:#fff; padding:1rem 0; position:fixed; width:100%; top:0; z-index:1000; backdrop-filter:blur(10px); }
-    nav { display:flex; justify-content:space-between; align-items:center; }
-  .logo { font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:.6rem; }
-  .logo img { height:40px; width:auto; display:block; }
-    .nav-links { list-style:none; display:flex; gap:1.25rem; margin:0; padding:0; }
+      :root {
+        --brand:#4f46e5; --brand2:#6366f1;
+        --accent1:#667eea; --accent2:#764ba2;
+        --bg:#f6f7fb; --card:#ffffff; --text:#333; --muted:#666;
+        --border:#e5e7eb; --ok:#047857; --warn:#b45309;
+        --shadow:0 10px 30px rgba(0,0,0,.08);
+      }
+      * { box-sizing:border-box; }
+      body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif; color:var(--text); background:var(--bg); }
+      .container { max-width:1000px; margin:0 auto; padding:0 20px; }
+      header { background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%); color:#fff; padding:1rem 0; position:fixed; width:100%; top:0; z-index:1000; backdrop-filter:blur(10px); }
+      nav { display:flex; justify-content:space-between; align-items:center; }
+      .logo { font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:.6rem; }
+      .logo img { height:40px; width:auto; display:block; }
+      .nav-links { list-style:none; display:flex; gap:1.25rem; margin:0; padding:0; }
+    .nav-links a { color:#fff; text-decoration:none; font-weight:600; position:relative; }
     .nav-links a { color:#fff; text-decoration:none; font-weight:600; position:relative; }
     .nav-links a::after { content:''; position:absolute; left:0; bottom:-5px; height:2px; width:0; background:#e0e7ff; transition:.3s; }
     .nav-links a:hover::after { width:100%; }
@@ -59,6 +60,19 @@
     @keyframes pulse { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }
     .extra-detail { margin-top: 10px; font-size: 0.85rem; color: #444; }
     .extra-detail strong { font-weight: 700; color: #111; }
+  /* All transactions list */
+  .tx-list { border:1px solid var(--border); border-radius:12px; background:#fff; max-height:420px; overflow:auto; }
+  .tx-item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px; border-bottom:1px solid var(--border); cursor:pointer; }
+  .tx-item:last-child { border-bottom:none; }
+  .tx-item:hover { background:#f8fafc; }
+  .tx-item.active { background:#eef2ff; box-shadow:inset 3px 0 0 var(--brand); }
+  .tx-left { display:flex; align-items:center; gap:10px; }
+  .tx-icon { width:36px; height:36px; display:grid; place-items:center; border-radius:50%; background:#eef2ff; color:var(--brand); font-weight:900; }
+  .tx-title { font-weight:800; }
+  .tx-meta { font-size:.8rem; color:var(--muted); }
+  .tx-amount { font-weight:900; }
+  .tx-amount.pos { color:#047857; }
+  .tx-amount.neg { color:#b91c1c; }
     @media (max-width: 420px){
       main { padding-top: 84px; }
       header { padding: .7rem 0; }
@@ -102,6 +116,9 @@
 
       <div id="statusBanner" style="margin-bottom:18px;"></div>
 
+      <h4 style="margin:8px 0 8px; font-size:1rem; color:var(--brand);">All Transactions</h4>
+      <div id="txList" class="tx-list" aria-label="All transactions"></div>
+
       <div class="amount-line">
         <span class="label">Amount</span>
         <span class="value" id="amountValue"></span>
@@ -115,6 +132,10 @@
         <div class="detail">
           <div class="label">To</div>
           <div class="value" id="toValue"></div>
+        </div>
+        <div class="detail">
+          <div class="label">Description</div>
+          <div class="value" id="descriptionValue"></div>
         </div>
         <div class="detail">
           <div class="label">Reference</div>
@@ -137,33 +158,111 @@
       <div class="note" id="txContainer"></div>
     </div>
   </main>
-
   <script src="config.js"></script>
   <script>
   document.addEventListener("DOMContentLoaded", () => {
     try {
-      const transfer = JSON.parse(localStorage.getItem("last-transfer"));
       const user = JSON.parse(localStorage.getItem("bs-user"));
-
-      if (!user || !user.token) {
-        window.location.href = "login.html";
-        return;
-      }
-      if (!transfer) {
-        document.getElementById("txContainer").innerHTML =
-          "<p>No recent transfer found.</p>";
-        return;
-      }
-
-      renderReceipt(transfer);
+      if (!user || !user.token) { window.location.href = "login.html"; return; }
+      loadAllTransactions();
     } catch (err) {
-      console.error("Receipt load error:", err);
+      console.error("Transactions init error:", err);
       document.getElementById("txContainer").innerHTML =
-        "<p style='color:red'>Could not load transaction.</p>";
+        "<p style='color:red'>Could not load transactions.</p>";
     }
   });
 
-  function renderReceipt(tx) {
+  const nameCache = new Map();
+  let allTxs = [];
+
+  async function lookupName(email, token){
+    try{
+      const key = (email||'').toLowerCase();
+      if (!key) return null;
+      if (nameCache.has(key)) return nameCache.get(key);
+  const res = await fetch(`${window.API_BASE}/users/lookup?email=${encodeURIComponent(key)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('lookup failed');
+      const data = await res.json();
+      nameCache.set(key, data?.fullname || null);
+      return data?.fullname || null;
+    } catch { return null; }
+  }
+
+  async function loadAllTransactions(){
+    try{
+      const user = JSON.parse(localStorage.getItem("bs-user") || "null");
+      const res = await fetch(`${window.API_BASE}/transactions`, {
+        headers: { Authorization: `Bearer ${user?.token || ''}` }
+      });
+      const text = await res.text();
+      const txRows = text ? JSON.parse(text) : [];
+      if (!res.ok) throw new Error(txRows?.error || `Failed to load transactions (${res.status})`);
+      allTxs = Array.isArray(txRows) ? txRows : [];
+      renderTxList(allTxs);
+
+      // Attempt to preselect a transaction from localStorage if present
+      let preselect = null;
+      try { preselect = JSON.parse(localStorage.getItem('transfer') || 'null'); } catch {}
+      if (!preselect) {
+        try { preselect = JSON.parse(localStorage.getItem('last-transfer') || 'null'); } catch {}
+      }
+      let initial = null;
+      if (preselect && preselect.id) {
+        initial = allTxs.find(t => t.id === preselect.id) || preselect;
+      } else {
+        initial = allTxs[0];
+      }
+      if (initial) renderReceipt(initial);
+      if (!allTxs.length) {
+        document.getElementById("txContainer").innerHTML = "<p>No transactions found.</p>";
+      }
+    } catch(err){
+      console.error('Load all transactions error:', err);
+      document.getElementById("txContainer").innerHTML = `<p style='color:red'>${err.message || 'Failed to load transactions'}</p>`;
+    }
+  }
+
+  function renderTxList(list){
+    const container = document.getElementById('txList');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!list || !list.length){
+      container.innerHTML = `<div style="padding:12px; color:var(--muted)">No transactions</div>`;
+      return;
+    }
+    list.forEach((tx, idx) => {
+      const item = document.createElement('div');
+      item.className = 'tx-item';
+      const isCredit = (tx.type || '').toLowerCase() === 'credit';
+      const amount = Number(tx.amount || 0);
+      const prefix = isCredit ? '+' : '-';
+      const signClass = isCredit ? 'pos' : 'neg';
+      const when = tx.created_at ? new Date(tx.created_at).toLocaleString() : '';
+      const title = tx.description || (isCredit ? 'Credit' : 'Debit');
+      item.innerHTML = `
+        <div class="tx-left">
+          <div class="tx-icon">${isCredit ? '💰' : '💸'}</div>
+          <div>
+            <div class="tx-title">${title}</div>
+            <div class="tx-meta">${when}</div>
+          </div>
+        </div>
+        <div class="tx-amount ${signClass}">${prefix}$${amount.toFixed(2)}</div>
+      `;
+      item.addEventListener('click', () => {
+        // set active state
+        Array.from(container.children).forEach(c => c.classList.remove('active'));
+        item.classList.add('active');
+        renderReceipt(tx);
+      });
+      if (idx === 0) item.classList.add('active');
+      container.appendChild(item);
+    });
+  }
+
+  async function renderReceipt(tx) {
     const user = JSON.parse(localStorage.getItem("bs-user") || "null");
     const currentEmail = (user?.email || "").toLowerCase();
 
@@ -175,21 +274,24 @@
     const fees = amt * 0.235;
 
     // Determine if current user is sender or receiver
-    const isSender = currentEmail === (tx.sender_email || "").toLowerCase();
-    const isReceiver = currentEmail === (tx.recipient_email || "").toLowerCase();
+    const isSender = ((tx.sender_email || '').toLowerCase() === currentEmail);
+    const isReceiver = ((tx.recipient_email || '').toLowerCase() === currentEmail);
 
+    let statusText = '';
     if (isSender) {
       statusBanner.className = "success-banner";
       statusBanner.innerHTML = `<div class="success-icon">✔</div> 
         <div>Transfer Completed Successfully</div>`;
       statusPill.className = "status-pill completed";
-      statusPill.textContent = "Completed";
+      statusText = "Completed";
+      statusPill.textContent = statusText;
     } else if (isReceiver) {
       statusBanner.className = "pending-banner";
       statusBanner.innerHTML = `<div class="pending-icon">⏱</div> 
         <div>Pending — Payment of required fee is needed to complete this transaction</div>`;
       statusPill.className = "status-pill pending";
-      statusPill.textContent = "Pending (Fee Required)";
+      statusText = "Pending (Fee Required)";
+      statusPill.textContent = statusText;
 
       const payBtn = document.createElement("button");
       payBtn.className = "btn btn-primary";
@@ -207,22 +309,40 @@
       statusBanner.innerHTML = `<div class="pending-icon">⏱</div> 
         <div>Transaction in review</div>`;
       statusPill.className = "status-pill pending";
-      statusPill.textContent = "Review";
+      statusText = "Review";
+      statusPill.textContent = statusText;
     }
 
     // Amount + summary
     document.getElementById("amountValue").textContent = `$${amt.toFixed(2)}`;
-    document.getElementById("summaryText").textContent =
-      `From ${tx.sender_email} to ${tx.recipient_email}`;
+     try{
+      const [fromName, toName] = await Promise.all([
+        lookupName(tx.sender_email, user.token),
+        lookupName(tx.recipient_email, user.token)
+      ]);
+  const fromDisplay = (tx.sender_account_name || tx.sender_fullname || tx.sender_name || fromName || '—');
+  const toDisplay = (tx.recipient_account_name || tx.recipient_fullname || tx.recipient_name || toName || '—');
+      document.getElementById("summaryText").textContent = `From ${fromDisplay} to ${toDisplay}`;
+      document.getElementById("fromValue").textContent = fromDisplay;
+      document.getElementById("toValue").textContent = toDisplay;
+    } catch {
+  const fromDisplay = (tx.sender_account_name || tx.sender_fullname || tx.sender_name || '—');
+  const toDisplay = (tx.recipient_account_name || tx.recipient_fullname || tx.recipient_name || '—');
+      document.getElementById("summaryText").textContent = `From ${fromDisplay} to ${toDisplay}`;
+      document.getElementById("fromValue").textContent = fromDisplay;
+      document.getElementById("toValue").textContent = toDisplay;
+    }
+
+  // Description reflects status
+  const descStatus = isSender ? "Transfer Completed" : (isReceiver ? "Transfer Pending (Fee Required)" : "Transfer In Review");
+  document.getElementById("descriptionValue").textContent = tx.description ? `${tx.description} — ${descStatus}` : descStatus;
 
     // Details
-    document.getElementById("fromValue").textContent = tx.sender_email;
-    document.getElementById("toValue").textContent = tx.recipient_email;
     document.getElementById("referenceValue").textContent =
       tx.id || "TX-" + Date.now();
     document.getElementById("networkValue").textContent = "Bank Swift Transfer";
     document.getElementById("feesValue").textContent =
-      `$${fees.toFixed(2)} (Informational)`;
+      `$${fees.toFixed(2)} (Fee Required)`;
 
     // ✅ Extra fields
     const extras = [];

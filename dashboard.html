@@ -369,6 +369,22 @@
             color: var(--danger);
         }
 
+  /* Receipt Modal */
+  .receipt-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;padding:16px}
+  .receipt-modal.show{display:flex}
+  .receipt-card{width:100%;max-width:560px;background:rgba(15,23,42,.96);border:1px solid var(--border);border-radius:16px;padding:18px}
+  .receipt-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .receipt-title{font-weight:800;font-size:1.1rem}
+  .receipt-close{background:rgba(255,255,255,.08);border:1px solid var(--border);color:#fff;padding:6px 10px;border-radius:8px;cursor:pointer}
+  .receipt-amount{font-size:1.6rem;font-weight:900;margin:6px 0}
+  .receipt-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .receipt-row{padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.03)}
+  .receipt-label{font-size:.72rem;letter-spacing:.6px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:6px}
+  .receipt-value{font-weight:800}
+  .receipt-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+  .btn-mini{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;cursor:pointer}
+  .btn-primary-mini{background:linear-gradient(135deg,#667eea,#764ba2);border:none}
+
   /* Mobile Responsive */
         @media (max-width: 1024px) {
             .sidebar {
@@ -490,6 +506,51 @@
   <div id="transactionsList"></div>
 </div>
 
+<!-- Receipt Modal -->
+<div id="receiptModal" class="receipt-modal" role="dialog" aria-modal="true" aria-labelledby="receiptTitle" aria-hidden="true">
+  <div class="receipt-card">
+    <div class="receipt-header">
+      <div id="receiptTitle" class="receipt-title">Transaction Receipt</div>
+      <button id="receiptClose" class="receipt-close" aria-label="Close">✕</button>
+    </div>
+    <div class="receipt-amount" id="rcAmount">$0.00</div>
+    <div class="receipt-meta">
+      <div class="receipt-row">
+        <div class="receipt-label">Type</div>
+        <div class="receipt-value" id="rcType">—</div>
+      </div>
+      <div class="receipt-row">
+        <div class="receipt-label">Status</div>
+        <div class="receipt-value" id="rcStatus">—</div>
+      </div>
+      <div class="receipt-row">
+        <div class="receipt-label">Date</div>
+        <div class="receipt-value" id="rcDate">—</div>
+      </div>
+      <div class="receipt-row">
+        <div class="receipt-label">Reference</div>
+        <div class="receipt-value" id="rcRef">—</div>
+      </div>
+      <div class="receipt-row">
+        <div class="receipt-label">From</div>
+        <div class="receipt-value" id="rcFrom">—</div>
+      </div>
+      <div class="receipt-row">
+        <div class="receipt-label">To</div>
+        <div class="receipt-value" id="rcTo">—</div>
+      </div>
+      <div class="receipt-row" style="grid-column:1 / -1;">
+        <div class="receipt-label">Description</div>
+        <div class="receipt-value" id="rcDesc">—</div>
+      </div>
+    </div>
+    <div class="receipt-actions">
+      <button id="rcViewDetails" class="btn-mini btn-primary-mini">Open full receipt</button>
+      <button id="rcCloseBtn" class="btn-mini">Close</button>
+    </div>
+  </div>
+ </div>
+
 <script>
 let user = null;
 
@@ -573,6 +634,7 @@ async function loadTransactions() {
           ${tx.type === "credit" ? "+" : "-"}$${Number(tx.amount).toFixed(2)}
         </div>
       `;
+  item.addEventListener('click', () => showReceiptModal(tx));
       container.appendChild(item);
     });
   } catch (err) {
@@ -590,6 +652,74 @@ function connectSSE() {
     localStorage.setItem("bs-user", JSON.stringify({ ...user, ...profile }));
   };
 }
+
+// Receipt modal logic
+const nameCacheDash = new Map();
+async function lookupNameDash(name){
+  try{
+    const key = (name||'').toLowerCase();
+    if (!key) return null;
+    if (nameCacheDash.has(key)) return nameCacheDash.get(key);
+    const res = await fetch(`${window.API_BASE}/users/lookup?email=${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${user?.token || ''}` }
+    });
+    if (!res.ok) throw new Error('lookup failed');
+    const data = await res.json();
+    nameCacheDash.set(key, data?.fullname || null);
+    return data?.fullname || null;
+  } catch { return null; }
+}
+
+async function showReceiptModal(tx){
+  try{
+    const modal = document.getElementById('receiptModal');
+    if(!modal) return;
+    const safe = (v) => (v === null || v === undefined || v === '' ? '—' : v);
+    const amount = Number(tx.amount || 0);
+    document.getElementById('rcAmount').textContent = `$${amount.toFixed(2)}`;
+    document.getElementById('rcType').textContent = (tx.type || '').toString().toUpperCase();
+    const statusText = safe(tx.status || (tx.type === 'credit' ? 'completed' : 'review'));
+    document.getElementById('rcStatus').textContent = statusText;
+    document.getElementById('rcDate').textContent = tx.created_at ? new Date(tx.created_at).toLocaleString() : '—';
+    document.getElementById('rcRef').textContent = safe(tx.id || tx.reference || `TX-${Date.now()}`);
+      // Always show names: prefer provided fullname/name; use lookup by email only to get a name; never show raw emails
+      const [fromName, toName] = await Promise.all([
+        lookupNameDash(tx.sender_email),
+        lookupNameDash(tx.recipient_email)
+      ]);
+    const fromDisplay = (tx.sender_account_name || tx.sender_fullname || tx.sender_name || fromName || '—');
+    const toDisplay = (tx.recipient_account_name || tx.recipient_fullname || tx.recipient_name || toName || '—');
+    document.getElementById('rcFrom').textContent = fromDisplay;
+    document.getElementById('rcTo').textContent = toDisplay;
+    const descEl = document.getElementById('rcDesc');
+    descEl.textContent = tx.description ? `${tx.description} — ${statusText}` : `${statusText} transfer`;
+
+    // Wire details button to open full receipt page using existing transactions.html renderer
+    const viewBtn = document.getElementById('rcViewDetails');
+    if (viewBtn){
+      viewBtn.onclick = () => {
+        try { localStorage.setItem('transfer', JSON.stringify(tx)); } catch(_) {}
+        window.location.href = 'transactions.html';
+      };
+    }
+
+    // Show modal
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+
+    // Close bindings
+    const closeModal = () => {
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+    };
+    document.getElementById('receiptClose').onclick = closeModal;
+    document.getElementById('rcCloseBtn').onclick = closeModal;
+    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+    document.addEventListener('keydown', function onEsc(ev){ if (ev.key === 'Escape'){ closeModal(); document.removeEventListener('keydown', onEsc); } });
+  } catch(err){
+    console.error('Show receipt modal error:', err);
+  }
+}
 </script>
 </body>
 <script>
@@ -599,5 +729,23 @@ function connectSSE() {
   if (menuBtn && sidebar) {
     menuBtn.addEventListener('click', () => sidebar.classList.toggle('active'));
   }
+
+  const closeSidebar = () => sidebar.classList.remove('active');
+
+  // Close when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!sidebar.classList.contains('active')) return;
+    if (!sidebar.contains(e.target) && !menuBtn.contains(e.target)) closeSidebar();
+  });
+
+  // Close when clicking a nav link
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', closeSidebar);
+  });
+
+  // Optional: close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSidebar();
+  });
 </script>
 </html>

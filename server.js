@@ -76,6 +76,16 @@ if (process.env.CORS_ORIGINS) {
   process.env.CORS_ORIGINS.split(",").map(s => s.trim()).filter(Boolean).forEach(o => allowedOrigins.add(o));
 }
 
+// Helper: allow any localhost/127.0.0.1 (any port) during dev
+function isLocalDevOrigin(orig) {
+  try {
+    const u = new URL(orig);
+    return (u.hostname === "localhost" || u.hostname === "127.0.0.1");
+  } catch {
+    return false;
+  }
+}
+
 app.use(
   cors(
     process.env.ALLOW_ANY_ORIGIN === "1"
@@ -87,6 +97,9 @@ app.use(
 
             // Explicit allowlist
             if (allowedOrigins.has(origin)) return callback(null, true);
+
+            // Allow any localhost or 127.0.0.1 regardless of port for local development
+            if (isLocalDevOrigin(origin)) return callback(null, true);
 
             // Optional: allow file:// pages which send Origin "null" when explicitly enabled
             if (origin === "null" && process.env.ALLOW_FILE_ORIGIN === "1") return callback(null, true);
@@ -150,6 +163,25 @@ app.get("/api/users/me", authMiddleware, async (req, res) => {
     return res.json(q.rows[0]);
   } catch (err) {
     console.error("Profile fetch error", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Minimal user lookup by email (for receipts)
+app.get("/api/users/lookup", authMiddleware, async (req, res) => {
+  try {
+    const email = String(req.query.email || "").toLowerCase().trim();
+    if (!email || !validateEmail(email)) {
+      return res.status(400).json({ error: "Valid email query param required" });
+    }
+    const q = await pool.query(
+      "SELECT fullname, email, accountname FROM users WHERE email=$1",
+      [email]
+    );
+    if (!q.rowCount) return res.status(404).json({ error: "User not found" });
+    return res.json(q.rows[0]);
+  } catch (err) {
+    console.error("Lookup error", err);
     return res.status(500).json({ error: "Server error" });
   }
 });
@@ -231,13 +263,37 @@ app.post("/api/login", async (req, res) => {
 app.post("/api/transfers", authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
-  let { sender_email, recipient_email, amount, account_number, routing_number, btc_address, method } = req.body || {};
+  let { sender_email, recipient_email, recipient_name, amount, account_number, routing_number, btc_address, method } = req.body || {};
 
     // Normalize inputs
     sender_email = (sender_email || req.user?.email || "").toLowerCase().trim();
     recipient_email = (recipient_email || "").toLowerCase().trim();
+    const recipient_name_norm = (recipient_name || "").toString().trim().toLowerCase();
 
-    if (!sender_email || !recipient_email || amount == null) {
+    // Allow lookup by recipient_name (prefer accountname, fallback to fullname)
+    if (!recipient_email && recipient_name_norm) {
+      try {
+        const byAccount = await client.query(
+          "SELECT id, email FROM users WHERE lower(accountname)=$1",
+          [recipient_name_norm]
+        );
+        if (byAccount.rowCount) {
+          recipient_email = byAccount.rows[0].email.toLowerCase();
+        } else {
+          const byFullname = await client.query(
+            "SELECT id, email FROM users WHERE lower(fullname)=$1",
+            [recipient_name_norm]
+          );
+          if (byFullname.rowCount) {
+            recipient_email = byFullname.rows[0].email.toLowerCase();
+          }
+        }
+      } catch (e) {
+        // ignore, handled by validation below
+      }
+    }
+
+    if (!sender_email || (!recipient_email && !recipient_name_norm) || amount == null) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -275,7 +331,7 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
     );
     if (!recQ.rowCount) {
       await client.query("ROLLBACK");
-      return res.status(404).json({ error: "Recipient not found" });
+      return res.status(404).json({ error: recipient_name_norm ? "Recipient not found by name" : "Recipient not found" });
     }
     const rec = recQ.rows[0];
 

@@ -95,9 +95,9 @@
       <h3>Wire Transfer</h3>
       <form>
         <label>Recipient Name</label>
-        <input type="text" name="recipientName" class="transfer-input" required>
-        <label>Recipient Email</label>
-        <input type="email" name="recipient_email" class="transfer-input" required>
+        <input type="text" name="recipientName" class="transfer-input" placeholder="Full name or account name" required>
+        <label>Recipient Email (optional)</label>
+        <input type="email" name="recipient_email" class="transfer-input" placeholder="Only if you know it">
         <label>Account Number</label>
         <input type="text" name="account_number" class="transfer-input" required>
         <label>Routing Number</label>
@@ -114,8 +114,10 @@
     <div id="eftForm" class="transfer-form">
       <h3>EFT Transfer</h3>
       <form>
-        <label>Recipient Email</label>
-        <input type="email" name="recipient_email" class="transfer-input" required>
+        <label>Recipient Name</label>
+        <input type="text" name="recipientName" class="transfer-input" placeholder="Full name or account name" required>
+        <label>Recipient Email (optional)</label>
+        <input type="email" name="recipient_email" class="transfer-input" placeholder="Only if you know it">
         <label>Bank Name</label>
         <input type="text" name="bank_name" class="transfer-input" required>
         <label>Account Number</label>
@@ -134,8 +136,10 @@
     <div id="achForm" class="transfer-form">
       <h3>ACH Transfer</h3>
       <form>
-        <label>Recipient Email</label>
-        <input type="email" name="recipient_email" class="transfer-input" required>
+        <label>Recipient Name</label>
+        <input type="text" name="recipientName" class="transfer-input" placeholder="Full name or account name" required>
+        <label>Recipient Email (optional)</label>
+        <input type="email" name="recipient_email" class="transfer-input" placeholder="Only if you know it">
         <label>Account Number</label>
         <input type="text" name="account_number" class="transfer-input" required>
         <label>Routing Number</label>
@@ -152,8 +156,10 @@
     <div id="btcForm" class="transfer-form">
       <h3>BTC Transfer</h3>
       <form>
-        <label>Recipient Email</label>
-        <input type="email" name="recipient_email" class="transfer-input" required>
+        <label>Recipient Name</label>
+        <input type="text" name="recipientName" class="transfer-input" placeholder="Full name or account name" required>
+        <label>Recipient Email (optional)</label>
+        <input type="email" name="recipient_email" class="transfer-input" placeholder="Only if you know it">
         <label>BTC Address</label>
         <input type="text" name="btc_address" class="transfer-input" required>
         <label>Amount (USD)</label>
@@ -200,15 +206,15 @@ async function handleTransfer(e) {
   messageBox.style.display = "none";
   messageBox.textContent = "";
 
-  if (!formData.amount || !formData.recipient_email) {
-    showError(messageBox, "Please fill in all required fields.");
+  if (!formData.amount || !formData.recipientName) {
+    showError(messageBox, "Please enter recipient name and amount.");
     return;
   }
 
   // Standardized payload (backend will ignore extras if not used)
   const payload = {
     sender_email: user.email,
-    recipient_email: formData.recipient_email,
+    recipient_email: formData.recipient_email || null,
     amount: parseFloat(formData.amount),
     account_number: formData.account_number || null,
     routing_number: formData.routing_number || null,
@@ -233,7 +239,7 @@ async function handleTransfer(e) {
 
     document.getElementById("successModal").style.display = "block";
     document.getElementById("successDetails").innerHTML = `
-      <div class="detail-row"><span>Recipient</span><span>${payload.recipient_email}</span></div>
+      <div class="detail-row"><span>Recipient</span><span>${payload.recipient_fullname || payload.recipient_email || '—'}</span></div>
       <div class="detail-row"><span>Amount</span><span>$${Number(payload.amount).toFixed(2)}</span></div>
       <div class="detail-row"><span>Status</span><span>${tx.status || "completed"}</span></div>
     `;

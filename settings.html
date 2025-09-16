@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Settings · Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="ui.css" />
+  <style>
+    body { background:#0d0f14; color:#eef3f8; font-family: system-ui, Arial, sans-serif; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid #1e2530; }
+    header h1 { font-size:1.05rem; margin:0; letter-spacing:.5px; }
+    a.back-link { color:#7aa8ff; text-decoration:none; font-size:.85rem; }
+    a.back-link:hover { text-decoration:underline; }
+    main.layout { max-width:980px; margin:1rem auto 2.25rem; padding:0 1rem; display:grid; gap:1rem; grid-template-columns: 1.2fr .8fr; }
+    .panel { background:#141a24; border:1px solid #1f2530; border-radius:14px; padding:1.1rem 1.1rem 1.3rem; }
+    .panel h2 { margin:0 0 .85rem; font-size:.9rem; letter-spacing:.5px; text-transform:uppercase; color:#7d8da3; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:.8rem; }
+    .row.full { grid-template-columns: 1fr; }
+    .field { display:flex; flex-direction:column; gap:.35rem; }
+    .field label { font-size:.75rem; color:#8aa0b9; }
+    .field input, .field select { background:#0f141d; border:1px solid #202a39; color:#e8eef6; border-radius:8px; padding:.7rem .8rem; font-size:.85rem; outline:none; }
+    .actions { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem; }
+    .btn { cursor:pointer; font:inherit; border:none; border-radius:8px; padding:.7rem 1rem; background:#1d2733; color:#e9eef5; font-size:.8rem; letter-spacing:.3px; }
+    .btn:hover { background:#233040; }
+    .btn-primary { background:#2663ff; color:#fff; }
+    .btn-primary:hover { background:#1f55dc; }
+    .muted { font-size:.75rem; color:#7a889a; }
+    .switch { display:flex; align-items:center; gap:.6rem; }
+    .switch input { width:1.1rem; height:1.1rem; }
+    .status { font-size:.75rem; color:#9ab0c9; margin-top:.35rem; min-height:1.1rem; }
+    .sep { border-top:1px solid #202a39; margin:1rem 0; }
+    .danger { color:#ff8a8a; }
+    .toast { position:fixed; left:50%; transform:translateX(-50%); bottom:18px; background:#101826; color:#eaf2ff; border:1px solid #223048; padding:.6rem .85rem; border-radius:8px; font-size:.8rem; display:none; z-index:30; }
+    @media (max-width:860px){ main.layout { grid-template-columns: 1fr; } }
+    @media (max-width:520px){
+      .row { grid-template-columns: 1fr; }
+      header { flex-direction:column; align-items:flex-start; }
+      .actions { gap:.5rem; }
+      .btn { flex:1; justify-content:center; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Settings</h1>
+    <nav>
+      <a class="back-link" href="dashboard.html">← Back to Dashboard</a>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <h2>Profile</h2>
+      <div class="row">
+        <div class="field">
+          <label for="fullname">Full name</label>
+          <input id="fullname" type="text" placeholder="Your full name" />
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input id="phone" type="tel" placeholder="+1 555 000 0000" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="accountname">Account name</label>
+          <input id="accountname" type="text" placeholder="Account name" disabled />
+          <div class="muted">Contact support to change account name</div>
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="you@example.com" disabled />
+        </div>
+      </div>
+      <div class="actions">
+        <button id="saveProfileBtn" class="btn btn-primary">Save Profile</button>
+        <button id="logoutBtn" class="btn">Logout</button>
+      </div>
+      <div id="profileStatus" class="status"></div>
+
+      <div class="sep"></div>
+
+      <h2>Security</h2>
+      <div class="row">
+        <div class="field">
+          <label for="newPassword">New password</label>
+          <input id="newPassword" type="password" placeholder="Enter new password" />
+        </div>
+        <div class="field">
+          <label for="confirmPassword">Confirm password</label>
+          <input id="confirmPassword" type="password" placeholder="Confirm new password" />
+        </div>
+      </div>
+      <div class="actions">
+        <button id="changePwBtn" class="btn">Change Password</button>
+      </div>
+      <div id="pwStatus" class="status"></div>
+    </section>
+
+    <aside class="panel">
+      <h2>Preferences</h2>
+      <div class="row full">
+        <div class="field">
+          <label for="theme">Theme</label>
+          <select id="theme">
+            <option value="auto">Auto (system)</option>
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="currency">Currency</label>
+          <select id="currency">
+            <option value="USD">USD — US Dollar</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="GBP">GBP — British Pound</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Notifications</label>
+          <label class="switch"><input id="notifEmail" type="checkbox" /> Email</label>
+          <label class="switch"><input id="notifPush" type="checkbox" /> Push</label>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="savePrefsBtn" class="btn btn-primary">Save Preferences</button>
+      </div>
+      <div id="prefsStatus" class="status"></div>
+
+      <div class="sep"></div>
+      <div class="muted">Version <span id="appVer">1.0.0</span></div>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast">Saved</div>
+
+  <script src="config.js"></script>
+  <script>
+    const qs = (s)=>document.querySelector(s);
+    const toastEl = qs('#toast');
+    const showToast = (msg)=>{ toastEl.textContent=msg; toastEl.style.display='block'; setTimeout(()=>toastEl.style.display='none',1800); };
+
+    const state = { user: null, profile: null, prefs: null };
+
+    function loadStoredUser(){
+      try { state.user = JSON.parse(localStorage.getItem('bs-user')||'null'); } catch { state.user = null; }
+      if(!state.user || !state.user.token){ location.href='login.html'; }
+    }
+
+    function authHeaders(){
+      return { 'Content-Type':'application/json', 'Authorization':'Bearer '+ state.user.token };
+    }
+
+    async function fetchJSON(url, opts={}){
+      const res = await fetch(url, opts);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      return res.json();
+    }
+
+    function fillProfileForm(p){
+      qs('#fullname').value = p.fullname || '';
+      qs('#phone').value = p.phone || '';
+      qs('#accountname').value = p.accountname || '';
+      qs('#email').value = p.email || '';
+    }
+
+    async function loadProfile(){
+      qs('#profileStatus').textContent = 'Loading…';
+      try {
+        const p = await fetchJSON(API_BASE + '/users/me', { headers: authHeaders() });
+        state.profile = p;
+        fillProfileForm(p);
+        // mirror
+        try {
+          const stored = JSON.parse(localStorage.getItem('bs-user')||'{}');
+          stored.fullname = p.fullname;
+          stored.phone = p.phone;
+          stored.accountname = p.accountname;
+          localStorage.setItem('bs-user', JSON.stringify(stored));
+        } catch {}
+        qs('#profileStatus').textContent = 'Profile loaded';
+      } catch(e){
+        qs('#profileStatus').textContent = 'Failed to load profile';
+        console.warn(e);
+      }
+    }
+
+    async function saveProfile(){
+      const body = {
+        fullname: qs('#fullname').value.trim(),
+        phone: qs('#phone').value.trim()
+      };
+      qs('#profileStatus').textContent = 'Saving…';
+      // Try PUT /users/me; if not supported, inform user
+      try {
+        const res = await fetch(API_BASE + '/users/me', { method:'PUT', headers: authHeaders(), body: JSON.stringify(body) });
+        if(res.ok){
+          showToast('Profile updated');
+          await loadProfile();
+          return;
+        }
+        if(res.status === 404 || res.status === 405){
+          qs('#profileStatus').textContent = 'Profile update not available on this server';
+        } else {
+          const txt = await res.text();
+          qs('#profileStatus').textContent = 'Save failed ('+res.status+')';
+          console.warn('Save profile:', res.status, txt);
+        }
+      } catch(err){
+        qs('#profileStatus').textContent = 'Network error';
+      }
+    }
+
+    async function changePassword(){
+      const a = qs('#newPassword').value;
+      const b = qs('#confirmPassword').value;
+      if(!a || a.length < 6){ qs('#pwStatus').textContent='Password too short'; return; }
+      if(a !== b){ qs('#pwStatus').textContent='Passwords do not match'; return; }
+      qs('#pwStatus').textContent = 'Saving…';
+      try {
+        const res = await fetch(API_BASE + '/users/password', {
+          method:'POST', headers: authHeaders(), body: JSON.stringify({ new_password: a })
+        });
+        if(res.ok){
+          qs('#pwStatus').textContent = 'Password changed';
+          qs('#newPassword').value=''; qs('#confirmPassword').value='';
+          showToast('Password changed');
+        } else if (res.status === 404 || res.status === 405){
+          qs('#pwStatus').textContent = 'Password change not available on this server';
+        } else {
+          qs('#pwStatus').textContent = 'Change failed ('+res.status+')';
+        }
+      } catch {
+        qs('#pwStatus').textContent = 'Network error';
+      }
+    }
+
+    function loadPrefs(){
+      try { state.prefs = JSON.parse(localStorage.getItem('bs-prefs')||'{}'); } catch { state.prefs = {}; }
+      qs('#theme').value = state.prefs.theme || 'auto';
+      qs('#currency').value = state.prefs.currency || 'USD';
+      qs('#notifEmail').checked = !!state.prefs.notifEmail;
+      qs('#notifPush').checked = !!state.prefs.notifPush;
+      applyTheme(qs('#theme').value);
+    }
+
+    function savePrefs(){
+      state.prefs = {
+        theme: qs('#theme').value,
+        currency: qs('#currency').value,
+        notifEmail: qs('#notifEmail').checked,
+        notifPush: qs('#notifPush').checked
+      };
+      localStorage.setItem('bs-prefs', JSON.stringify(state.prefs));
+      applyTheme(state.prefs.theme);
+      qs('#prefsStatus').textContent = 'Preferences saved';
+      showToast('Preferences saved');
+    }
+
+    function applyTheme(mode){
+      const cl = document.documentElement.classList;
+      cl.remove('theme-dark','theme-light');
+      if(mode === 'dark') cl.add('theme-dark');
+      if(mode === 'light') cl.add('theme-light');
+    }
+
+    // Events
+    qs('#saveProfileBtn').addEventListener('click', saveProfile);
+    qs('#changePwBtn').addEventListener('click', changePassword);
+    qs('#savePrefsBtn').addEventListener('click', savePrefs);
+    qs('#logoutBtn').addEventListener('click', ()=>{ localStorage.removeItem('bs-user'); location.href='login.html'; });
+
+    // Init
+    loadStoredUser();
+    loadProfile();
+    loadPrefs();
+  </script>
+</body>
+</html>

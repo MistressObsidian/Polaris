@@ -30,9 +30,17 @@
       if (isFile || isLocalhost) {
         // 🖥️ Local dev
         ApiBase = "http://localhost:4000/api";
-      } else {
-        // 🌐 Production → Render backend
+      } else if (origin.includes("shenzhenswift.online")) {
+        // 🌐 Production → Render backend for your domain
         ApiBase = "https://shenzhenswift-online.onrender.com/api";
+      } else {
+        // Default fallback
+        ApiBase = "http://localhost:4000/api";
+      }
+
+      // Only log in non-production
+      if (!origin.includes("shenzhenswift.online")) {
+        console.log("🌐 API_BASE set to:", ApiBase);
       }
     } catch (err) {
       console.warn("⚠️ Config detection failed, fallback to localhost:", err);
@@ -41,5 +49,4 @@
   }
 
   window.API_BASE = ApiBase;
-  console.log("🌐 API_BASE set to:", ApiBase);
 })();

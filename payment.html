@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Payments · Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="ui.css" />
+  <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
+  <style>
+    :root { --bg:#0d0f14; --panel:#141a24; --border:#1f2530; --ink:#eef3f8; --muted:#8aa0b9; --muted2:#7a889a; --pill:#1f2733; --accent:#2663ff; --ok:#10b981; --warn:#f59e0b; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, sans-serif; min-height:100vh; }
+
+    header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid var(--border); position:sticky; top:0; background:rgba(13,15,20,.9); backdrop-filter: blur(10px); z-index:5; }
+    header h1 { font-size:1.05rem; margin:0; letter-spacing:.5px; }
+    a.back-link { color:#7aa8ff; text-decoration:none; font-size:.85rem; }
+    a.back-link:hover { text-decoration:underline; }
+
+    main.layout { max-width:1100px; margin:1rem auto 2rem; padding:0 1rem; display:grid; gap:1rem; grid-template-columns: 1.15fr .85fr; }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:1.1rem 1.1rem 1.25rem; }
+    .panel h2 { margin:0 0 .85rem; font-size:.9rem; letter-spacing:.5px; text-transform:uppercase; color:#7d8da3; }
+
+    .status-bar { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:.6rem; font-size:.72rem; color:#96a6bd; }
+    .pill { background:var(--pill); padding:.35rem .6rem; border-radius:999px; font-size:.7rem; color:#9fb1c9; display:inline-block; }
+
+    .tabs { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .tab { cursor:pointer; border:none; border-radius:10px; padding:.55rem .8rem; background:#1d2733; color:#e9eef5; font-size:.78rem; }
+    .tab.active { background:#2663ff; color:#fff; }
+
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:.85rem; }
+    .row.full { grid-template-columns: 1fr; }
+    .field { display:flex; flex-direction:column; gap:.35rem; }
+    .field label { font-size:.75rem; color:#8aa0b9; }
+    .field input, .field select, .field textarea {
+      background:#0f141d; border:1px solid #202a39; color:#e8eef6; border-radius:8px; padding:.7rem .8rem; font-size:.85rem; outline:none;
+    }
+
+    .actions { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem; }
+    .btn { cursor:pointer; border:none; border-radius:10px; padding:.75rem 1rem; background:#1d2733; color:#e9eef5; font-size:.82rem; }
+    .btn:hover { background:#233040; }
+    .btn-primary { background:#2663ff; color:#fff; }
+    .btn-primary:hover { background:#1f55dc; }
+    .muted { font-size:.75rem; color:#7a889a; }
+    .error { color:#ff8a8a; font-size:.78rem; min-height:1.1rem; }
+
+    .list { border:1px solid var(--border); border-radius:12px; background:#0f141d; max-height:520px; overflow:auto; }
+    .item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px; border-bottom:1px solid var(--border); cursor:pointer; }
+    .item:last-child { border-bottom:none; }
+    .item:hover { background:#121a22; }
+    .item.active { background:#182537; box-shadow: inset 3px 0 0 var(--accent); }
+    .item-left { display:flex; align-items:center; gap:10px; }
+    .item-icon { width:36px; height:36px; display:grid; place-items:center; border-radius:50%; background:#192438; color:#bcd7ff; font-weight:900; }
+    .item-title { font-weight:800; }
+    .item-meta { font-size:.8rem; color:var(--muted); }
+    .amt { font-weight:900; }
+    .amt.neg { color:#ff7b7b; }
+
+    .summary { background:#121a28; border:1px solid #202a39; border-radius:12px; padding:.85rem; display:grid; gap:.35rem; font-size:.82rem; }
+    .summary .rowline { display:flex; justify-content:space-between; gap:.75rem; }
+
+    /* Success Modal */
+    .modal { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:40; }
+    .modal .card { background:#0f141d; border:1px solid #223048; border-radius:14px; width:min(480px,92vw); padding:1rem 1rem 1.15rem; }
+    .modal h3 { margin:0 0 .35rem; font-size:1rem; }
+    .modal .ok { display:flex; align-items:center; gap:.5rem; color:#91f2b4; font-size:.9rem; margin-bottom:.5rem; }
+    .kvs { background:#101826; border:1px solid #223048; border-radius:10px; padding:.75rem; display:grid; gap:.45rem; margin:.6rem 0 .8rem; font-size:.85rem; }
+    .kv { display:flex; justify-content:space-between; gap:.75rem; }
+    .modal .actions { justify-content:flex-end; }
+
+    @media (max-width:880px){ main.layout { grid-template-columns: 1fr; } }
+    @media (max-width:520px){
+      header { flex-direction:column; align-items:flex-start; }
+      .row { grid-template-columns: 1fr; }
+      .btn { flex:1; justify-content:center; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Payments</h1>
+    <nav><a class="back-link" href="dashboard.html">← Back to Dashboard</a></nav>
+  </header>
+
+  <main class="layout">
+    <!-- Left: New Payment -->
+    <section class="panel">
+      <h2>New Payment</h2>
+
+      <div class="status-bar">
+        <span class="pill" id="userPill">Loading…</span>
+        <span class="pill" id="balPill">Available — …</span>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Payment method">
+        <button class="tab active" data-method="billpay" aria-selected="true">Bill Pay</button>
+        <button class="tab" data-method="ach">ACH</button>
+        <button class="tab" data-method="wire">Wire</button>
+      </div>
+
+      <form id="payForm" novalidate>
+        <div class="row">
+          <div class="field">
+            <label for="fromAccount">From account</label>
+            <select id="fromAccount" name="from_account_type">
+              <option value="checking">Checking</option>
+              <option value="savings">Savings</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="scheduleDate">Schedule date</label>
+            <input id="scheduleDate" name="schedule_date" type="date" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="payeeName">Payee name</label>
+            <input id="payeeName" name="payee_name" type="text" placeholder="Company or person" required />
+          </div>
+          <div class="field">
+            <label for="payeeEmail">Payee email (optional)</label>
+            <input id="payeeEmail" name="payee_email" type="email" placeholder="payee@example.com" />
+          </div>
+        </div>
+
+        <!-- Bank details (for ACH/Wire) -->
+        <div id="bankDetails" class="row" style="display:none;">
+          <div class="field">
+            <label for="bankName">Bank name</label>
+            <input id="bankName" name="bank_name" type="text" placeholder="Bank" />
+          </div>
+          <div class="field">
+            <label for="routingNumber">Routing number</label>
+            <input id="routingNumber" name="routing_number" type="text" placeholder="Routing" />
+          </div>
+          <div class="field">
+            <label for="accountNumber">Account number</label>
+            <input id="accountNumber" name="account_number" type="text" placeholder="Account" />
+          </div>
+          <div class="field">
+            <label for="refNumber">Reference (optional)</label>
+            <input id="refNumber" name="reference" type="text" placeholder="Invoice #" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="amount">Amount</label>
+            <input id="amount" name="amount" type="number" min="1" step="0.01" placeholder="0.00" required />
+          </div>
+          <div class="field">
+            <label for="note">Description (optional)</label>
+            <input id="note" name="description" type="text" placeholder="Add a note" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>&nbsp;</label>
+            <div class="summary">
+              <div class="rowline"><span>Method</span><strong id="sumMethod">Bill Pay</strong></div>
+              <div class="rowline"><span>Total</span><strong id="sumTotal">$0.00</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="formError" class="error"></div>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">Submit Payment</button>
+          <button type="button" class="btn" id="cancelBtn">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Right: Recent Payments -->
+    <aside class="panel">
+      <h2>Recent Payments</h2>
+      <div id="payList" class="list"></div>
+      <div id="payEmpty" class="muted" style="display:none; padding:.6rem 0;">No payments found.</div>
+      <div style="margin-top:1rem;">
+        <div class="summary" id="payDetails" style="display:none;">
+          <div class="rowline"><span>Payee</span><strong id="dPayee">—</strong></div>
+          <div class="rowline"><span>Amount</span><strong id="dAmount">—</strong></div>
+          <div class="rowline"><span>Method</span><strong id="dMethod">—</strong></div>
+          <div class="rowline"><span>Status</span><strong id="dStatus">—</strong></div>
+          <div class="rowline"><span>Reference</span><strong id="dRef">—</strong></div>
+          <div class="rowline"><span>Scheduled</span><strong id="dDate">—</strong></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Success Modal -->
+  <div id="successModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="successTitle">
+    <div class="card">
+      <div class="ok">✅ <strong id="successTitle">Payment Scheduled</strong></div>
+      <div class="kvs" id="successDetails"></div>
+      <div class="actions">
+        <button class="btn" id="closeModalBtn">Close</button>
+        <button class="btn btn-primary" id="viewTxBtn">View Transactions</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    let user = null;
+    let currentMethod = 'billpay';
+    const qs = (s)=>document.querySelector(s);
+    const qsa = (s)=>Array.from(document.querySelectorAll(s));
+
+    function fmtAmt(n){ return isFinite(n) ? Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) : '$0.00'; }
+    function setText(id, v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+
+    function loadStoredUser(){
+      try { user = JSON.parse(localStorage.getItem('bs-user')||'null'); } catch { user = null; }
+      if(!user || !user.token){ location.href='login.html'; return; }
+      setText('userPill', user.fullname || user.accountname || '—');
+      updateBalancePill(user);
+      // default schedule date = today
+      try { qs('#scheduleDate').value = new Date().toISOString().slice(0,10); } catch {}
+    }
+    function updateBalancePill(p){
+      const avail = Number(p.checking||0) + Number(p.savings||0);
+      setText('balPill', 'Available — ' + fmtAmt(avail));
+    }
+    function authHeaders(){ return { 'Content-Type':'application/json', 'Authorization':'Bearer '+ (user?.token||'') }; }
+    async function fetchJSON(url, opts={}){
+      const res = await fetch(url, opts);
+      const txt = await res.text();
+      const data = txt ? JSON.parse(txt) : null;
+      if(!res.ok) throw new Error(data?.error || ('HTTP '+res.status));
+      return data;
+    }
+
+    function selectMethod(m){
+      currentMethod = m;
+      qsa('.tab').forEach(t => t.classList.toggle('active', t.dataset.method === m));
+      setText('sumMethod', m.toUpperCase());
+      // Toggle bank detail block
+      const bank = qs('#bankDetails');
+      bank.style.display = (m === 'ach' || m === 'wire') ? 'grid' : 'none';
+    }
+
+    async function handleSubmit(e){
+      e.preventDefault();
+      qs('#formError').textContent = '';
+
+      const fd = new FormData(qs('#payForm'));
+      const payload = {
+        method: currentMethod, // 'billpay' | 'ach' | 'wire'
+        from_account_type: fd.get('from_account_type') || 'checking',
+        schedule_date: fd.get('schedule_date') || null,
+        payee_name: (fd.get('payee_name')||'').trim(),
+        payee_email: (fd.get('payee_email')||'').trim() || null,
+        amount: parseFloat(fd.get('amount')||'0'),
+        description: (fd.get('description')||'').trim() || null,
+        bank_name: fd.get('bank_name') || null,
+        routing_number: fd.get('routing_number') || null,
+        account_number: fd.get('account_number') || null,
+        reference: (fd.get('reference')||'').trim() || null
+      };
+
+      if(!payload.payee_name || !payload.amount || payload.amount <= 0){
+        qs('#formError').textContent = 'Enter payee name and a valid amount.';
+        return;
+      }
+      if((currentMethod === 'ach' || currentMethod === 'wire') &&
+         (!payload.bank_name || !payload.routing_number || !payload.account_number)){
+        qs('#formError').textContent = 'Bank name, routing, and account number are required for ACH/Wire.';
+        return;
+      }
+
+      try{
+        const created = await fetchJSON(API_BASE + '/payments', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        // Success modal
+        const ref = created.reference || created.id || (payload.reference || ('PMT-'+Date.now()));
+        document.getElementById('successDetails').innerHTML = `
+          <div class="kv"><span>Payee</span><strong>${payload.payee_name}</strong></div>
+          <div class="kv"><span>Amount</span><strong>${fmtAmt(payload.amount)}</strong></div>
+          <div class="kv"><span>Method</span><strong>${currentMethod.toUpperCase()}</strong></div>
+          <div class="kv"><span>Reference</span><strong>${ref}</strong></div>
+          <div class="kv"><span>Scheduled</span><strong>${payload.schedule_date || 'Today'}</strong></div>
+        `;
+        qs('#successModal').style.display='flex';
+
+        // Store and refresh list
+        try { localStorage.setItem('last-payment', JSON.stringify(created)); } catch {}
+        qs('#payForm').reset();
+        selectMethod('billpay');
+        updateSummary(0);
+        await loadPayments();
+      } catch(err){
+        qs('#formError').textContent = err.message || 'Payment failed';
+      }
+    }
+
+    function updateSummary(val){ setText('sumTotal', fmtAmt(val)); }
+
+    async function loadPayments(){
+      const list = document.getElementById('payList');
+      const empty = document.getElementById('payEmpty');
+      list.innerHTML = '';
+      empty.style.display = 'none';
+      try{
+        const rows = await fetchJSON(API_BASE + '/payments', { headers: authHeaders() });
+        const items = Array.isArray(rows) ? rows : [];
+        if(!items.length){ empty.style.display='block'; return; }
+        items.slice(0,50).forEach((p, idx)=>{
+          const div = document.createElement('div');
+          div.className = 'item';
+          const amt = Number(p.amount||0);
+          const when = p.created_at ? new Date(p.created_at).toLocaleString() : (p.schedule_date || '');
+          div.innerHTML = `
+            <div class="item-left">
+              <div class="item-icon">💳</div>
+              <div>
+                <div class="item-title">${p.payee_name || 'Payment'}</div>
+                <div class="item-meta">${when}</div>
+              </div>
+            </div>
+            <div class="amt neg">-${fmtAmt(amt)}</div>
+          `;
+          div.addEventListener('click', ()=>{
+            Array.from(list.children).forEach(c => c.classList.remove('active'));
+            div.classList.add('active');
+            renderPaymentDetails(p);
+          });
+          if(idx===0) div.classList.add('active');
+          list.appendChild(div);
+          if(idx===0) renderPaymentDetails(p);
+        });
+      } catch(err){
+        empty.style.display='block';
+        empty.textContent = 'Failed to load payments';
+        console.warn('Load payments:', err);
+      }
+    }
+
+    function renderPaymentDetails(p){
+      const box = qs('#payDetails');
+      box.style.display = 'grid';
+      setText('dPayee', p.payee_name || '—');
+      setText('dAmount', fmtAmt(p.amount||0));
+      setText('dMethod', (p.method||'').toString().toUpperCase() || '—');
+      setText('dStatus', (p.status||'scheduled').toString().toUpperCase());
+      setText('dRef', p.reference || p.id || '—');
+      setText('dDate', p.schedule_date || (p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'));
+    }
+
+    function bindUI(){
+      qsa('.tab').forEach(btn => btn.addEventListener('click', ()=> selectMethod(btn.dataset.method)));
+      qs('#payForm').addEventListener('submit', handleSubmit);
+      qs('#cancelBtn').addEventListener('click', ()=> location.href='dashboard.html');
+      qs('#amount').addEventListener('input', (e)=> updateSummary(parseFloat(e.target.value||'0')));
+      document.getElementById('closeModalBtn').addEventListener('click', ()=> qs('#successModal').style.display='none');
+      document.getElementById('viewTxBtn').addEventListener('click', ()=> location.href='transactions.html');
+    }
+
+    function connectSSE(){
+      if(!user?.id || !user?.token) return;
+      try{
+        const sse = new EventSource(API_BASE.replace(/\/api$/,'') + `/api/stream/user/${user.id}?token=${user.token}`);
+        sse.onmessage = (e)=>{
+          try {
+            const profile = JSON.parse(e.data);
+            if(profile && profile.id){
+              updateBalancePill(profile);
+              user = { ...user, ...profile };
+              localStorage.setItem('bs-user', JSON.stringify(user));
+            }
+          } catch {}
+        };
+        sse.onerror = ()=> sse.close();
+      } catch {}
+    }
+
+    (function init(){
+      loadStoredUser();
+      bindUI();
+      selectMethod('billpay');
+      connectSSE();
+      loadPayments();
+    })();
+  </script>
+</body>
+</html>

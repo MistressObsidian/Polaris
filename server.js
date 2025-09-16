@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Pool } from "pg";
 
@@ -155,12 +155,22 @@ app.get("/favicon.ico", (req, res) => res.status(204).end());
 app.get("/api/users/me", authMiddleware, async (req, res) => {
   try {
     const q = await pool.query(
-      "SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1",
+      "SELECT id, fullname, email, accountname, checking, savings, totalbalance FROM users WHERE id=$1",
       [req.user.sub]
     );
     if (!q.rowCount) return res.status(404).json({ error: "User not found" });
 
-    return res.json(q.rows[0]);
+    const row = q.rows[0];
+    return res.json({
+      id: row.id,
+      fullname: row.fullname,
+      email: row.email,
+      checking: Number(row.checking || 0),
+      savings: Number(row.savings || 0),
+      totalbalance: Number(row.totalbalance || 0), // ← direct from DB
+      credit: 0,
+      investments: 0,
+    });
   } catch (err) {
     console.error("Profile fetch error", err);
     return res.status(500).json({ error: "Server error" });
@@ -209,16 +219,16 @@ app.post("/api/users", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const insert = await pool.query(
-      `INSERT INTO users (fullname, phone, email, password_hash, accountname, baseavailable, totalbalance)
-       VALUES ($1,$2,$3,$4,$5,0,0)
-       RETURNING id, fullname, email, accountname, baseavailable, totalbalance`,
-      [fullname.trim(), phone.trim(), normEmail, passwordHash, accountname.trim()]
-    );
+  `INSERT INTO users (fullname, phone, email, password_hash, accountname, checking, savings)
+   VALUES ($1,$2,$3,$4,$5,0,0)
+   RETURNING id, fullname, email, accountname, checking, savings, totalbalance`,
+  [fullname.trim(), phone.trim(), normEmail, passwordHash, accountname.trim()]
+);
 
-    const user = insert.rows[0];
-    const token = issueToken(user);
+const user = insert.rows[0];
+const token = issueToken(user);
 
-    return res.status(201).json({ ...user, token });
+return res.status(201).json({ ...user, token });
   } catch (err) {
     console.error("Registration error", err);
     return res.status(500).json({ error: "Server error" });
@@ -233,24 +243,27 @@ app.post("/api/login", async (req, res) => {
 
     const normEmail = email.toLowerCase();
     const q = await pool.query(
-      "SELECT id, fullname, email, password_hash, accountname, baseavailable, totalbalance FROM users WHERE email=$1",
-      [normEmail]
-    );
-    if (!q.rowCount) return res.status(401).json({ error: "Invalid credentials" });
+  "SELECT id, fullname, email, password_hash, accountname, checking, savings, totalbalance FROM users WHERE email=$1",
+  [normEmail]
+);
+const user = q.rows[0];
+if (!user) return res.status(401).json({ error: "Invalid email or password" });
 
-    const user = q.rows[0];
-    const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) return res.status(401).json({ error: "Invalid credentials" });
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
 
     const token = issueToken(user);
-
     return res.json({
       id: user.id,
       fullname: user.fullname,
       email: user.email,
       accountname: user.accountname,
-      baseavailable: user.baseavailable,
-      totalbalance: user.totalbalance,
+      checking: Number(user.checking || 0),
+      savings: Number(user.savings || 0),
+      totalbalance: Number(user.totalbalance || 0), // ← direct from DB
       token,
     });
   } catch (err) {
@@ -259,44 +272,83 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+// Update current user's profile (fullname, phone)
+app.put("/api/users/me", authMiddleware, express.json(), async (req, res) => {
+  try {
+    const { fullname, phone } = req.body || {};
+    if (fullname !== undefined && typeof fullname !== "string") {
+      return res.status(400).json({ error: "Invalid fullname" });
+    }
+    if (phone !== undefined && typeof phone !== "string") {
+      return res.status(400).json({ error: "Invalid phone" });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE users
+      SET fullname = COALESCE($1, fullname),
+          phone    = COALESCE($2, phone),
+          updated_at = NOW()
+      WHERE id = $3
+      RETURNING id, email, fullname, phone, checking, savings, credit, investments
+      `,
+      [fullname?.trim() ?? null, phone?.trim() ?? null, req.user.id]
+    );
+
+    if (result.rowCount === 0) return res.status(404).json({ error: "User not found" });
+    res.json(result.rows[0]);
+  } catch (e) {
+    console.error("PUT /api/users/me", e);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// Change password for current user
+app.post("/api/users/password", authMiddleware, express.json(), async (req, res) => {
+  try {
+    const { new_password } = req.body || {};
+    if (typeof new_password !== "string" || new_password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters" });
+    }
+    const hash = await bcrypt.hash(new_password, 10);
+    await pool.query(
+      `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
+      [hash, req.user.id]
+    );
+    res.status(200).json({ ok: true });
+  } catch (e) {
+    console.error("POST /api/users/password", e);
+    res.status(500).json({ error: "Failed to change password" });
+  }
+});
+
 // === TRANSFERS ===
 app.post("/api/transfers", authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
-  let { sender_email, recipient_email, recipient_name, amount, account_number, routing_number, btc_address, method } = req.body || {};
+    let { sender_email, recipient_email, recipient_name, amount, 
+          sender_account_type = "checking", 
+          recipient_account_type = "checking",
+          account_number, routing_number, btc_address, method } = req.body || {};
 
-    // Normalize inputs
     sender_email = (sender_email || req.user?.email || "").toLowerCase().trim();
     recipient_email = (recipient_email || "").toLowerCase().trim();
     const recipient_name_norm = (recipient_name || "").toString().trim().toLowerCase();
 
-    // Allow lookup by recipient_name (prefer accountname, fallback to fullname)
+    // Find recipient by name if email not provided
     if (!recipient_email && recipient_name_norm) {
-      try {
-        const byAccount = await client.query(
-          "SELECT id, email FROM users WHERE lower(accountname)=$1",
-          [recipient_name_norm]
-        );
-        if (byAccount.rowCount) {
-          recipient_email = byAccount.rows[0].email.toLowerCase();
-        } else {
-          const byFullname = await client.query(
-            "SELECT id, email FROM users WHERE lower(fullname)=$1",
-            [recipient_name_norm]
-          );
-          if (byFullname.rowCount) {
-            recipient_email = byFullname.rows[0].email.toLowerCase();
-          }
-        }
-      } catch (e) {
-        // ignore, handled by validation below
+      const byAccount = await client.query(
+        "SELECT email FROM users WHERE lower(accountname)=$1 OR lower(fullname)=$1",
+        [recipient_name_norm]
+      );
+      if (byAccount.rowCount) {
+        recipient_email = byAccount.rows[0].email.toLowerCase();
       }
     }
 
-    if (!sender_email || (!recipient_email && !recipient_name_norm) || amount == null) {
+    if (!sender_email || !recipient_email || amount == null) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-
     if (sender_email === recipient_email) {
       return res.status(400).json({ error: "Cannot transfer to the same account" });
     }
@@ -306,42 +358,42 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Invalid amount" });
     }
 
+    // Validate account types
+    const validAccounts = new Set(["checking", "savings"]);
+    if (!validAccounts.has(sender_account_type) || !validAccounts.has(recipient_account_type)) {
+      return res.status(400).json({ error: "Invalid account type" });
+    }
+
     await client.query("BEGIN");
 
     // Sender
-    const senderQ = await client.query(
-      "SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1",
-      [sender_email]
-    );
+    const senderQ = await client.query("SELECT * FROM users WHERE email=$1", [sender_email]);
     if (!senderQ.rowCount) {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "Sender not found" });
     }
     const sender = senderQ.rows[0];
 
-    if (Number(sender.baseavailable) < amt) {
+    if (Number(sender[sender_account_type]) < amt) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Insufficient funds" });
+      return res.status(400).json({ error: "Insufficient funds in " + sender_account_type });
     }
 
     // Recipient
-    const recQ = await client.query(
-      "SELECT id, email, baseavailable, totalbalance FROM users WHERE email=$1",
-      [recipient_email]
-    );
+    const recQ = await client.query("SELECT * FROM users WHERE email=$1", [recipient_email]);
     if (!recQ.rowCount) {
       await client.query("ROLLBACK");
-      return res.status(404).json({ error: recipient_name_norm ? "Recipient not found by name" : "Recipient not found" });
+      return res.status(404).json({ error: "Recipient not found" });
     }
     const rec = recQ.rows[0];
 
     // Update balances
     await client.query(
-      "UPDATE users SET baseavailable=baseavailable-$1, totalbalance=totalbalance-$1 WHERE id=$2",
+      `UPDATE users SET ${sender_account_type}=${sender_account_type}-$1 WHERE id=$2`,
       [amt, sender.id]
     );
     await client.query(
-      "UPDATE users SET baseavailable=baseavailable+$1, totalbalance=totalbalance+$1 WHERE id=$2",
+      `UPDATE users SET ${recipient_account_type}=${recipient_account_type}+$1 WHERE id=$2`,
       [amt, rec.id]
     );
 
@@ -349,38 +401,28 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
     await client.query(
       `INSERT INTO transactions (user_email, type, amount, description)
        VALUES ($1,'debit',$2,$3)`,
-      [sender.email, amt, `Transfer to ${rec.email}`]
+      [sender.email, amt, `Transfer from ${sender_account_type} to ${rec.accountname || rec.email}`]
     );
     await client.query(
       `INSERT INTO transactions (user_email, type, amount, description)
        VALUES ($1,'credit',$2,$3)`,
-      [rec.email, amt, `Received from ${sender.email}`]
+      [rec.email, amt, `Received in ${recipient_account_type} from ${sender.accountname || sender.email}`]
     );
-
-    // Normalize and validate method
-    const allowedMethods = new Set(["wire","eft","ach","btc","standard"]);
-    let xferMethod = (method || "standard").toString().toLowerCase().trim();
-    if (xferMethod.endsWith("form")) xferMethod = xferMethod.slice(0, -4); // accept wireForm, etc.
-    if (!allowedMethods.has(xferMethod)) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Invalid transfer method" });
-    }
 
     // Record transfer
     const transferInsert = await client.query(
       `INSERT INTO transfers (sender_email, recipient_email, amount, status, account_number, routing_number, btc_address, method)
        VALUES ($1,$2,$3,'completed',$4,$5,$6,$7)
        RETURNING *`,
-      [sender.email, rec.email, amt, account_number || null, routing_number || null, btc_address || null, xferMethod]
+      [sender.email, rec.email, amt, account_number || null, routing_number || null, btc_address || null, method || "standard"]
     );
 
     await client.query("COMMIT");
     res.status(201).json(transferInsert.rows[0]);
   } catch (err) {
     try { await client.query("ROLLBACK"); } catch {}
-    console.error("Transfer error:", err?.message || err, { body: req.body });
-    const msg = process.env.NODE_ENV === "production" ? "Server error" : (err?.message || "Server error");
-    res.status(500).json({ error: msg });
+    console.error("Transfer error:", err, req.body);
+    res.status(500).json({ error: "Server error" });
   } finally {
     client.release();
   }
@@ -389,11 +431,74 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
 // === TRANSACTIONS ===
 app.get("/api/transactions", authMiddleware, async (req, res) => {
   try {
+    // Fetch the user's transactions, most recent first
     const q = await pool.query(
-      "SELECT id, type, amount, description, created_at FROM transactions WHERE user_email=$1 ORDER BY created_at DESC LIMIT 20",
+      `SELECT id, type, amount, description, created_at 
+       FROM transactions 
+       WHERE user_email=$1 
+       ORDER BY created_at DESC 
+       LIMIT 20`,
       [req.user.email]
     );
-    return res.json(q.rows);
+
+    if (!q.rowCount) return res.json([]);
+
+    // Get current balances
+    const userQ = await pool.query(
+      "SELECT checking, savings, totalbalance FROM users WHERE email=$1",
+      [req.user.email]
+    );
+    if (!userQ.rowCount) return res.status(404).json({ error: "User not found" });
+
+    let checkingBal = Number(userQ.rows[0].checking || 0);
+    let savingsBal = Number(userQ.rows[0].savings || 0);
+    let totalBal = Number(userQ.rows[0].totalbalance || 0);
+
+    // Walk through transactions (DESC order) and adjust balances in reverse
+    const transactionsWithBalance = await Promise.all(
+      q.rows.map(async (tx) => {
+        let amt = Number(tx.amount);
+
+        // Look up a prettier description (replace email with account name if possible)
+        let prettyDescription = tx.description;
+        const emailMatch = tx.description.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+)/);
+        if (emailMatch) {
+          const targetEmail = emailMatch[1].toLowerCase();
+          try {
+            const recQ = await pool.query(
+              "SELECT accountname, fullname FROM users WHERE email=$1",
+              [targetEmail]
+            );
+            if (recQ.rowCount) {
+              const rec = recQ.rows[0];
+              const displayName = rec.accountname || rec.fullname || targetEmail;
+              prettyDescription = tx.description.replace(targetEmail, displayName);
+            }
+          } catch (e) {
+            console.warn("Description lookup failed", e);
+          }
+        }
+
+        // Adjust running balances (reverse since sorted DESC)
+        if (tx.type === "credit") {
+          checkingBal -= amt;
+          totalBal -= amt;
+        } else {
+          checkingBal += amt;
+          totalBal += amt;
+        }
+
+        return {
+          ...tx,
+          description: prettyDescription,
+          checking_balance_after: checkingBal.toFixed(2),
+          savings_balance_after: savingsBal.toFixed(2),
+          total_balance_after: totalBal.toFixed(2),
+        };
+      })
+    );
+
+    return res.json(transactionsWithBalance);
   } catch (err) {
     console.error("Transactions error", err);
     return res.status(500).json({ error: "Server error" });
@@ -419,17 +524,23 @@ app.get("/api/stream/user/:id", authMiddleware, async (req, res) => {
   const interval = setInterval(async () => {
     try {
       const q = await pool.query(
-        "SELECT id, fullname, email, accountname, baseavailable, totalbalance FROM users WHERE id=$1",
-        [userId]
-      );
-      if (!q.rowCount) return;
-      const profile = q.rows[0];
-      const data = JSON.stringify(profile);
-      if (data !== lastData) {
-        res.write(`data: ${data}\n\n`);
-        lastData = data;
-      }
-    } catch (err) {
+  "SELECT id, fullname, email, accountname, checking, savings, totalbalance FROM users WHERE id=$1",
+  [userId]
+);
+if (!q.rowCount) return;
+const row = q.rows[0];
+const profile = {
+  id: row.id,
+  fullname: row.fullname,
+  email: row.email,
+  checking: Number(row.checking || 0),
+  savings: Number(row.savings || 0),
+  totalbalance: Number(row.totalbalance || 0), // ← direct from DB
+  credit: 0,
+  investments: 0,
+};
+res.write(`data: ${JSON.stringify(profile)}\n\n`);
+      } catch (err) {
       console.error("SSE query error", err);
     }
   }, 2000);
@@ -438,10 +549,10 @@ app.get("/api/stream/user/:id", authMiddleware, async (req, res) => {
     clearInterval(interval);
     console.log(`❌ SSE client disconnected for user ${userId}`);
   });
-});
 
 // ✅ Only API, no static fallback
 const PORT = Number(process.env.PORT) || 4000;
 app.listen(PORT, () => {
   console.log(`🚀 API server running on http://localhost:${PORT}`);
+});
 });

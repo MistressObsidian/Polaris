@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Accounts · Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="ui.css" />
+  <style>
+    body { background:#0d0f14; color:#f5f7fa; font-family: system-ui, Arial, sans-serif; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1px solid #1f2530; }
+    header h1 { font-size:1.05rem; margin:0; letter-spacing:.5px; }
+    a.back-link { color:#7aa8ff; text-decoration:none; font-size:.85rem; }
+    a.back-link:hover { text-decoration:underline; }
+    .layout { max-width:1100px; margin:1rem auto 2.5rem; padding:0 1rem; }
+    .accounts-grid { display:grid; gap:1rem; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); margin-top:1rem; }
+    .acc-card { background:#141a24; border:1px solid #1f2530; border-radius:12px; padding:1rem 1rem 1.15rem; position:relative; overflow:hidden; }
+    .acc-card h2 { margin:0 0 .35rem; font-size:.85rem; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:#7d8da3; }
+    .acc-balance { font-size:1.45rem; font-weight:600; line-height:1.2; }
+    .acc-sub { font-size:.65rem; text-transform:uppercase; letter-spacing:.5px; color:#5a6778; margin-top:.4rem; }
+    .actions { display:flex; flex-wrap:wrap; gap:.6rem; margin:1.25rem 0 .5rem; }
+    button, .btn { cursor:pointer; font:inherit; border:none; border-radius:8px; padding:.65rem 1rem; background:#1d2733; color:#e9eef5; font-size:.75rem; letter-spacing:.4px; display:inline-flex; align-items:center; gap:.4rem; transition:.2s background; }
+    button:hover, .btn:hover { background:#233040; }
+    .btn-accent { background:#2663ff; color:#fff; }
+    .btn-accent:hover { background:#1e54dd; }
+    .status-bar { font-size:.65rem; color:#77879a; display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; }
+    .status-pill { background:#1f2733; padding:.35rem .6rem; border-radius:999px; font-size:.6rem; letter-spacing:.4px; }
+    .panel { background:#141a24; border:1px solid #1f2530; border-radius:14px; padding:1.1rem 1.1rem 1.3rem; margin-top:1.35rem; }
+    .panel h3 { margin:0 0 .85rem; font-size:.85rem; letter-spacing:.5px; text-transform:uppercase; color:#7d8da3; }
+    .tx-list { list-style:none; margin:0; padding:0; max-height:300px; overflow:auto; border:1px solid #1f2530; border-radius:10px; }
+    .tx-item { padding:.65rem .85rem; border-bottom:1px solid #1f2530; display:flex; justify-content:space-between; gap:.75rem; font-size:.72rem; cursor:pointer; }
+    .tx-item:last-child { border-bottom:none; }
+    .tx-item:hover { background:#192231; }
+    .tx-item.active { background:#203044; }
+    .tx-amt.debit { color:#ff6b6b; }
+    .tx-amt.credit { color:#57d987; }
+    .empty { font-size:.7rem; color:#5e6b7b; padding:.75rem 0; }
+    .fade-in { animation:fade .35s ease; }
+    @keyframes fade { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:translateY(0);} }
+    @media (max-width:650px){
+      .accounts-grid { grid-template-columns:1fr 1fr; }
+    }
+    @media (max-width:520px){
+      .accounts-grid { grid-template-columns:1fr; }
+      header { flex-direction:column; align-items:flex-start; gap:.6rem; }
+      .actions { gap:.5rem; }
+      button, .btn { flex:1; justify-content:center; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Accounts Overview</h1>
+    <nav>
+      <a href="dashboard.html" class="back-link">← Back to Dashboard</a>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <div class="status-bar" id="statusBar">
+      <span class="status-pill" id="userNamePill">Loading profile…</span>
+      <span class="status-pill" id="lastSyncPill">Sync — …</span>
+    </div>
+
+    <div class="actions">
+      <button id="refreshBtn" class="btn-accent">Refresh</button>
+      <button id="viewTransfersBtn">Go To Transfers</button>
+      <button id="logoutBtn">Logout</button>
+    </div>
+
+    <section class="accounts-grid" id="accountsGrid">
+      <!-- Cards injected -->
+    </section>
+
+    <section class="panel fade-in">
+      <h3>Recent Transactions</h3>
+      <ul class="tx-list" id="txList"></ul>
+      <div id="txEmpty" class="empty" style="display:none;">No recent transactions.</div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script>
+    const state = {
+      profile: null,
+      transactions: [],
+      user: null,
+      sse: null
+    };
+
+    const grid = document.getElementById('accountsGrid');
+    const txList = document.getElementById('txList');
+    const txEmpty = document.getElementById('txEmpty');
+    const userNamePill = document.getElementById('userNamePill');
+    const lastSyncPill = document.getElementById('lastSyncPill');
+
+    function fmtAmt(v){ return typeof v === 'number' ? v.toLocaleString(undefined,{style:'currency',currency:'USD'}) : '—'; }
+    function nowStamp(){ return new Date().toLocaleTimeString(); }
+
+    function loadStoredUser(){
+      try {
+        state.user = JSON.parse(localStorage.getItem('bs-user')||'null');
+      } catch { state.user = null; }
+      if(!state.user || !state.user.token){
+        location.href = 'login.html';
+      }
+    }
+
+    function authHeaders(){
+      return {
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+ state.user.token
+      };
+    }
+
+    async function fetchJSON(url, opts={}){
+      const res = await fetch(url, opts);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      return res.json();
+    }
+
+    function renderAccounts(){
+      grid.innerHTML = '';
+      if(!state.profile) return;
+      const { checking=0, savings=0, credit=0, investments=0 } = state.profile;
+      const defs = [
+        { key:'checking', label:'Checking', value:checking },
+        { key:'savings', label:'Savings', value:savings },
+        { key:'credit', label:'Credit', value:credit },
+        { key:'investments', label:'Investments', value:investments }
+      ];
+      defs.forEach(acc => {
+        const div = document.createElement('div');
+        div.className = 'acc-card fade-in';
+        div.innerHTML = `
+          <h2>${acc.label}</h2>
+          <div class="acc-balance">${fmtAmt(acc.value)}</div>
+          <div class="acc-sub">Updated ${nowStamp()}</div>
+        `;
+        grid.appendChild(div);
+      });
+    }
+
+    function renderTransactions(){
+      txList.innerHTML = '';
+      if(!state.transactions.length){
+        txEmpty.style.display = 'block';
+        return;
+      }
+      txEmpty.style.display = 'none';
+      state.transactions.slice(0,50).forEach(tx=>{
+        const li = document.createElement('li');
+        li.className = 'tx-item';
+        const amtCls = tx.type === 'debit' ? 'debit' : 'credit';
+        li.innerHTML = `
+          <span>${tx.description || tx.type}</span>
+          <span class="tx-amt ${amtCls}">${fmtAmt(tx.amount)}</span>
+        `;
+        li.addEventListener('click', ()=>{
+          // Store selection for transactions page receipt
+            localStorage.setItem('last-transfer', JSON.stringify({
+              id: tx.id,
+              amount: tx.amount,
+              type: tx.type,
+              description: tx.description,
+              sender_email: tx.sender_email,
+              recipient_email: tx.recipient_email,
+              sender_fullname: tx.sender_fullname,
+              recipient_fullname: tx.recipient_fullname,
+              status: tx.status || 'completed',
+              created_at: tx.created_at
+            }));
+            location.href = 'transactions.html';
+        });
+        txList.appendChild(li);
+      });
+    }
+
+    function applyProfile(p){
+      state.profile = p;
+      userNamePill.textContent = p.fullname || '—';
+      lastSyncPill.textContent = 'Sync — ' + nowStamp();
+      // Mirror into localStorage bs-user for cross tabs
+      try {
+        const stored = JSON.parse(localStorage.getItem('bs-user')||'{}');
+        stored.fullname = p.fullname;
+        stored.checking = p.checking;
+        stored.savings = p.savings;
+        stored.credit = p.credit;
+        stored.investments = p.investments;
+        localStorage.setItem('bs-user', JSON.stringify(stored));
+      } catch {}
+      renderAccounts();
+    }
+
+    async function loadProfile(){
+      try {
+        const data = await fetchJSON(API_BASE + '/users/me', { headers: authHeaders() });
+        applyProfile(data);
+      } catch(e){
+        console.warn('Profile load failed', e);
+      }
+    }
+
+    async function loadTransactions(){
+      try {
+        const data = await fetchJSON(API_BASE + '/transactions', { headers: authHeaders() });
+        state.transactions = data;
+        renderTransactions();
+      } catch(e){
+        console.warn('Transactions load failed', e);
+      }
+    }
+
+    function connectSSE(){
+      if(!state.user || !state.user.id || !state.user.token) return;
+      try {
+        if(state.sse) state.sse.close();
+        state.sse = new EventSource(API_BASE.replace(/\/api$/,'') + `/api/stream/user/${state.user.id}?token=${state.user.token}`);
+        state.sse.onmessage = (ev) => {
+          try {
+            const p = JSON.parse(ev.data);
+            if(p && p.id) applyProfile(p);
+          } catch {}
+        };
+        state.sse.onerror = () => {
+          state.sse.close();
+          setTimeout(connectSSE, 8000);
+        };
+      } catch(e){
+        console.warn('SSE connect failed', e);
+      }
+    }
+
+    // Event handlers
+    document.getElementById('refreshBtn').addEventListener('click', ()=>{
+      loadProfile();
+      loadTransactions();
+    });
+    document.getElementById('viewTransfersBtn').addEventListener('click', ()=> location.href='transfer.html');
+    document.getElementById('logoutBtn').addEventListener('click', ()=>{
+      localStorage.removeItem('bs-user');
+      location.href='login.html';
+    });
+
+    // Cross-tab sync
+    window.addEventListener('storage', (e)=>{
+      if(e.key === 'bs-user' && e.newValue){
+        try {
+          const u = JSON.parse(e.newValue);
+          if(u.checking !== state.profile?.checking) loadProfile();
+        } catch {}
+      }
+    });
+
+    // Init
+    loadStoredUser();
+    loadProfile();
+    loadTransactions();
+    connectSSE();
+    setInterval(loadTransactions, 60000); // Light polling for tx list
+  </script>
+</body>
+</html>

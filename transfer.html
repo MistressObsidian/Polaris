@@ -93,13 +93,7 @@
               <option value="savings">Savings</option>
             </select>
           </div>
-          <div class="field">
-            <label for="toAccount">Recipient account</label>
-            <select id="toAccount" name="recipient_account_type">
-              <option value="checking">Checking</option>
-              <option value="savings">Savings</option>
-            </select>
-          </div>
+          <!-- Removed recipient account option per request -->
         </div>
 
         <div class="row">
@@ -239,7 +233,7 @@
         recipient_name: (fd.get('recipientName')||'').trim() || null,
         recipient_email: (fd.get('recipient_email')||'').trim() || null,
         sender_account_type: fd.get('sender_account_type') || 'checking',
-        recipient_account_type: fd.get('recipient_account_type') || 'checking',
+        recipient_account_type: 'checking',
         bank_name: fd.get('bank_name') || null,
         routing_number: fd.get('routing_number') || null,
         account_number: fd.get('account_number') || null,

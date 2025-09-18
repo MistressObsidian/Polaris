@@ -240,9 +240,10 @@
       const amt = Number(tx.amount) || 0;
       const fees = amt * 0.235;
 
-      // Sender/receiver relative to current user
-      const isSender = ((tx.sender_email || '').toLowerCase() === currentEmail);
-      const isReceiver = ((tx.recipient_email || '').toLowerCase() === currentEmail);
+  // Sender/receiver relative to current user (fallback to tx.type when emails are absent)
+  const txType = (tx.type || '').toLowerCase();
+  const isSender = ((tx.sender_email || '').toLowerCase() === currentEmail) || txType === 'debit';
+  const isReceiver = ((tx.recipient_email || '').toLowerCase() === currentEmail) || txType === 'credit';
 
       // Status visuals
       let statusText = '';
@@ -276,24 +277,49 @@
       // Amount
       document.getElementById("amountValue").textContent = `$${amt.toFixed(2)}`;
 
-      // Names (account name > full/name > lookup by email), never show raw email
-      try{
-        const [fromName, toName] = await Promise.all([
-          lookupName(tx.sender_email, user.token),
-          lookupName(tx.recipient_email, user.token)
-        ]);
-        const fromDisplay = (tx.sender_account_name || tx.sender_fullname || tx.sender_name || fromName || '—');
-        const toDisplay = (tx.recipient_account_name || tx.recipient_fullname || tx.recipient_name || toName || '—');
-        document.getElementById("summaryText").textContent = `From ${fromDisplay} to ${toDisplay}`;
-        document.getElementById("fromValue").textContent = fromDisplay;
-        document.getElementById("toValue").textContent = toDisplay;
-      } catch {
-        const fromDisplay = (tx.sender_account_name || tx.sender_fullname || tx.sender_name || '—');
-        const toDisplay = (tx.recipient_account_name || tx.recipient_fullname || tx.recipient_name || '—');
-        document.getElementById("summaryText").textContent = `From ${fromDisplay} to ${toDisplay}`;
-        document.getElementById("fromValue").textContent = fromDisplay;
-        document.getElementById("toValue").textContent = toDisplay;
+      // Names: prefer explicit fields; fall back to user + description parsing; finally use lookup by email.
+      const extractAfter = (desc, marker) => {
+        if (!desc) return null;
+        const d = String(desc);
+        const idx = d.toLowerCase().lastIndexOf(marker);
+        if (idx === -1) return null;
+        return d.slice(idx + marker.length).trim();
+      };
+
+      let fromDisplay = (tx.sender_account_name || tx.sender_fullname || tx.sender_name) || null;
+      let toDisplay = (tx.recipient_account_name || tx.recipient_fullname || tx.recipient_name) || null;
+
+      // Derive from current user context and description patterns when missing
+      const desc = tx.description || '';
+      if (!fromDisplay || !toDisplay){
+        if (txType === 'debit') {
+          fromDisplay = fromDisplay || user.accountname || user.fullname || fromDisplay;
+          toDisplay = toDisplay || extractAfter(desc, ' to ');
+        } else if (txType === 'credit') {
+          toDisplay = toDisplay || user.accountname || user.fullname || toDisplay;
+          fromDisplay = fromDisplay || extractAfter(desc, ' from ');
+        }
       }
+
+      // As a last resort, try to resolve by email lookup (if emails exist and still missing)
+      if ((!fromDisplay && tx.sender_email) || (!toDisplay && tx.recipient_email)){
+        try{
+          const [fromName, toName] = await Promise.all([
+            fromDisplay ? Promise.resolve(null) : lookupName(tx.sender_email, user.token),
+            toDisplay ? Promise.resolve(null) : lookupName(tx.recipient_email, user.token)
+          ]);
+          fromDisplay = fromDisplay || fromName;
+          toDisplay = toDisplay || toName;
+        } catch {}
+      }
+
+      // Final fallbacks
+      fromDisplay = fromDisplay || '—';
+      toDisplay = toDisplay || '—';
+
+      document.getElementById("summaryText").textContent = `From ${fromDisplay} to ${toDisplay}`;
+      document.getElementById("fromValue").textContent = fromDisplay;
+      document.getElementById("toValue").textContent = toDisplay;
 
       // Description with status context
       const descStatus = isSender ? "Transfer Completed" : (isReceiver ? "Transfer Pending (Fee Required)" : "Transfer In Review");

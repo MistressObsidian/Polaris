@@ -53,6 +53,14 @@ async function ensureSchema() {
     -- Ensure method column exists for tracking transfer method
     ALTER TABLE transfers
       ADD COLUMN IF NOT EXISTS method TEXT NOT NULL DEFAULT 'standard';
+
+    -- Bring users schema in sync with app fields used elsewhere
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS checking NUMERIC DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS savings NUMERIC DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS credit NUMERIC DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS investments NUMERIC DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
   `);
 }
 ensureSchema().catch((e) => console.error("Schema init error", e));
@@ -292,7 +300,7 @@ app.put("/api/users/me", authMiddleware, express.json(), async (req, res) => {
       WHERE id = $3
       RETURNING id, email, fullname, phone, checking, savings, credit, investments
       `,
-      [fullname?.trim() ?? null, phone?.trim() ?? null, req.user.id]
+      [fullname?.trim() ?? null, phone?.trim() ?? null, req.user.sub]
     );
 
     if (result.rowCount === 0) return res.status(404).json({ error: "User not found" });
@@ -549,10 +557,10 @@ res.write(`data: ${JSON.stringify(profile)}\n\n`);
     clearInterval(interval);
     console.log(`❌ SSE client disconnected for user ${userId}`);
   });
+});
 
 // ✅ Only API, no static fallback
 const PORT = Number(process.env.PORT) || 4000;
 app.listen(PORT, () => {
   console.log(`🚀 API server running on http://localhost:${PORT}`);
-});
 });

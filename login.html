@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Login • Bank Swift</title>
   <link rel="stylesheet" href="ui.css" />
   <script src="config.js"></script>
@@ -14,7 +14,7 @@
   <div class="hero-background"></div>
   <div class="particles" id="particles"></div>
   <main class="auth-wrapper">
-  <a href="index.html" class="btn-shared btn-outline" style="position:absolute;top:18px;left:18px;z-index:100;" aria-label="Go to home">← Go Back</a>
+  <a href="index.html" class="btn-shared btn-outline safe-fixed-top-left" aria-label="Go to home">← Go Back</a>
     <section class="auth-card" aria-labelledby="loginTitle">
       <div class="auth-head">
         <div class="auth-logo" aria-hidden="true">
@@ -119,14 +119,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const data = text ? JSON.parse(text) : {};
     if (!res.ok) throw new Error(data?.error || `Login failed (${res.status})`);
 
-    // Save user with token
+    // Save user with token (match backend fields)
     const userObj = {
       id: data.id,
       fullname: data.fullname,
       email: data.email,
       accountname: data.accountname,
-      baseavailable: data.baseavailable,
-      totalbalance: data.totalbalance,
+      checking: data.checking ?? 0,
+      savings: data.savings ?? 0,
+      totalbalance: data.totalbalance ?? 0,
       token: data.token,
       isAuthenticated: true,
       ts: Date.now()

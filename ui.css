@@ -3,8 +3,8 @@
 	========================================================== */
 *,*::before,*::after { box-sizing:border-box; }
 html,body { height:100%; }
-html { -webkit-text-size-adjust:100%; }
-body { margin:0; font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Fira Sans','Droid Sans','Helvetica Neue',Arial,sans-serif; line-height:1.4; color:#dbe2e9; background:radial-gradient(at 30% 20%,#111a28 0%,#0a1017 60%) fixed; -webkit-font-smoothing:antialiased; overflow-y:auto; overflow-x:hidden; }
+html { -webkit-text-size-adjust:100%; height:-webkit-fill-available; }
+body { margin:0; font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Fira Sans','Droid Sans','Helvetica Neue',Arial,sans-serif; line-height:1.4; color:#dbe2e9; background:radial-gradient(at 30% 20%,#111a28 0%,#0a1017 60%) fixed; -webkit-font-smoothing:antialiased; overflow-y:auto; overflow-x:hidden; min-height:100dvh; min-height:-webkit-fill-available; -webkit-tap-highlight-color:transparent; touch-action:manipulation; overscroll-behavior-y: contain; scrollbar-gutter: stable both-edges; }
 
 /* Media: responsive images/videos */
 img,svg,video,canvas { max-width:100%; height:auto; }
@@ -24,7 +24,10 @@ img,svg,video,canvas { max-width:100%; height:auto; }
 .vh-compact .btn-full{padding:.68rem .8rem .62rem;font-size:.72rem}
 .vh-compact .auth-alt{font-size:.62rem}
 
-:root { --clr-bg-dark:#0d1117; --clr-surface:rgba(255,255,255,0.06); --clr-surface-alt:rgba(255,255,255,0.10); --clr-border:rgba(255,255,255,0.10); --clr-border-focus:#585fc8; --clr-accent:#585fc8; --clr-accent-grad:linear-gradient(90deg,#585fc8,#7061cd 55%,#585fc8); --clr-danger:#ef4444; --radius-xs:4px; --radius-sm:6px; --radius-md:12px; --radius-lg:18px; --shadow-sm:0 2px 4px -1px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.25); --shadow-md:0 4px 18px -2px rgba(0,0,0,.55),0 2px 6px -1px rgba(0,0,0,.35); --trans-fast:.18s cubic-bezier(.4,0,.2,1); --max-auth-width:440px; --focus-ring:0 0 0 2px rgba(255,255,255,.75),0 0 0 4px var(--clr-accent); }
+:root { --clr-bg-dark:#0d1117; --clr-surface:rgba(255,255,255,0.06); --clr-surface-alt:rgba(255,255,255,0.10); --clr-border:rgba(255,255,255,0.10); --clr-border-focus:#585fc8; --clr-accent:#585fc8; --clr-accent-grad:linear-gradient(90deg,#585fc8,#7061cd 55%,#585fc8); --clr-danger:#ef4444; --radius-xs:4px; --radius-sm:6px; --radius-md:12px; --radius-lg:18px; --shadow-sm:0 2px 4px -1px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.25); --shadow-md:0 4px 18px -2px rgba(0,0,0,.55),0 2px 6px -1px rgba(0,0,0,.35); --trans-fast:.18s cubic-bezier(.4,0,.2,1); --max-auth-width:440px; --focus-ring:0 0 0 2px rgba(255,255,255,.75),0 0 0 4px var(--clr-accent);
+	/* Safe-area insets for iOS */
+	--safe-top: env(safe-area-inset-top); --safe-right: env(safe-area-inset-right); --safe-bottom: env(safe-area-inset-bottom); --safe-left: env(safe-area-inset-left);
+}
 
 .hero-background::before,.hero-background::after{content:"";position:absolute;inset:0}
 .hero-background{position:fixed;inset:0;z-index:-3;background:radial-gradient(ellipse at 20% 25%,rgba(99,102,241,.16) 0%,transparent 48%),radial-gradient(circle at 82% 72%,rgba(139,92,246,.14) 0%,transparent 52%),radial-gradient(circle at 50% 50%,rgba(14,165,233,.08) 0%,transparent 58%);filter:blur(0) saturate(105%)}
@@ -78,8 +81,9 @@ a:focus-visible,button:focus-visible,.pw-toggle:focus-visible,.input-base:focus-
 @media (max-width: 420px){
 	.auth-title{font-size:1.1rem}
 	.auth-card{padding:0.9rem}
-	.input-base{font-size:.8rem}
-	.btn-full{font-size:.74rem}
+	/* Prevent iOS zoom on focus: keep >=16px */
+	.input-base{font-size:16px}
+	.btn-full{font-size:15px}
 }
 /* Light theme removed: single dark theme retained */
 ::-webkit-scrollbar{width:0;height:0}
@@ -105,6 +109,25 @@ a:focus-visible,button:focus-visible,.pw-toggle:focus-visible,.input-base:focus-
 /* Theme toggle styles removed (single theme) */
 /* Light & dim theme variant rules removed */
 .alert-auth { min-height:1.1rem; font-size:.78rem; font-weight:600; letter-spacing:.35px; color:var(--clr-danger); text-align:center; }
+
+/* Global safe-area helpers for headers/footers/sidebars across app pages */
+header, .app-header { padding-top: calc(1rem + var(--safe-top)) !important; }
+footer, .app-footer { padding-bottom: max(1rem, var(--safe-bottom)) !important; }
+.mobile-menu-toggle { top: calc(18px + var(--safe-top)) !important; }
+.sidebar { padding-top: calc(1.2rem + var(--safe-top)) !important; }
+
+/* Utility: absolute top-left button respecting safe areas */
+.safe-fixed-top-left { position:absolute; top: calc(18px + var(--safe-top)); left: calc(18px + var(--safe-left)); z-index:100; }
+
+/* Form controls base on small screens to avoid iOS zoom */
+@media (max-width: 520px){
+	input, select, textarea { font-size:16px; }
+}
+
+/* Improve tap areas on touch */
+@media (pointer: coarse){
+	.btn-full, .btn-outline, button, .pw-toggle { min-height:44px; }
+}
 
 
 

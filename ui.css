@@ -130,4 +130,59 @@ footer, .app-footer { padding-bottom: max(1rem, var(--safe-bottom)) !important; 
 }
 
 
+/* ==========================================================
+	 Compact mobile sizing across app pages
+	 Applies on small screens to reduce box/form sizes consistently
+	 ========================================================== */
+@media (max-width: 520px){
+	/* Layout containers */
+	header, .app-header, .appbar { padding: .75rem .9rem !important; }
+	header h1 { font-size: .95rem !important; }
+
+	/* Panels/cards */
+	.panel, .chart-card, .hero, .summary, .detail, .tx-list { 
+		padding: .75rem .8rem .9rem !important; 
+		border-radius: 10px !important; 
+	}
+
+	/* Pills and small chips */
+	.pill, .status-pill { padding: .28rem .5rem !important; font-size: .65rem !important; border-radius: 999px !important; }
+
+	/* Grids/gaps */
+	.grid, .accounts-grid, .panels-2, .hero-stats, .row { gap: .6rem !important; }
+
+	/* Form fields */
+	.field { gap: .3rem !important; }
+	.field label { font-size: .68rem !important; letter-spacing: .6px !important; }
+	.field input, .field select, .field textarea { 
+		padding: .6rem .7rem !important; 
+		font-size: 16px !important; /* keep >=16px to avoid iOS zoom */
+		border-radius: 6px !important;
+	}
+
+	/* Tabs and buttons */
+	.tab { padding: .45rem .65rem !important; font-size: .75rem !important; border-radius: 8px !important; }
+	.btn, .btn-primary, .btn-outline, .btn-full { 
+		padding: .65rem .85rem !important; 
+		font-size: 15px !important; 
+		border-radius: 8px !important; 
+	}
+
+	/* Tables */
+	.transactions th, .transactions td { padding: 10px !important; }
+
+	/* Icons and visual elements */
+	.tx-icon { width:30px !important; height:30px !important; }
+	.amount-line .value { font-size: 1.3rem !important; }
+}
+
+@media (max-width: 380px){
+	header h1 { font-size: .9rem !important; }
+	.btn, .btn-primary, .btn-outline, .btn-full { font-size: 14px !important; padding: .6rem .75rem !important; }
+	.tab { font-size: .72rem !important; padding: .4rem .6rem !important; }
+	.field input, .field select, .field textarea { padding: .55rem .65rem !important; }
+	.pill, .status-pill { font-size: .62rem !important; padding: .25rem .45rem !important; }
+}
+
+
 

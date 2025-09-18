@@ -15,7 +15,7 @@
     .accounts-grid { display:grid; gap:1rem; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); margin-top:1rem; }
     .acc-card { background:#141a24; border:1px solid #1f2530; border-radius:12px; padding:1rem 1rem 1.15rem; position:relative; overflow:hidden; }
     .acc-card h2 { margin:0 0 .35rem; font-size:.85rem; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:#7d8da3; }
-    .acc-balance { font-size:1.45rem; font-weight:600; line-height:1.2; }
+    .acc-balance { font-size:1.45rem; font-weight:600; line-height:1.2; font-variant-numeric: tabular-nums; }
     .acc-sub { font-size:.65rem; text-transform:uppercase; letter-spacing:.5px; color:#5a6778; margin-top:.4rem; }
     .actions { display:flex; flex-wrap:wrap; gap:.6rem; margin:1.25rem 0 .5rem; }
     button, .btn { cursor:pointer; font:inherit; border:none; border-radius:8px; padding:.65rem 1rem; background:#1d2733; color:#e9eef5; font-size:.75rem; letter-spacing:.4px; display:inline-flex; align-items:center; gap:.4rem; transition:.2s background; }
@@ -36,6 +36,9 @@
     .empty { font-size:.7rem; color:#5e6b7b; padding:.75rem 0; }
     .fade-in { animation:fade .35s ease; }
     @keyframes fade { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:translateY(0);} }
+    @media (prefers-reduced-motion: reduce){
+      .fade-in { animation: none !important; }
+    }
     @media (max-width:650px){
       .accounts-grid { grid-template-columns:1fr 1fr; }
     }
@@ -84,7 +87,8 @@
       profile: null,
       transactions: [],
       user: null,
-      sse: null
+      sse: null,
+      _accountsRendered: false
     };
 
     const grid = document.getElementById('accountsGrid');
@@ -119,7 +123,6 @@
     }
 
     function renderAccounts(){
-      grid.innerHTML = '';
       if(!state.profile) return;
       const { checking=0, savings=0, credit=0, investments=0 } = state.profile;
       const defs = [
@@ -128,15 +131,35 @@
         { key:'credit', label:'Credit', value:credit },
         { key:'investments', label:'Investments', value:investments }
       ];
+
+      const existing = grid.querySelectorAll('.acc-card');
+      const needBuild = existing.length !== defs.length || !state._accountsRendered;
+      if(needBuild){
+        grid.innerHTML = '';
+        defs.forEach(acc => {
+          const div = document.createElement('div');
+          div.className = 'acc-card' + (state._accountsRendered ? '' : ' fade-in');
+          div.dataset.key = acc.key;
+          div.innerHTML = `
+            <h2>${acc.label}</h2>
+            <div class="acc-balance" data-role="balance">${fmtAmt(acc.value)}</div>
+            <div class="acc-sub" data-role="sub">Updated ${nowStamp()}</div>
+          `;
+          grid.appendChild(div);
+        });
+        state._accountsRendered = true;
+        return;
+      }
+
+      // Update in place without rebuilding to avoid flicker
       defs.forEach(acc => {
-        const div = document.createElement('div');
-        div.className = 'acc-card fade-in';
-        div.innerHTML = `
-          <h2>${acc.label}</h2>
-          <div class="acc-balance">${fmtAmt(acc.value)}</div>
-          <div class="acc-sub">Updated ${nowStamp()}</div>
-        `;
-        grid.appendChild(div);
+        const card = grid.querySelector(`.acc-card[data-key="${acc.key}"]`);
+        if(card){
+          const balEl = card.querySelector('[data-role="balance"]');
+          const subEl = card.querySelector('[data-role="sub"]');
+          if(balEl) balEl.textContent = fmtAmt(acc.value);
+          if(subEl) subEl.textContent = 'Updated ' + nowStamp();
+        }
       });
     }
 
@@ -175,7 +198,13 @@
       });
     }
 
+    function balancesChanged(a,b){
+      const keys = ['checking','savings','credit','investments','totalbalance'];
+      return keys.some(k => Number(a?.[k] ?? 0) !== Number(b?.[k] ?? 0));
+    }
+
     function applyProfile(p){
+      const had = state.profile;
       state.profile = p;
       userNamePill.textContent = p.fullname || '—';
       lastSyncPill.textContent = 'Sync — ' + nowStamp();
@@ -189,7 +218,13 @@
         stored.investments = p.investments;
         localStorage.setItem('bs-user', JSON.stringify(stored));
       } catch {}
-      renderAccounts();
+      if(!had || balancesChanged(had, p)){
+        renderAccounts();
+      }
+    }
+
+    function debounce(fn, wait){
+      let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), wait); };
     }
 
     async function loadProfile(){
@@ -211,6 +246,8 @@
       }
     }
 
+    const scheduleApplyProfile = debounce((p)=>applyProfile(p), 1200);
+
     function connectSSE(){
       if(!state.user || !state.user.id || !state.user.token) return;
       try {
@@ -219,7 +256,7 @@
         state.sse.onmessage = (ev) => {
           try {
             const p = JSON.parse(ev.data);
-            if(p && p.id) applyProfile(p);
+            if(p && p.id) scheduleApplyProfile(p);
           } catch {}
         };
         state.sse.onerror = () => {

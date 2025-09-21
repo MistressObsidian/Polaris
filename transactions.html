@@ -136,8 +136,10 @@
   </main>
 
   <script src="config.js"></script>
+  <script src="common.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+      if (window.Notifications) window.Notifications.init();
       try {
         const user = JSON.parse(localStorage.getItem("bs-user"));
         if (!user || !user.token) { window.location.href = "login.html"; return; }

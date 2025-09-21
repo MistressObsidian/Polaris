@@ -6,6 +6,7 @@
   <title>Dashboard • Bank Swift</title>
   <link rel="stylesheet" href="ui.css" />
   <script src="config.js"></script>
+  <script src="common.js"></script>
   <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -187,6 +188,7 @@
 let user = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
+  if (window.Notifications) window.Notifications.init();
   user = JSON.parse(localStorage.getItem("bs-user") || "null");
   if (!user || !user.token) { window.location.href = "login.html"; return; }
 

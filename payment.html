@@ -203,6 +203,7 @@
   </div>
 
   <script src="config.js"></script>
+  <script src="common.js"></script>
   <script>
     let user = null;
     let currentMethod = 'billpay';
@@ -381,6 +382,7 @@
     }
 
     (function init(){
+      if (window.Notifications) window.Notifications.init();
       loadStoredUser();
       bindUI();
       selectMethod('billpay');

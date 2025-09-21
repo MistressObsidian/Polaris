@@ -186,6 +186,7 @@
   </div>
 
   <script src="config.js"></script>
+  <script src="common.js"></script>
   <script>
     let user = null;
     let currentMethod = 'wire';
@@ -327,6 +328,7 @@
 
     // Init
     (function init(){
+      if (window.Notifications) window.Notifications.init();
       loadStoredUser();
       bindUI();
       selectMethod('wire');

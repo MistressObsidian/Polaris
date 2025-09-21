@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Pool } from "pg";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 
@@ -61,6 +62,19 @@ async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS credit NUMERIC DEFAULT 0,
       ADD COLUMN IF NOT EXISTS investments NUMERIC DEFAULT 0,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+
+    -- Notifications for user activities
+    CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      user_email TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT DEFAULT '',
+      type TEXT DEFAULT 'info',
+      meta JSONB DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      read_at TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_email_id ON notifications(user_email, id);
   `);
 }
 ensureSchema().catch((e) => console.error("Schema init error", e));
@@ -68,6 +82,31 @@ ensureSchema().catch((e) => console.error("Schema init error", e));
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
 const app = express();
+// Email transport (optional, configured via env)
+let mailer = null;
+async function initMailer(){
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || 587);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const from = process.env.MAIL_FROM || user;
+  if (!host || !user || !pass || !from) return;
+  try{
+    mailer = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
+    // verify lazily
+    mailer.verify().then(()=>console.log('✉️  Mailer ready')).catch(()=>{});
+    mailer.from = from;
+  } catch (e){ console.warn('Mailer init failed', e); }
+}
+initMailer();
+
+async function sendEmail(to, subject, html){
+  if (!mailer || !to) return;
+  try{
+    await mailer.sendMail({ from: mailer.from, to, subject, html });
+  } catch (e){ console.warn('sendEmail failed', e); }
+}
+
 
 // ✅ CORS for frontend (local + production)
 const allowedOrigins = new Set([
@@ -321,7 +360,7 @@ app.post("/api/users/password", authMiddleware, express.json(), async (req, res)
     const hash = await bcrypt.hash(new_password, 10);
     await pool.query(
       `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
-      [hash, req.user.id]
+      [hash, req.user.sub]
     );
     res.status(200).json({ ok: true });
   } catch (e) {
@@ -425,8 +464,47 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
       [sender.email, rec.email, amt, account_number || null, routing_number || null, btc_address || null, method || "standard"]
     );
 
+    // Create notifications for sender and recipient
+    const t = transferInsert.rows[0];
+    const prettySenderTarget = rec.accountname || rec.fullname || rec.email;
+    const prettyRecipientSource = sender.accountname || sender.fullname || sender.email;
+    const fmtAmount = amt.toFixed(2);
+
+    await client.query(
+      `INSERT INTO notifications (user_email, title, body, type, meta)
+       VALUES ($1,$2,$3,$4,$5)`,
+      [
+        sender.email,
+        'Transfer sent',
+        `You sent $${fmtAmount} to ${prettySenderTarget}`,
+        'transfer',
+        JSON.stringify({ transfer_id: t.id, direction: 'debit', amount: amt, counterparty: rec.email, method })
+      ]
+    );
+
+    await client.query(
+      `INSERT INTO notifications (user_email, title, body, type, meta)
+       VALUES ($1,$2,$3,$4,$5)`,
+      [
+        rec.email,
+        'Transfer received',
+        `You received $${fmtAmount} from ${prettyRecipientSource}`,
+        'transfer',
+        JSON.stringify({ transfer_id: t.id, direction: 'credit', amount: amt, counterparty: sender.email, method })
+      ]
+    );
+
     await client.query("COMMIT");
-    res.status(201).json(transferInsert.rows[0]);
+  const createdTx = transferInsert.rows[0];
+  res.status(201).json(createdTx);
+
+  // Fire-and-forget email notifications (after response)
+  const fmt = (n)=> Number(n).toLocaleString(undefined,{ style:'currency', currency:'USD' });
+  const amountFmt = fmt(amt);
+  // to sender
+  sendEmail(sender.email, 'Transfer sent', `<p>You sent ${amountFmt} to ${prettySenderTarget} via ${method?.toUpperCase() || 'TRANSFER'}.</p><p>Reference: ${createdTx.id}</p>`);
+  // to recipient
+  sendEmail(rec.email, 'Transfer received', `<p>You received ${amountFmt} from ${prettyRecipientSource} via ${method?.toUpperCase() || 'TRANSFER'}.</p><p>Reference: ${createdTx.id}</p>`);
   } catch (err) {
     try { await client.query("ROLLBACK"); } catch {}
     console.error("Transfer error:", err, req.body);
@@ -511,6 +589,90 @@ app.get("/api/transactions", authMiddleware, async (req, res) => {
     console.error("Transactions error", err);
     return res.status(500).json({ error: "Server error" });
   }
+});
+
+// === NOTIFICATIONS ===
+app.get('/api/notifications', authMiddleware, async (req, res) => {
+  try {
+    const since = Number(req.query.since || 0);
+    const args = [req.user.email];
+    let sql = `SELECT id, title, body, type, meta, created_at, read_at FROM notifications WHERE user_email=$1`;
+    if (since > 0) { sql += ` AND id > $2`; args.push(since); }
+    sql += ` ORDER BY id DESC LIMIT 50`;
+    const q = await pool.query(sql, args);
+    res.json(q.rows);
+  } catch (e) {
+    console.error('GET /api/notifications', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/notifications/read', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'id required' });
+    await pool.query(`UPDATE notifications SET read_at = NOW() WHERE id=$1 AND user_email=$2`, [id, req.user.email]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('POST /api/notifications/read', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/notifications/read-all', authMiddleware, async (req, res) => {
+  try {
+    await pool.query(`UPDATE notifications SET read_at = NOW() WHERE user_email=$1 AND read_at IS NULL`, [req.user.email]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('POST /api/notifications/read-all', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Notifications SSE
+app.get('/api/stream/notifications', authMiddleware, async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const lastEventHeader = req.headers['last-event-id'];
+  let lastId = 0;
+  if (lastEventHeader) {
+    const n = Number(lastEventHeader);
+    if (Number.isFinite(n) && n > 0) lastId = n;
+  }
+  if (req.query && req.query.lastId) {
+    const n = Number(req.query.lastId);
+    if (Number.isFinite(n) && n > 0) lastId = n;
+  }
+
+  let alive = true;
+  req.on('close', () => { alive = false; clearInterval(pulse); clearInterval(poll); });
+
+  // Heartbeat
+  const pulse = setInterval(() => {
+    try { res.write(`event: ping\ndata: {"t":${Date.now()}}\n\n`); } catch {}
+  }, 15000);
+
+  const poll = setInterval(async () => {
+    if (!alive) return;
+    try {
+      const q = await pool.query(
+        `SELECT id, title, body, type, meta, created_at FROM notifications WHERE user_email=$1 AND id > $2 ORDER BY id ASC LIMIT 50`,
+        [req.user.email, lastId]
+      );
+      if (q.rowCount) {
+        for (const row of q.rows) {
+          lastId = row.id;
+          res.write(`id: ${row.id}\n`);
+          res.write(`data: ${JSON.stringify(row)}\n\n`);
+        }
+      }
+    } catch (e) {
+      console.error('SSE notifications error', e);
+    }
+  }, 2000);
 });
 
 // === SSE Stream for balances ===

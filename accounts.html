@@ -82,6 +82,7 @@
   </main>
 
   <script src="config.js"></script>
+  <script src="common.js"></script>
   <script>
     const state = {
       profile: null,
@@ -289,8 +290,9 @@
       }
     });
 
-    // Init
-    loadStoredUser();
+  // Init
+  if (window.Notifications) window.Notifications.init();
+  loadStoredUser();
     loadProfile();
     loadTransactions();
     connectSSE();

@@ -137,6 +137,7 @@
   <div id="toast" class="toast">Saved</div>
 
   <script src="config.js"></script>
+  <script src="common.js"></script>
   <script>
     const qs = (s)=>document.querySelector(s);
     const toastEl = qs('#toast');
@@ -273,6 +274,7 @@
     qs('#logoutBtn').addEventListener('click', ()=>{ localStorage.removeItem('bs-user'); location.href='login.html'; });
 
     // Init
+    if (window.Notifications) window.Notifications.init();
     loadStoredUser();
     loadProfile();
     loadPrefs();

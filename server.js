@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Pool } from "pg";
 import nodemailer from "nodemailer";
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -75,6 +76,16 @@ async function ensureSchema() {
       read_at TIMESTAMPTZ
     );
     CREATE INDEX IF NOT EXISTS idx_notifications_user_email_id ON notifications(user_email, id);
+    -- Password reset tokens
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      user_email TEXT NOT NULL,
+      token TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_password_reset_user_email_token ON password_reset_tokens(user_email, token);
   `);
 }
 ensureSchema().catch((e) => console.error("Schema init error", e));
@@ -106,6 +117,104 @@ async function sendEmail(to, subject, html){
     await mailer.sendMail({ from: mailer.from, to, subject, html });
   } catch (e){ console.warn('sendEmail failed', e); }
 }
+
+function makeToken(len = 36){
+  return crypto.randomBytes(len).toString('base64url');
+}
+
+// Password reset: request a token (email will be sent if account exists)
+app.post('/api/password/forgot', async (req, res) => {
+  try{
+    const { email } = req.body || {};
+    if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Valid email required' });
+    const norm = String(email).toLowerCase().trim();
+
+    const q = await pool.query('SELECT id, fullname, email FROM users WHERE email=$1', [norm]);
+    if (!q.rowCount) {
+      // For security, respond OK even if no account — don't reveal existence
+      return res.json({ ok: true });
+    }
+    const user = q.rows[0];
+
+    const token = makeToken(32);
+    const expires = new Date(Date.now() + (1000 * 60 * 60)); // 1 hour
+
+    await pool.query(`INSERT INTO password_reset_tokens (user_email, token, expires_at) VALUES ($1,$2,$3)`, [user.email, token, expires]);
+
+    // Build reset link (frontend page: reset-password.html?token=...)
+    const origin = process.env.FRONTEND_ORIGIN || (process.env.BASE_URL || `http://localhost:5173`);
+    const resetUrl = `${origin.replace(/\/$/, '')}/reset-password.html?token=${encodeURIComponent(token)}&email=${encodeURIComponent(user.email)}`;
+
+    // Send email (fire-and-forget)
+    sendEmail(user.email, 'Password reset request', `
+      <p>Hi ${user.fullname || ''},</p>
+      <p>We received a request to reset your password. Click the link below to set a new password. This link expires in one hour.</p>
+      <p><a href="${resetUrl}">Reset your password</a></p>
+      <p>If you didn't request this, you can safely ignore this email.</p>
+    `);
+
+    // Insert notification
+    await pool.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [
+      user.email,
+      'Password reset requested',
+      'A password reset link was requested for your account. If this was not you, please secure your account.',
+      'security',
+      JSON.stringify({ action: 'password_forgot' })
+    ]);
+
+    return res.json({ ok: true });
+  } catch (e){
+    console.error('POST /api/password/forgot', e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Password reset: set new password with token
+app.post('/api/password/reset', async (req, res) => {
+  try{
+    const { token, email, new_password } = req.body || {};
+    if (!token || !email || !new_password) return res.status(400).json({ error: 'token, email and new_password required' });
+    if (typeof new_password !== 'string' || new_password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+    const norm = String(email).toLowerCase().trim();
+    const q = await pool.query(`SELECT id, token, expires_at, used FROM password_reset_tokens WHERE token=$1 AND user_email=$2 ORDER BY id DESC LIMIT 1`, [token, norm]);
+    if (!q.rowCount) return res.status(400).json({ error: 'Invalid or expired token' });
+    const row = q.rows[0];
+    if (row.used) return res.status(400).json({ error: 'Token already used' });
+    const expires = new Date(row.expires_at);
+    if (expires.getTime() < Date.now()) return res.status(400).json({ error: 'Token expired' });
+
+    const hash = await bcrypt.hash(new_password, 10);
+    const client = await pool.connect();
+    try{
+      await client.query('BEGIN');
+      await client.query(`UPDATE users SET password_hash=$1, updated_at=NOW() WHERE email=$2`, [hash, norm]);
+      await client.query(`UPDATE password_reset_tokens SET used=true WHERE token=$1 AND user_email=$2`, [token, norm]);
+
+      // notification + email
+      await client.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [
+        norm,
+        'Password changed',
+        'Your account password was successfully changed. If this was not you, contact support immediately.',
+        'security',
+        JSON.stringify({ action: 'password_reset' })
+      ]);
+
+      await client.query('COMMIT');
+    } catch (e){
+      await client.query('ROLLBACK');
+      throw e;
+    } finally { client.release(); }
+
+    // send email notification
+    sendEmail(norm, 'Your password was changed', `<p>Your account password was changed successfully. If you did not perform this action, please contact support immediately.</p>`);
+
+    return res.json({ ok: true });
+  } catch (e){
+    console.error('POST /api/password/reset', e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
 
 
 // ✅ CORS for frontend (local + production)

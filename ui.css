@@ -85,6 +85,22 @@ a:focus-visible,button:focus-visible,.pw-toggle:focus-visible,.input-base:focus-
 	.input-base{font-size:16px}
 	.btn-full{font-size:15px}
 }
+
+/* Extra compact mode for very small devices and to preview mobile scaling */
+@media (max-width: 380px){
+	:root { font-size: 14px; }
+	:root { --max-auth-width: 360px; }
+	.auth-card { max-width: calc(var(--max-auth-width) - 8px); padding: .7rem; }
+	.auth-title { font-size: 1rem; }
+	.auth-sub { font-size: .66rem; }
+	form { gap: .5rem; }
+	.input-base { padding: .5rem .65rem .45rem; font-size: 16px; }
+	.btn-full { padding: .6rem .75rem; font-size: 14px; }
+}
+
+/* Debug helper: force compact mobile metrics (useful when previewing on desktop) */
+.compact-mobile { --max-auth-width: 360px; font-size: 14px !important; }
+
 /* Light theme removed: single dark theme retained */
 ::-webkit-scrollbar{width:0;height:0}
 .input-msg{font-size:.6rem;font-weight:600;letter-spacing:.4px;margin-top:.2rem;min-height:.75rem;color:rgba(255,255,255,.55);opacity:.9;transition:var(--trans-fast)}

@@ -62,7 +62,10 @@ async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS savings NUMERIC DEFAULT 0,
       ADD COLUMN IF NOT EXISTS credit NUMERIC DEFAULT 0,
       ADD COLUMN IF NOT EXISTS investments NUMERIC DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS last_login_ip TEXT,
+      ADD COLUMN IF NOT EXISTS last_login_ua TEXT;
 
     -- Notifications for user activities
     CREATE TABLE IF NOT EXISTS notifications (
@@ -384,7 +387,19 @@ app.post("/api/users", async (req, res) => {
 const user = insert.rows[0];
 const token = issueToken(user);
 
-return res.status(201).json({ ...user, token });
+    // Send welcome email and create an in-app notification
+    try{
+      sendEmail(user.email, 'Welcome to Bank Swift', `<p>Hi ${user.fullname || ''},</p><p>Welcome to Bank Swift — your account is ready. If you have any questions, reply to this email.</p>`);
+      await pool.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [
+        user.email,
+        'Welcome to Bank Swift',
+        'Thanks for creating an account with Bank Swift. Explore transfers, payments, and more.',
+        'welcome',
+        JSON.stringify({})
+      ]);
+    }catch(e){ console.warn('welcome email/notification failed', e); }
+
+    return res.status(201).json({ ...user, token });
   } catch (err) {
     console.error("Registration error", err);
     return res.status(500).json({ error: "Server error" });
@@ -412,6 +427,22 @@ if (!user) return res.status(401).json({ error: "Invalid email or password" });
     }
 
     const token = issueToken(user);
+    // Update last_login info
+    try{ await pool.query(`UPDATE users SET last_login_at=NOW(), last_login_ip=$1, last_login_ua=$2 WHERE id=$3`, [req.ip || req.headers['x-forwarded-for'] || null, req.get('user-agent') || null, user.id]); }catch(e){}
+
+    // Send login alert (configurable: only send if ALLOW_LOGIN_EMAIL=1 or always)
+    try{
+      const shouldSend = process.env.SEND_LOGIN_EMAIL === '1' || false;
+      await pool.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [
+        user.email,
+        'New sign-in to your account',
+        `A sign-in to your account occurred from IP ${req.ip || req.headers['x-forwarded-for'] || 'unknown'}`,
+        'login',
+        JSON.stringify({ ip: req.ip || null, ua: req.get('user-agent') || null })
+      ]);
+      if (shouldSend) sendEmail(user.email, 'New sign-in to your account', `<p>New sign-in detected from IP ${req.ip || 'unknown'}.</p><p>If this wasn't you, please change your password immediately.</p>`);
+    }catch(e){ console.warn('login alert failed', e); }
+
     return res.json({
       id: user.id,
       fullname: user.fullname,
@@ -419,7 +450,7 @@ if (!user) return res.status(401).json({ error: "Invalid email or password" });
       accountname: user.accountname,
       checking: Number(user.checking || 0),
       savings: Number(user.savings || 0),
-      totalbalance: Number(user.totalbalance || 0), // ← direct from DB
+      totalbalance: Number(user.totalbalance || 0), //  direct from DB
       token,
     });
   } catch (err) {
@@ -452,6 +483,19 @@ app.put("/api/users/me", authMiddleware, express.json(), async (req, res) => {
     );
 
     if (result.rowCount === 0) return res.status(404).json({ error: "User not found" });
+    // Send profile update notification and email
+    try{
+      const updated = result.rows[0];
+      await pool.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [
+        updated.email,
+        'Profile updated',
+        'Your profile details were updated successfully.',
+        'profile',
+        JSON.stringify({})
+      ]);
+      if (process.env.SEND_PROFILE_EMAIL === '1') sendEmail(updated.email, 'Your profile was updated', `<p>Your profile information was changed. If this was not you, contact support.</p>`);
+    }catch(e){ console.warn('profile notification/email failed', e); }
+
     res.json(result.rows[0]);
   } catch (e) {
     console.error("PUT /api/users/me", e);
@@ -552,6 +596,23 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
       `UPDATE users SET ${recipient_account_type}=${recipient_account_type}+$1 WHERE id=$2`,
       [amt, rec.id]
     );
+
+    // Low-balance alert for sender (configurable threshold)
+    try{
+      const thr = Number(process.env.LOW_BALANCE_THRESHOLD || 50); // default $50
+      const balQ = await client.query(`SELECT ${sender_account_type} FROM users WHERE id=$1`, [sender.id]);
+      const newBal = Number(balQ.rows[0][sender_account_type] || 0);
+      if (newBal < thr) {
+        await client.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [
+          sender.email,
+          'Low balance warning',
+          `Your ${sender_account_type} balance is low: $${newBal.toFixed(2)}. Consider transferring funds to avoid overdrafts.`,
+          'warning',
+          JSON.stringify({ balance: newBal, threshold: thr, account: sender_account_type })
+        ]);
+        if (process.env.SEND_LOW_BALANCE_EMAIL === '1') sendEmail(sender.email, 'Low balance warning', `<p>Your ${sender_account_type} balance is $${newBal.toFixed(2)}, below the threshold of $${thr}.</p>`);
+      }
+    } catch (e){ console.warn('low balance check failed', e); }
 
     // Log transactions
     await client.query(

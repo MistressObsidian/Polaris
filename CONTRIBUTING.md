@@ -44,7 +44,7 @@ Thank you for your interest in contributing to our digital banking platform! Thi
 Use clear, descriptive branch names with prefixes:
 
 - `feature/add-transaction-search` - New features
-- `fix/dashboard-balance-display` - Bug fixes  
+-- `fix/dashboard-balance-display` - Bug fixes  
 - `chore/update-dependencies` - Maintenance tasks
 - `docs/api-documentation` - Documentation updates
 - `refactor/modular-js-components` - Code restructuring
@@ -73,7 +73,7 @@ We follow [Conventional Commits](https://conventionalcommits.org/) for clear com
 
 **Examples:**
 ```bash
-git commit -m "feat(dashboard): add real-time balance updates"
+git commit -m "feat(home): add real-time balance updates"
 git commit -m "fix(transfer): resolve amount validation error"
 git commit -m "docs(readme): update installation instructions"
 git commit -m "refactor(common): extract API client to separate module"

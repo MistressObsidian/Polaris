@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Transfer · Dashboard</title>
+  <title>Transfer · Home</title>
   <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
   <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <link rel="shortcut icon" href="bank-swift.svg" />
@@ -65,7 +65,7 @@
   <header>
     <h1>Transfer</h1>
     <nav>
-      <a class="back-link" href="dashboard.html">← Back to Dashboard</a>
+  <a class="back-link" href="dashboard.html">← Back to Home</a>
     </nav>
   </header>
 
@@ -303,7 +303,7 @@
     function bindUI(){
       qsa('.tab').forEach(btn => btn.addEventListener('click', ()=> selectMethod(btn.dataset.method)));
       qs('#transferForm').addEventListener('submit', handleSubmit);
-      qs('#cancelBtn').addEventListener('click', ()=> location.href='dashboard.html');
+  qs('#cancelBtn').addEventListener('click', ()=> location.href='dashboard.html');
       qs('#amount').addEventListener('input', (e)=> updateSummaryTotal(parseFloat(e.target.value||'0')));
       document.getElementById('closeModalBtn').addEventListener('click', ()=> document.getElementById('successModal').style.display='none');
       document.getElementById('viewReceiptBtn').addEventListener('click', ()=> location.href='transactions.html');

@@ -5,7 +5,7 @@
 ## ✨ Features
 
 - **🔐 Secure Authentication** - User login and registration with session management
-- **💳 Digital Dashboard** - Real-time balance tracking and financial overview
+- **💳 Digital Home** - Real-time balance tracking and financial overview
 - **💸 Money Transfers** - Send and receive transfers with transaction references
 - **📊 Transaction History** - Detailed transaction records and status tracking
 - **🔔 Webhook Integration** - Real-time notifications for transaction updates
@@ -83,7 +83,7 @@ Banking/
 │   ├── index.html              # Landing page
 │   ├── login.html              # User authentication
 │   ├── register.html           # User registration
-│   ├── dashboard.html          # Financial dashboard
+│   ├── dashboard.html          # Financial home
 │   ├── transfer.html           # Money transfer interface
 │   ├── transaction-details.html # Transaction history
 │   └── webhook-receiver.html   # Webhook notification handler

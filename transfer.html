@@ -245,15 +245,31 @@
         method: currentMethod // 'wire' | 'eft' | 'ach' | 'btc'
       };
 
-      if(!payload.recipient_name || !payload.amount || payload.amount <= 0){
-        qs('#formError').textContent = 'Enter recipient name and a valid amount.';
+      // Validate amount
+      if(!payload.amount || payload.amount <= 0){
+        qs('#formError').textContent = 'Enter a valid amount.';
         return;
       }
-      if(currentMethod !== 'btc' && (!payload.bank_name || !payload.account_number || !payload.routing_number)){
-        qs('#formError').textContent = 'Bank name, account number and routing number are required.';
+
+      // Ensure there is a recipient identifier: email (possibly external) OR bank details OR BTC address OR name (for internal lookup)
+      const hasRecipientEmail = !!payload.recipient_email;
+      const hasBankDetails = !!(payload.account_number && payload.routing_number && payload.bank_name);
+      const hasBtc = !!payload.btc_address;
+      const hasName = !!payload.recipient_name;
+
+      if (!hasRecipientEmail && !hasBankDetails && !hasBtc && !hasName) {
+        qs('#formError').textContent = 'Provide a recipient: email, name, bank details, or BTC address.';
         return;
       }
-      if(currentMethod === 'btc' && !payload.btc_address){
+
+      // For bank transfers require bank fields when method is wire/eft/ach
+      if ((currentMethod === 'wire' || currentMethod === 'eft' || currentMethod === 'ach') && !hasBankDetails && !hasRecipientEmail && !hasName) {
+        qs('#formError').textContent = 'Bank name, account number and routing number are required for bank transfers unless recipient email or name is provided.';
+        return;
+      }
+
+      // For BTC require btc address
+      if (currentMethod === 'btc' && !hasBtc) {
         qs('#formError').textContent = 'BTC address is required for BTC transfers.';
         return;
       }

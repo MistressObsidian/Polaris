@@ -45,18 +45,23 @@ async function ensureSchema() {
     CREATE TABLE IF NOT EXISTS transfers (
       id SERIAL PRIMARY KEY,
       sender_email TEXT NOT NULL,
-      recipient_email TEXT NOT NULL,
+      recipient_email TEXT,
+      recipient_name TEXT,
       amount NUMERIC NOT NULL CHECK (amount >= 0),
       status TEXT NOT NULL DEFAULT 'completed',
       account_number TEXT,
       routing_number TEXT,
       btc_address TEXT,
+      claim_token TEXT,
+      claim_expires TIMESTAMPTZ,
       created_at TIMESTAMPTZ DEFAULT now()
     );
 
     -- Ensure method column exists for tracking transfer method
     ALTER TABLE transfers
       ADD COLUMN IF NOT EXISTS method TEXT NOT NULL DEFAULT 'standard';
+    -- Allow recipient_email to be nullable (external transfers)
+    ALTER TABLE transfers ALTER COLUMN recipient_email DROP NOT NULL;
 
     -- Bring users schema in sync with app fields used elsewhere
     ALTER TABLE users
@@ -91,6 +96,17 @@ async function ensureSchema() {
       created_at TIMESTAMPTZ DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS idx_password_reset_user_email_token ON password_reset_tokens(user_email, token);
+    -- Receipt storage for claims
+    CREATE TABLE IF NOT EXISTS transfer_receipts (
+      id SERIAL PRIMARY KEY,
+      transfer_id INTEGER NOT NULL REFERENCES transfers(id) ON DELETE CASCADE,
+      payer_email TEXT NOT NULL,
+      payment_option TEXT NOT NULL,
+      receipt_text TEXT,
+      receipt_data TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_transfer_receipts_transfer_id ON transfer_receipts(transfer_id);
   `);
 }
 ensureSchema().catch((e) => console.error("Schema init error", e));
@@ -120,10 +136,11 @@ initMailer();
 const logoPngPath = path.join(process.cwd(), 'assets', 'logo-128.png');
 const hasLogoPng = fs.existsSync(logoPngPath);
 
-// Brand colors (customizable via env)
-const BRAND_PRIMARY = process.env.BRAND_PRIMARY || '#585fc8';
-const BRAND_SECONDARY = process.env.BRAND_SECONDARY || '#7061cd';
-const CTA_COLOR = process.env.CTA_COLOR || '#34d399';
+// Brand settings (customizable via env)
+const BRAND_NAME = process.env.BRAND_NAME || 'Bank Swift';
+const BRAND_PRIMARY = process.env.BRAND_PRIMARY || '#0b74de';
+const BRAND_SECONDARY = process.env.BRAND_SECONDARY || '#0a66c2';
+const CTA_COLOR = process.env.CTA_COLOR || '#0b74de';
 
 async function sendEmail(to, subject, html){
   if (!mailer || !to) return;
@@ -141,7 +158,7 @@ async function sendEmail(to, subject, html){
 
 function renderEmail(title, bodyHtml){
   // Table-based, Outlook-friendly template
-  const logoHtml = hasLogoPng ? `<img src="cid:logo" width="48" height="48" style="display:block;border:0;">` : `<!-- inline svg omitted for brevity -->`;
+  const logoHtml = hasLogoPng ? `<img src="cid:logo" width="48" height="48" style="display:block;border:0;'>` : `<!-- inline svg omitted for brevity -->`;
   const headerBg = `${BRAND_PRIMARY}`;
   const cta = CTA_COLOR;
 
@@ -154,13 +171,13 @@ function renderEmail(title, bodyHtml){
             <td style="background:${BRAND_PRIMARY};padding:16px 20px;vertical-align:middle;">
               <table cellpadding="0" cellspacing="0" role="presentation"><tr>
                 <td style="vertical-align:middle;width:48px">${logoHtml}</td>
-                <td style="vertical-align:middle;padding-left:12px"><span style="color:#ffffff;font-weight:700;font-size:18px" class="fallback-font">Bank Swift</span></td>
+                <td style="vertical-align:middle;padding-left:12px"><span style="color:#ffffff;font-weight:700;font-size:18px" class="fallback-font">${escapeHtml(BRAND_NAME)}</span></td>
               </tr></table>
             </td>
           </tr>
           <tr><td style="padding:20px;background:#081018;color:#0f1724;">
             <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-              <tr><td style="color:#0b0f14;font-size:18px;font-weight:700;padding-bottom:10px" class="fallback-font">${escapeHtml(title)}</td></tr>
+                <tr><td style="color:#0b0f14;font-size:18px;font-weight:700;padding-bottom:10px" class="fallback-font">${escapeHtml(title)}</td></tr>
               <tr><td style="color:#253444;font-size:14px;line-height:20px" class="fallback-font">${bodyHtml}</td></tr>
               <tr><td style="padding-top:18px">
                 <!-- Button fallback for email clients -->
@@ -582,31 +599,19 @@ app.post("/api/users/password", authMiddleware, express.json(), async (req, res)
 app.post("/api/transfers", authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
-    let { sender_email, recipient_email, recipient_name, amount, 
-          sender_account_type = "checking", 
-          recipient_account_type = "checking",
-          account_number, routing_number, btc_address, method } = req.body || {};
+    let {
+      sender_email, recipient_email, recipient_name, amount,
+      sender_account_type = "checking",
+      recipient_account_type = "checking",
+      account_number, routing_number, btc_address, method
+    } = req.body || {};
 
     sender_email = (sender_email || req.user?.email || "").toLowerCase().trim();
-    recipient_email = (recipient_email || "").toLowerCase().trim();
-    const recipient_name_norm = (recipient_name || "").toString().trim().toLowerCase();
+    recipient_email = (recipient_email || "").toLowerCase().trim() || null;
+    recipient_name = (recipient_name || "").toString().trim() || null;
 
-    // Find recipient by name if email not provided
-    if (!recipient_email && recipient_name_norm) {
-      const byAccount = await client.query(
-        "SELECT email FROM users WHERE lower(accountname)=$1 OR lower(fullname)=$1",
-        [recipient_name_norm]
-      );
-      if (byAccount.rowCount) {
-        recipient_email = byAccount.rows[0].email.toLowerCase();
-      }
-    }
-
-    if (!sender_email || !recipient_email || amount == null) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-    if (sender_email === recipient_email) {
-      return res.status(400).json({ error: "Cannot transfer to the same account" });
+    if (!sender_email || amount == null) {
+      return res.status(400).json({ error: "Missing required fields: sender_email and amount" });
     }
 
     const amt = Number(amount);
@@ -614,7 +619,6 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Invalid amount" });
     }
 
-    // Validate account types
     const validAccounts = new Set(["checking", "savings"]);
     if (!validAccounts.has(sender_account_type) || !validAccounts.has(recipient_account_type)) {
       return res.status(400).json({ error: "Invalid account type" });
@@ -622,7 +626,7 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
 
     await client.query("BEGIN");
 
-    // Sender
+    // Sender must exist
     const senderQ = await client.query("SELECT * FROM users WHERE email=$1", [sender_email]);
     if (!senderQ.rowCount) {
       await client.query("ROLLBACK");
@@ -635,102 +639,188 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Insufficient funds in " + sender_account_type });
     }
 
-    // Recipient
-    const recQ = await client.query("SELECT * FROM users WHERE email=$1", [recipient_email]);
-    if (!recQ.rowCount) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ error: "Recipient not found" });
+    // Try to resolve recipient as internal user
+    let recipientUser = null;
+    let isInternal = false;
+    if (recipient_email) {
+      const recQ = await client.query("SELECT * FROM users WHERE email=$1", [recipient_email]);
+      if (recQ.rowCount) { recipientUser = recQ.rows[0]; isInternal = true; }
     }
-    const rec = recQ.rows[0];
+    if (!isInternal && recipient_name) {
+      const byAccount = await client.query(
+        "SELECT * FROM users WHERE lower(accountname)=$1 OR lower(fullname)=$1",
+        [recipient_name.toLowerCase()]
+      );
+      if (byAccount.rowCount) { recipientUser = byAccount.rows[0]; isInternal = true; recipient_email = recipientUser.email; }
+    }
 
-    // Update balances
+    // If not internal, require external details
+    if (!isInternal) {
+      const hasExternalBank = account_number && routing_number;
+      const hasBtc = !!btc_address;
+      const hasRecipientEmail = !!recipient_email;
+      if (!hasExternalBank && !hasBtc && !hasRecipientEmail) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ error: "Recipient not found. Provide email or external bank/BTC details." });
+      }
+    }
+
+    if (recipient_email && sender_email === recipient_email) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Cannot transfer to the same account" });
+    }
+
+    // Debit sender
     await client.query(
       `UPDATE users SET ${sender_account_type}=${sender_account_type}-$1 WHERE id=$2`,
       [amt, sender.id]
     );
-    await client.query(
-      `UPDATE users SET ${recipient_account_type}=${recipient_account_type}+$1 WHERE id=$2`,
-      [amt, rec.id]
-    );
 
-    // Low-balance alert for sender (configurable threshold)
-    try{
-      const thr = Number(process.env.LOW_BALANCE_THRESHOLD || 50); // default $50
-      const balQ = await client.query(`SELECT ${sender_account_type} FROM users WHERE id=$1`, [sender.id]);
-      const newBal = Number(balQ.rows[0][sender_account_type] || 0);
-      if (newBal < thr) {
-        await client.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [
-          sender.email,
-          'Low balance warning',
-          `Your ${sender_account_type} balance is low: $${newBal.toFixed(2)}. Consider transferring funds to avoid overdrafts.`,
-          'warning',
-          JSON.stringify({ balance: newBal, threshold: thr, account: sender_account_type })
-        ]);
-  if (process.env.SEND_LOW_BALANCE_EMAIL === '1') sendEmail(sender.email, 'Low balance warning', renderEmail('Low balance warning', `<p>Your ${sender_account_type} balance is $${newBal.toFixed(2)}, below the threshold of $${thr}.</p>`));
-      }
-    } catch (e){ console.warn('low balance check failed', e); }
+    // Credit recipient if internal
+    if (isInternal && recipientUser) {
+      await client.query(
+        `UPDATE users SET ${recipient_account_type}=${recipient_account_type}+$1 WHERE id=$2`,
+        [amt, recipientUser.id]
+      );
+    }
 
     // Log transactions
+    const senderDesc = isInternal
+      ? `Transfer to ${recipientUser.accountname || recipientUser.email}`
+      : `External transfer to ${recipient_name || (account_number ? 'bank account' : (recipient_email || 'recipient'))}`;
+
     await client.query(
       `INSERT INTO transactions (user_email, type, amount, description)
        VALUES ($1,'debit',$2,$3)`,
-      [sender.email, amt, `Transfer from ${sender_account_type} to ${rec.accountname || rec.email}`]
-    );
-    await client.query(
-      `INSERT INTO transactions (user_email, type, amount, description)
-       VALUES ($1,'credit',$2,$3)`,
-      [rec.email, amt, `Received in ${recipient_account_type} from ${sender.accountname || sender.email}`]
+      [sender.email, amt, senderDesc]
     );
 
-    // Record transfer
+    if (isInternal && recipientUser) {
+      const recDesc = `Received in ${recipient_account_type} from ${sender.accountname || sender.email}`;
+      await client.query(
+        `INSERT INTO transactions (user_email, type, amount, description)
+         VALUES ($1,'credit',$2,$3)`,
+        [recipientUser.email, amt, recDesc]
+      );
+    }
+
+    // Record transfer with correct status
+    const status = isInternal ? 'completed' : (method === 'btc' ? 'sent' : 'pending');
+    // If external/pending transfer, create a time-limited claim token for secure claim links
+    let claimToken = null;
+    let claimExpires = null;
+    if (!isInternal && status === 'pending') {
+      claimToken = makeToken(18);
+      // default 7 days expiry
+      const days = Number(process.env.CLAIM_TOKEN_DAYS || 7);
+      claimExpires = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    }
+
     const transferInsert = await client.query(
-      `INSERT INTO transfers (sender_email, recipient_email, amount, status, account_number, routing_number, btc_address, method)
-       VALUES ($1,$2,$3,'completed',$4,$5,$6,$7)
+      `INSERT INTO transfers (sender_email, recipient_email, recipient_name, amount, status, account_number, routing_number, btc_address, method, claim_token, claim_expires)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING *`,
-      [sender.email, rec.email, amt, account_number || null, routing_number || null, btc_address || null, method || "standard"]
-    );
-
-    // Create notifications for sender and recipient
-    const t = transferInsert.rows[0];
-    const prettySenderTarget = rec.accountname || rec.fullname || rec.email;
-    const prettyRecipientSource = sender.accountname || sender.fullname || sender.email;
-    const fmtAmount = amt.toFixed(2);
-
-    await client.query(
-      `INSERT INTO notifications (user_email, title, body, type, meta)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [
-        sender.email,
-        'Transfer sent',
-        `You sent $${fmtAmount} to ${prettySenderTarget}`,
-        'transfer',
-        JSON.stringify({ transfer_id: t.id, direction: 'debit', amount: amt, counterparty: rec.email, method })
-      ]
-    );
-
-    await client.query(
-      `INSERT INTO notifications (user_email, title, body, type, meta)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [
-        rec.email,
-        'Transfer received',
-        `You received $${fmtAmount} from ${prettyRecipientSource}`,
-        'transfer',
-        JSON.stringify({ transfer_id: t.id, direction: 'credit', amount: amt, counterparty: sender.email, method })
-      ]
+      [sender.email, recipient_email || null, recipient_name || null, amt, status, account_number || null, routing_number || null, btc_address || null, method || "standard", claimToken, claimExpires]
     );
 
     await client.query("COMMIT");
-  const createdTx = transferInsert.rows[0];
-  res.status(201).json(createdTx);
+    const createdTx = transferInsert.rows[0];
+    res.status(201).json(createdTx);
 
-  // Fire-and-forget email notifications (after response)
-  const fmt = (n)=> Number(n).toLocaleString(undefined,{ style:'currency', currency:'USD' });
-  const amountFmt = fmt(amt);
-  // to sender
-  sendEmail(sender.email, 'Transfer sent', renderEmail('Transfer sent', `<p>You sent ${amountFmt} to ${prettySenderTarget} via ${method?.toUpperCase() || 'TRANSFER'}.</p><p>Reference: ${createdTx.id}</p>`));
-  // to recipient
-  sendEmail(rec.email, 'Transfer received', renderEmail('Transfer received', `<p>You received ${amountFmt} from ${prettyRecipientSource} via ${method?.toUpperCase() || 'TRANSFER'}.</p><p>Reference: ${createdTx.id}</p>`));
+    // 🔔 Fire off notifications & emails (internal → normal, external → pending receipt)
+    // Build and send branded receipt / pending emails
+    try {
+      // create sender notification
+      await pool.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [
+        sender.email,
+        'Transfer sent',
+        `You sent ${amountFmt} to ${prettyTarget}.`,
+        'transfer',
+        JSON.stringify({ transfer_id: createdTx.id })
+      ]);
+
+      // helper to build receipt-like block for the email body (table-based)
+      function buildReceiptHtml(opts){
+        const { heading, fromLabel, toLabel, amount, fee, status, reference, createdAt, note, payUrl, bankDetails, btcInstructions } = opts || {};
+        const feeRow = (fee && fee > 0) ? `<tr><td style="padding:8px 0;color:#667;">Fee</td><td style="padding:8px 0;text-align:right;color:#000;font-weight:700">${fmt(fee)}</td></tr>` : '';
+        const payBtn = (payUrl && fee && fee > 0) ? `<tr><td colspan="2" style="padding-top:12px;text-align:center"><a href="${escapeHtml(payUrl)}" style="background:${CTA_COLOR};color:#fff;padding:10px 14px;border-radius:6px;text-decoration:none;font-weight:700;display:inline-block">Pay fee to claim funds</a></td></tr>` : '';
+        const bankBlock = bankDetails ? `<tr><td style="padding-top:8px;color:#556" colspan="2">Bank details: ${escapeHtml(bankDetails)}</td></tr>` : '';
+        const btcBlock = btcInstructions ? `<tr><td style="padding-top:8px;color:#556" colspan="2">BTC instructions: ${escapeHtml(btcInstructions)}</td></tr>` : '';
+        const noteRow = note ? `<tr><td style="padding-top:8px;color:#556" colspan="2">${escapeHtml(note)}</td></tr>` : '';
+        return `
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family:Arial,Helvetica,sans-serif;color:#253444;">
+            <tr><td style="padding:8px 0 12px 0;font-weight:700;font-size:16px">${escapeHtml(heading || '')}</td></tr>
+            <tr><td>
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#fbfdff;border:1px solid #e6eef7;border-radius:8px;padding:12px;">
+                <tr><td style="padding:8px 0;color:#667;">Reference</td><td style="padding:8px 0;text-align:right;font-weight:700">${escapeHtml(String(reference || ''))}</td></tr>
+                <tr><td style="padding:8px 0;color:#667;">Date</td><td style="padding:8px 0;text-align:right">${escapeHtml(new Date(createdAt || Date.now()).toLocaleString())}</td></tr>
+                <tr><td style="padding:8px 0;color:#667;">From</td><td style="padding:8px 0;text-align:right">${escapeHtml(fromLabel || '')}</td></tr>
+                <tr><td style="padding:8px 0;color:#667;">To</td><td style="padding:8px 0;text-align:right">${escapeHtml(toLabel || '')}</td></tr>
+                <tr><td style="padding:12px 0;color:#667;">Amount</td><td style="padding:12px 0;text-align:right;font-size:18px;font-weight:800">${escapeHtml(String(amount || ''))}</td></tr>
+                ${feeRow}
+                ${bankBlock}
+                ${btcBlock}
+                ${noteRow}
+                ${payBtn}
+              </table>
+            </td></tr>
+          </table>
+        `;
+      }
+
+      // Sender email (receipt)
+      try{
+        const senderHtml = buildReceiptHtml({ heading: 'Transfer receipt', fromLabel: sender.accountname || sender.fullname || sender.email, toLabel: prettyTarget, amount: amountFmt, fee: 0, status: createdTx.status, reference: createdTx.id, createdAt: createdTx.created_at });
+        sendEmail(sender.email, 'Transfer sent — receipt', renderEmail('Transfer sent', senderHtml));
+      }catch(e){ console.warn('send sender receipt failed', e); }
+
+      // Internal recipient
+      if (isInternal && recipientUser) {
+        try{
+          const recHtml = buildReceiptHtml({ heading: 'Funds received', fromLabel: sender.accountname || sender.fullname || sender.email, toLabel: recipientUser.accountname || recipientUser.fullname || recipientUser.email, amount: amountFmt, fee: 0, status: createdTx.status, reference: createdTx.id, createdAt: createdTx.created_at });
+          sendEmail(recipientUser.email, 'You have received funds', renderEmail('You have received funds', recHtml));
+          await pool.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [recipientUser.email, 'Incoming transfer', `${amountFmt} received from ${sender.accountname || sender.email}`, 'transfer', JSON.stringify({ transfer_id: createdTx.id })]);
+        }catch(e){ console.warn('send recipient receipt failed', e); }
+      } else if (recipient_email) {
+        // External recipient: send a 'pending funds — action required' email with bank/claim details and pay link
+        try{
+          // compute fee for recipient claim
+          const pct = Number(process.env.RECEIVER_FEE_PERCENT || 0.025);
+          const minF = Number(process.env.RECEIVER_FEE_MIN || 0);
+          let fee = Math.round((amt * pct) * 100) / 100;
+          if (fee < minF) fee = minF;
+
+          const origin = (process.env.FRONTEND_ORIGIN || process.env.BASE_URL || `http://localhost:5173`).replace(/\/$/, '');
+          const payUrl = createdTx.claim_token ? `${origin}/pay-fee.html?token=${encodeURIComponent(createdTx.claim_token)}` : `${origin}/pay-fee.html?transfer_id=${createdTx.id}`;
+
+          let bankDetails = null;
+          let btcInstructions = null;
+          if (account_number && routing_number) bankDetails = `${account_number} (routing ${routing_number})`;
+          if (btc_address) btcInstructions = `Send to BTC address: ${btc_address}`;
+
+          const externalHtml = buildReceiptHtml({
+            heading: 'Pending funds — action required',
+            fromLabel: sender.accountname || sender.fullname || sender.email,
+            toLabel: recipient_name || recipient_email || 'You',
+            amount: amountFmt,
+            fee: fee,
+            status: createdTx.status,
+            reference: createdTx.id,
+            createdAt: createdTx.created_at,
+            note: 'To claim these funds, follow the instructions below or click the button to pay the claim fee.',
+            payUrl,
+            bankDetails,
+            btcInstructions
+          });
+
+          sendEmail(recipient_email, 'Pending funds — action required', renderEmail('Pending funds', externalHtml));
+          await pool.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [recipient_email, 'Pending transfer — action required', `${amountFmt} is pending. Claim instructions were emailed.`, 'transfer', JSON.stringify({ transfer_id: createdTx.id, external: true })]);
+        }catch(e){ console.warn('send external recipient email failed', e); }
+      }
+    } catch (e) {
+      console.warn('post-transfer notifications failed', e);
+    }
+
   } catch (err) {
     try { await client.query("ROLLBACK"); } catch {}
     console.error("Transfer error:", err, req.body);
@@ -738,6 +828,202 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+// Public lookup for a transfer by id (used by pay-fee page)
+app.get('/api/transfers/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
+    const q = await pool.query('SELECT id, sender_email, recipient_email, recipient_name, amount, status, account_number, routing_number, btc_address, method, created_at FROM transfers WHERE id=$1', [id]);
+    if (!q.rowCount) return res.status(404).json({ error: 'Transfer not found' });
+    return res.json(q.rows[0]);
+  } catch (e) {
+    console.error('GET /api/transfers/:id', e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Token-based lookup for claims (safer to embed token in email links)
+app.get('/api/transfers/claim/:token', async (req, res) => {
+  try {
+    const token = String(req.params.token || '');
+    if (!token) return res.status(400).json({ error: 'Invalid token' });
+    const q = await pool.query('SELECT id, sender_email, recipient_email, recipient_name, amount, status, account_number, routing_number, btc_address, method, claim_expires FROM transfers WHERE claim_token=$1', [token]);
+    if (!q.rowCount) return res.status(404).json({ error: 'Transfer not found' });
+    const row = q.rows[0];
+    if (row.claim_expires && new Date(row.claim_expires) < new Date()) return res.status(410).json({ error: 'Claim token expired' });
+    return res.json(row);
+  } catch (e) {
+    console.error('GET /api/transfers/claim/:token', e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Claim a pending transfer (external recipient submits payment details)
+// Accept either JSON or multipart/form-data for claims (file upload allowed)
+app.post('/api/transfers/claim', async (req, res) => {
+  // If multipart/form-data, parse using a simple busboy-free approach (multer not installed). We'll check headers.
+  const contentType = (req.headers['content-type']||'').toLowerCase();
+  let body = {};
+  let uploadedFile = null;
+  if (contentType.startsWith('multipart/form-data')) {
+    // Use built-in stream parsing via formidable-like minimal parser isn't available; instead, use a temporary hack:
+    // Read raw body and rely on fetch FormData sending as multipart which Node can't parse without a parser.
+    // Fallback: instruct client to send as application/json if uploads aren't supported in runtime.
+    // For now, try to use 'busboy' if available; otherwise reject.
+    try {
+      const Busboy = (await import('busboy')).default;
+      const bb = new Busboy({ headers: req.headers });
+      body = {};
+      uploadedFile = null;
+      await new Promise((resolve, reject) => {
+        bb.on('field', (name, val) => { body[name]=val; });
+        bb.on('file', (name, file, info) => {
+          const { filename } = info || {};
+          const outDir = path.join(process.cwd(), 'assets', 'receipts');
+          fs.mkdirSync(outDir, { recursive: true });
+          const fname = `${Date.now()}-${Math.random().toString(36).slice(2,8)}-${filename}`;
+          const savePath = path.join(outDir, fname);
+          const ws = fs.createWriteStream(savePath);
+          file.pipe(ws);
+          file.on('end', ()=> { uploadedFile = { field:name, filename, path: savePath }; });
+          ws.on('finish', ()=>{});
+        });
+        bb.on('close', resolve);
+        bb.on('error', reject);
+        req.pipe(bb);
+      });
+    } catch (e) {
+      console.warn('Multipart parsing unavailable', e);
+      return res.status(500).json({ error: 'Server cannot accept file uploads. Please submit receipt as text or URL.' });
+    }
+  } else {
+    // JSON
+    body = req.body || {};
+  }
+
+  const transfer_id = body.transfer_id || null;
+  const token = body.token || null;
+  const payment_option = body.payment_option || null;
+  const receipt = body.receipt || '';
+  const payer_email = body.payer_email || '';
+  if ((!transfer_id && !token) || !payment_option || !payer_email) return res.status(400).json({ error: 'transfer_id or token, payment_option and payer_email required' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // find transfer either by id or token
+    let transfer = null;
+    if (token) {
+      const tq = await client.query('SELECT * FROM transfers WHERE claim_token=$1 FOR UPDATE', [token]);
+      if (tq.rowCount) transfer = tq.rows[0];
+    } else {
+      const tid = Number(transfer_id);
+      const tq = await client.query('SELECT * FROM transfers WHERE id=$1 FOR UPDATE', [tid]);
+      if (tq.rowCount) transfer = tq.rows[0];
+    }
+    if (!transfer) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Transfer not found' }); }
+    if (transfer.status === 'completed') { await client.query('ROLLBACK'); return res.status(400).json({ error: 'Transfer already completed' }); }
+    if (transfer.status === 'awaiting_confirmation') { await client.query('ROLLBACK'); return res.status(400).json({ error: 'Transfer is already awaiting confirmation' }); }
+
+    // Try to find an internal recipient by recipient_email if present
+    let recipientUser = null;
+    if (transfer.recipient_email) {
+      const recQ = await client.query('SELECT * FROM users WHERE email=$1', [transfer.recipient_email]);
+      if (recQ.rowCount) recipientUser = recQ.rows[0];
+    }
+
+    // Instead of finalizing immediately, set to awaiting_confirmation so company can verify receipt
+    await client.query(`UPDATE transfers SET status='awaiting_confirmation' WHERE id=$1`, [transfer.id]);
+
+    // Store receipt metadata in transfer_receipts
+    try{
+      const insertReceipt = await client.query(`INSERT INTO transfer_receipts (transfer_id, payer_email, payment_option, receipt_text, receipt_data) VALUES ($1,$2,$3,$4,$5) RETURNING id`, [transfer.id, payer_email, payment_option, receipt || null, uploadedFile ? JSON.stringify({ file: uploadedFile.path, name: uploadedFile.filename }) : null]);
+    } catch (e) { console.warn('store receipt failed', e); }
+
+    // notify company/support with payer details and receipt so they can confirm
+    try{
+      const companyEmail = process.env.SUPPORT_EMAIL || process.env.MAIL_FROM || 'support@bank.com';
+      const companyBody = `<p>Transfer <strong>${escapeHtml(String(transfer.id))}</strong> has a claim request from <strong>${escapeHtml(payer_email)}</strong>.</p>
+        <p>Payment option: <strong>${escapeHtml(payment_option)}</strong></p>
+        <p>Receipt / proof submitted: ${escapeHtml(receipt || '')}${uploadedFile ? `<p>Uploaded file: ${escapeHtml(uploadedFile.filename)}</p>` : ''}</p>
+        <p>Transfer details: Amount ${Number(transfer.amount).toFixed(2)}, Method: ${escapeHtml(transfer.method || '')}, Recipient: ${escapeHtml(transfer.recipient_name || transfer.recipient_email || '')}</p>
+        <p>To confirm and finalize this transfer, visit the admin confirm endpoint with your ADMIN_SECRET.</p>`;
+      sendEmail(companyEmail, `Claim submitted: ${transfer.id}`, renderEmail(`Claim submitted: ${transfer.id}`, companyBody));
+    } catch (e) { console.warn('notify company failed', e); }
+
+    // notify claimant to forward their payment receipt to the company email and that the transfer is awaiting confirmation
+    try{
+      const claimantBody = `<p>Thanks — we received your claim for transfer <strong>${escapeHtml(String(transfer.id))}</strong>.</p>
+        <p>Please forward your payment receipt to <strong>${escapeHtml(process.env.SUPPORT_EMAIL || process.env.MAIL_FROM || 'support@bank.com')}</strong>. The transfer is now <strong>awaiting confirmation</strong>. Once the company confirms, funds will be released.</p>`;
+      sendEmail(payer_email, `Claim received — awaiting confirmation`, renderEmail('Claim received', claimantBody));
+    } catch (e) { console.warn('notify claimant failed', e); }
+
+    // notify original sender to hold while payment is being confirmed
+    try{
+      const senderNotice = `<p>Your transfer <strong>${escapeHtml(String(transfer.id))}</strong> is currently <strong>awaiting confirmation</strong> from the recipient's payment. Please hold and do not attempt to re-send funds. We will notify you when confirmation completes.</p>`;
+      sendEmail(transfer.sender_email, `Transfer pending confirmation`, renderEmail('Transfer pending', senderNotice));
+      await client.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [transfer.sender_email, 'Transfer awaiting confirmation', `Transfer ${transfer.id} is awaiting confirmation.`, 'transfer', JSON.stringify({ transfer_id: transfer.id })]);
+    } catch (e) { console.warn('notify sender failed', e); }
+
+    await client.query('COMMIT');
+    return res.json({ ok: true, message: 'Claim submitted. Please forward your payment receipt to the company email. Transfer is awaiting confirmation.' });
+  } catch (e) {
+    try { await client.query('ROLLBACK'); } catch {};
+    console.error('POST /api/transfers/claim', e);
+    return res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// Admin-only endpoint to confirm a claimed transfer. Requires ADMIN_SECRET env var.
+app.post('/api/transfers/confirm', express.json(), async (req, res) => {
+  const { transfer_id, admin_secret } = req.body || {};
+  if (!transfer_id || !admin_secret) return res.status(400).json({ error: 'transfer_id and admin_secret required' });
+  if (admin_secret !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const tid = Number(transfer_id);
+    const q = await client.query('SELECT * FROM transfers WHERE id=$1 FOR UPDATE', [tid]);
+    if (!q.rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Transfer not found' }); }
+    const transfer = q.rows[0];
+    if (transfer.status !== 'awaiting_confirmation') { await client.query('ROLLBACK'); return res.status(400).json({ error: 'Transfer is not awaiting confirmation' }); }
+
+    // find internal recipient if exists
+    let recipientUser = null;
+    if (transfer.recipient_email) {
+      const recQ = await client.query('SELECT * FROM users WHERE email=$1', [transfer.recipient_email]);
+      if (recQ.rowCount) recipientUser = recQ.rows[0];
+    }
+
+    // credit recipient if internal
+    if (recipientUser) {
+      await client.query(`UPDATE users SET checking = checking + $1 WHERE id=$2`, [Number(transfer.amount), recipientUser.id]);
+      await client.query(`INSERT INTO transactions (user_email, type, amount, description) VALUES ($1,'credit',$2,$3)`, [recipientUser.email, Number(transfer.amount), `Transfer ${transfer.id} confirmed by company`]);
+    }
+
+    await client.query(`UPDATE transfers SET status='completed' WHERE id=$1`, [tid]);
+
+    // notify parties
+    await client.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [transfer.sender_email, 'Transfer completed', `Transfer ${transfer.id} has been confirmed and completed.`, 'transfer', JSON.stringify({ transfer_id: transfer.id })]);
+    if (recipientUser) await client.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [recipientUser.email, 'Funds credited', `Transfer ${transfer.id} has been credited to your account.`, 'transfer', JSON.stringify({ transfer_id: transfer.id })]);
+
+    try{
+      // email sender
+      sendEmail(transfer.sender_email, `Transfer ${transfer.id} completed`, renderEmail('Transfer completed', `<p>Your transfer ${transfer.id} has been confirmed and completed by the company.</p>`));
+      // email recipient (if external claimant provided an email, we don't persist claimant email on transfer — the company should reference receipts)
+      if (recipientUser) sendEmail(recipientUser.email, `Funds credited — transfer ${transfer.id}`, renderEmail('Funds credited', `<p>The transfer ${transfer.id} has been credited to your account.</p>`));
+    } catch (e) { console.warn('notify parties after confirm failed', e); }
+
+    await client.query('COMMIT');
+    return res.json({ ok: true, message: 'Transfer confirmed and completed.' });
+  } catch (e) {
+    try { await client.query('ROLLBACK'); } catch {};
+    console.error('POST /api/transfers/confirm', e);
+    return res.status(500).json({ error: 'Server error' });
+  } finally { client.release(); }
 });
 
 // === TRANSACTIONS ===
@@ -951,4 +1237,44 @@ res.write(`data: ${JSON.stringify(profile)}\n\n`);
 const PORT = Number(process.env.PORT) || 4000;
 app.listen(PORT, () => {
   console.log(`🚀 API server running on http://localhost:${PORT}`);
+});
+
+// Optional dev-only test route to simulate a transfer (guarded)
+if (process.env.ALLOW_TEST_ROUTES === '1') {
+  app.post('/api/test/transfer', authMiddleware, express.json(), async (req, res) => {
+    try {
+      const { recipient_email, recipient_name, amount, method } = req.body || {};
+      // simple payload: send from auth user to provided recipient
+      const sender = req.user.email;
+      const payload = {
+        sender_email: sender,
+        recipient_email: recipient_email || null,
+        recipient_name: recipient_name || null,
+        amount: amount || 1.23,
+        method: method || 'wire'
+      };
+      // Forward to transfers handler by calling internal fetch to own API
+      // Use absolute URL to local server
+      const fetch = (await import('node-fetch')).default;
+      const url = `http://localhost:${PORT}/api/transfers`;
+      const token = req.headers.authorization || '';
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization': token }, body: JSON.stringify(payload) });
+      const text = await r.text();
+      const data = text ? JSON.parse(text) : {};
+      return res.status(r.status).json(data);
+    } catch (e) {
+      console.error('/api/test/transfer', e);
+      return res.status(500).json({ error: 'Test transfer failed' });
+    }
+  });
+}
+
+// Admin: list pending transfers (requires ADMIN_SECRET in body)
+app.post('/api/admin/pending', express.json(), async (req, res) => {
+  try{
+    const { admin_secret } = req.body || {};
+    if (!admin_secret || admin_secret !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+    const q = await pool.query(`SELECT id, sender_email, recipient_email, recipient_name, amount, status, created_at FROM transfers WHERE status='awaiting_confirmation' ORDER BY created_at ASC LIMIT 200`);
+    return res.json(q.rows);
+  } catch(e) { console.error('POST /api/admin/pending', e); return res.status(500).json({ error: 'Server error' }); }
 });

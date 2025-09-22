@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin — Pending Transfers</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:20px;background:#f4f6f8;color:#0b1116}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #e6eef7;text-align:left}
+    .btn{background:#0b74de;color:#fff;padding:8px 10px;border-radius:6px;border:0;cursor:pointer}
+    .secret{width:360px;padding:8px;margin-bottom:12px}
+  </style>
+</head>
+<body>
+  <h1>Pending transfers</h1>
+  <p>Enter your admin secret to load and confirm pending transfers.</p>
+  <input id="admin_secret" class="secret" type="password" placeholder="ADMIN_SECRET" />
+  <button id="load" class="btn">Load pending</button>
+  <div id="list" style="margin-top:12px"></div>
+<script>
+  document.getElementById('load').addEventListener('click', async ()=>{
+    const secret = document.getElementById('admin_secret').value.trim();
+    if(!secret) return alert('Enter admin secret');
+    const r = await fetch('/api/admin/pending', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ admin_secret: secret }) });
+    if(!r.ok) return alert('Failed to load');
+    const items = await r.json();
+    const list = document.getElementById('list');
+    if(!items.length) return list.innerHTML = '<p>No pending transfers</p>';
+    let html = '<table><thead><tr><th>ID</th><th>Amount</th><th>Recipient</th><th>Created</th><th>Action</th></tr></thead><tbody>';
+    for(const it of items){
+      html += `<tr><td>${it.id}</td><td>$${Number(it.amount).toFixed(2)}</td><td>${it.recipient_name||it.recipient_email||''}</td><td>${new Date(it.created_at).toLocaleString()}</td><td><button class="btn" data-id="${it.id}">Confirm</button></td></tr>`;
+    }
+    html += '</tbody></table>';
+    list.innerHTML = html;
+    list.querySelectorAll('button[data-id]').forEach(btn=> btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.id;
+      if(!confirm('Confirm transfer '+id+'?')) return;
+      const r2 = await fetch('/api/transfers/confirm', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ transfer_id: id, admin_secret: secret }) });
+      if(!r2.ok) return alert('Confirm failed');
+      alert('Confirmed');
+      btn.disabled = true;
+    }));
+  });
+</script>
+</body>
+</html>

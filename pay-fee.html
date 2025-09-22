@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Claim Pending Transfer</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; background:#f6fafc; color:#123; margin:0; padding:20px }
+    .card { max-width:720px; margin:28px auto; background:white; border-radius:8px; padding:18px; box-shadow:0 6px 18px rgba(9,30,66,0.06) }
+    h1 { margin:0 0 8px 0; font-size:20px }
+    .muted { color:#667; font-size:14px }
+    .row { display:flex; gap:12px; margin-top:12px }
+    .col { flex:1 }
+    label { display:block; font-size:13px; margin-bottom:6px }
+    input[type=text], textarea, select { width:100%; padding:10px;border:1px solid #d6e2ef;border-radius:6px }
+    button { background:#0b74de;color:#fff;border:0;padding:10px 14px;border-radius:6px;font-weight:700 }
+    .btn-secondary { background:#eef3fb;color:#123;border:0 }
+    .hint { font-size:13px;color:#556;margin-top:8px }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Claim pending transfer</h1>
+    <p class="muted">Follow the steps to complete the transfer and notify the company of your chosen payment method.</p>
+
+    <div id="transfer-info" style="margin-top:14px">
+      <p class="muted">Loading transfer details…</p>
+    </div>
+
+  <form id="claim-form" style="margin-top:12px" enctype="multipart/form-data">
+      <label for="payment_option">Select payment option</label>
+      <select id="payment_option" required>
+        <option value="bank_wire">Bank wire / ACH</option>
+        <option value="btc">Bitcoin (BTC)</option>
+        <option value="third_party">Third-party payment (e.g., PayPal)</option>
+      </select>
+
+  <label for="receipt_file">Payment receipt (upload a file or paste URL/text)</label>
+  <input id="receipt_file" type="file" accept="image/*,.pdf,.jpg,.png" />
+  <textarea id="receipt" rows="4" placeholder="Paste a URL to your receipt or paste the text of the payment confirmation"></textarea>
+
+      <label for="payer_email">Your email (so we can match the transfer)</label>
+      <input id="payer_email" type="text" placeholder="your@email.com" required>
+
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button type="submit">Submit payment & notify</button>
+        <button type="button" id="cancel" class="btn-secondary">Cancel</button>
+      </div>
+
+      <p class="hint">After you submit, you'll be asked to forward a copy of your payment receipt to our company email. We will then confirm and release funds to the recipient.</p>
+    </form>
+
+    <div id="result" style="margin-top:12px"></div>
+  </div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const transferId = params.get('transfer_id');
+  const token = params.get('token');
+  const infoEl = document.getElementById('transfer-info');
+  const resultEl = document.getElementById('result');
+  const form = document.getElementById('claim-form');
+
+  const lookupUrl = token ? `/api/transfers/claim/${encodeURIComponent(token)}` : (transferId ? `/api/transfers/${encodeURIComponent(transferId)}` : null);
+  if (!lookupUrl) {
+    infoEl.innerHTML = '<p style="color:#b00">Missing transfer id or token in URL.</p>';
+    form.style.display = 'none';
+  } else {
+    fetch(lookupUrl)
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.id) {
+          infoEl.innerHTML = `<div><strong>Reference:</strong> ${data.id} • <strong>Amount:</strong> $${Number(data.amount).toFixed(2)} • <strong>Status:</strong> ${data.status}</div>`;
+          if (data.account_number) infoEl.innerHTML += `<div class="hint">Destination bank: ${data.account_number} (routing ${data.routing_number})</div>`;
+          if (data.btc_address) infoEl.innerHTML += `<div class="hint">BTC address: ${data.btc_address}</div>`;
+        } else {
+          infoEl.innerHTML = '<p style="color:#b00">Transfer not found or not accessible.</p>';
+          form.style.display = 'none';
+        }
+      }).catch(e => { infoEl.innerHTML = '<p style="color:#b00">Error loading transfer details</p>'; form.style.display='none' });
+  }
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    resultEl.innerHTML = 'Submitting…';
+    const payment_option = document.getElementById('payment_option').value;
+    const receipt = document.getElementById('receipt').value.trim();
+    const payer_email = document.getElementById('payer_email').value.trim();
+    const receipt_file = document.getElementById('receipt_file').files[0];
+
+    // Use FormData so we can upload files
+    const fd = new FormData();
+    if (token) fd.append('token', token);
+    if (transferId && !token) fd.append('transfer_id', transferId);
+    fd.append('payment_option', payment_option);
+    fd.append('receipt', receipt);
+    fd.append('payer_email', payer_email);
+    if (receipt_file) fd.append('receipt_file', receipt_file);
+
+    try {
+      const r = await fetch('/api/transfers/claim', { method: 'POST', body: fd });
+      const j = await r.json();
+      if (r.ok) {
+        resultEl.innerHTML = `<div style="color:green">${j.message || 'Claim submitted. Thank you!'}</div>`;
+        form.reset();
+      } else {
+        resultEl.innerHTML = `<div style="color:#b00">${j.error || 'Failed to submit claim'}</div>`;
+      }
+    } catch (e) {
+      resultEl.innerHTML = '<div style="color:#b00">Network error</div>';
+    }
+  });
+
+  document.getElementById('cancel').addEventListener('click', () => { window.location.href = '/'; });
+</script>
+</body>
+</html>

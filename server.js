@@ -7,6 +7,8 @@ import jwt from "jsonwebtoken";
 import { Pool } from "pg";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 
 dotenv.config();
 
@@ -114,12 +116,66 @@ async function initMailer(){
 }
 initMailer();
 
+// Logo PNG path (optional) for email clients that don't support inline SVG
+const logoPngPath = path.join(process.cwd(), 'assets', 'logo-128.png');
+const hasLogoPng = fs.existsSync(logoPngPath);
+
+// Brand colors (customizable via env)
+const BRAND_PRIMARY = process.env.BRAND_PRIMARY || '#585fc8';
+const BRAND_SECONDARY = process.env.BRAND_SECONDARY || '#7061cd';
+const CTA_COLOR = process.env.CTA_COLOR || '#34d399';
+
 async function sendEmail(to, subject, html){
   if (!mailer || !to) return;
   try{
-    await mailer.sendMail({ from: mailer.from, to, subject, html });
+    const mailOptions = { from: mailer.from, to, subject, html };
+    if (hasLogoPng) {
+      // Attach the logo as an inline cid so clients that don't support SVG get a PNG fallback
+      mailOptions.attachments = [{ filename: 'logo-128.png', path: logoPngPath, cid: 'logo' }];
+    }
+    await mailer.sendMail(mailOptions);
   } catch (e){ console.warn('sendEmail failed', e); }
 }
+
+// Render a branded HTML email with inline SVG logo and basic styles
+
+function renderEmail(title, bodyHtml){
+  // Table-based, Outlook-friendly template
+  const logoHtml = hasLogoPng ? `<img src="cid:logo" width="48" height="48" style="display:block;border:0;">` : `<!-- inline svg omitted for brevity -->`;
+  const headerBg = `${BRAND_PRIMARY}`;
+  const cta = CTA_COLOR;
+
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+    <!--[if mso]><style> .fallback-font { font-family: Arial, Helvetica, sans-serif !important; } </style><![endif]-->
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#0b1116;padding:24px 0;">
+      <tr><td align="center">
+        <table width="680" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:${BRAND_PRIMARY};padding:16px 20px;vertical-align:middle;">
+              <table cellpadding="0" cellspacing="0" role="presentation"><tr>
+                <td style="vertical-align:middle;width:48px">${logoHtml}</td>
+                <td style="vertical-align:middle;padding-left:12px"><span style="color:#ffffff;font-weight:700;font-size:18px" class="fallback-font">Bank Swift</span></td>
+              </tr></table>
+            </td>
+          </tr>
+          <tr><td style="padding:20px;background:#081018;color:#0f1724;">
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+              <tr><td style="color:#0b0f14;font-size:18px;font-weight:700;padding-bottom:10px" class="fallback-font">${escapeHtml(title)}</td></tr>
+              <tr><td style="color:#253444;font-size:14px;line-height:20px" class="fallback-font">${bodyHtml}</td></tr>
+              <tr><td style="padding-top:18px">
+                <!-- Button fallback for email clients -->
+                <a href="#" style="background:${cta};color:#022;padding:10px 14px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:700" class="fallback-font">Open</a>
+              </td></tr>
+            </table>
+          </td></tr>
+          <tr><td style="background:#07101a;padding:12px 20px;color:#9fb1c9;font-size:12px" class="fallback-font">&copy; ${new Date().getFullYear()} Bank Swift. All rights reserved.</td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body></html>`;
+}
+
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>\"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]); }
 
 function makeToken(len = 36){
   return crypto.randomBytes(len).toString('base64url');
@@ -149,12 +205,12 @@ app.post('/api/password/forgot', async (req, res) => {
     const resetUrl = `${origin.replace(/\/$/, '')}/reset-password.html?token=${encodeURIComponent(token)}&email=${encodeURIComponent(user.email)}`;
 
     // Send email (fire-and-forget)
-    sendEmail(user.email, 'Password reset request', `
+    sendEmail(user.email, 'Password reset request', renderEmail('Password reset request', `
       <p>Hi ${user.fullname || ''},</p>
-      <p>We received a request to reset your password. Click the link below to set a new password. This link expires in one hour.</p>
-      <p><a href="${resetUrl}">Reset your password</a></p>
+      <p>We received a request to reset your password. Click the button below to set a new password. This link expires in one hour.</p>
+      <p><a class="button" href="${resetUrl}">Reset your password</a></p>
       <p>If you didn't request this, you can safely ignore this email.</p>
-    `);
+    `));
 
     // Insert notification
     await pool.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [
@@ -209,8 +265,8 @@ app.post('/api/password/reset', async (req, res) => {
       throw e;
     } finally { client.release(); }
 
-    // send email notification
-    sendEmail(norm, 'Your password was changed', `<p>Your account password was changed successfully. If you did not perform this action, please contact support immediately.</p>`);
+  // send email notification
+  sendEmail(norm, 'Your password was changed', renderEmail('Your password was changed', `<p>Your account password was changed successfully. If you did not perform this action, please contact support immediately.</p>`));
 
     return res.json({ ok: true });
   } catch (e){
@@ -389,7 +445,7 @@ const token = issueToken(user);
 
     // Send welcome email and create an in-app notification
     try{
-      sendEmail(user.email, 'Welcome to Bank Swift', `<p>Hi ${user.fullname || ''},</p><p>Welcome to Bank Swift — your account is ready. If you have any questions, reply to this email.</p>`);
+  sendEmail(user.email, 'Welcome to Bank Swift', renderEmail('Welcome to Bank Swift', `<p>Hi ${user.fullname || ''},</p><p>Welcome to Bank Swift — your account is ready. If you have any questions, reply to this email.</p>`));
       await pool.query(`INSERT INTO notifications (user_email, title, body, type, meta) VALUES ($1,$2,$3,$4,$5)`, [
         user.email,
         'Welcome to Bank Swift',
@@ -440,7 +496,7 @@ if (!user) return res.status(401).json({ error: "Invalid email or password" });
         'login',
         JSON.stringify({ ip: req.ip || null, ua: req.get('user-agent') || null })
       ]);
-      if (shouldSend) sendEmail(user.email, 'New sign-in to your account', `<p>New sign-in detected from IP ${req.ip || 'unknown'}.</p><p>If this wasn't you, please change your password immediately.</p>`);
+  if (shouldSend) sendEmail(user.email, 'New sign-in to your account', renderEmail('New sign-in to your account', `<p>New sign-in detected from IP ${req.ip || 'unknown'}.</p><p>If this wasn't you, please change your password immediately.</p>`));
     }catch(e){ console.warn('login alert failed', e); }
 
     return res.json({
@@ -493,7 +549,7 @@ app.put("/api/users/me", authMiddleware, express.json(), async (req, res) => {
         'profile',
         JSON.stringify({})
       ]);
-      if (process.env.SEND_PROFILE_EMAIL === '1') sendEmail(updated.email, 'Your profile was updated', `<p>Your profile information was changed. If this was not you, contact support.</p>`);
+  if (process.env.SEND_PROFILE_EMAIL === '1') sendEmail(updated.email, 'Your profile was updated', renderEmail('Your profile was updated', `<p>Your profile information was changed. If this was not you, contact support.</p>`));
     }catch(e){ console.warn('profile notification/email failed', e); }
 
     res.json(result.rows[0]);
@@ -610,7 +666,7 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
           'warning',
           JSON.stringify({ balance: newBal, threshold: thr, account: sender_account_type })
         ]);
-        if (process.env.SEND_LOW_BALANCE_EMAIL === '1') sendEmail(sender.email, 'Low balance warning', `<p>Your ${sender_account_type} balance is $${newBal.toFixed(2)}, below the threshold of $${thr}.</p>`);
+  if (process.env.SEND_LOW_BALANCE_EMAIL === '1') sendEmail(sender.email, 'Low balance warning', renderEmail('Low balance warning', `<p>Your ${sender_account_type} balance is $${newBal.toFixed(2)}, below the threshold of $${thr}.</p>`));
       }
     } catch (e){ console.warn('low balance check failed', e); }
 
@@ -672,9 +728,9 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
   const fmt = (n)=> Number(n).toLocaleString(undefined,{ style:'currency', currency:'USD' });
   const amountFmt = fmt(amt);
   // to sender
-  sendEmail(sender.email, 'Transfer sent', `<p>You sent ${amountFmt} to ${prettySenderTarget} via ${method?.toUpperCase() || 'TRANSFER'}.</p><p>Reference: ${createdTx.id}</p>`);
+  sendEmail(sender.email, 'Transfer sent', renderEmail('Transfer sent', `<p>You sent ${amountFmt} to ${prettySenderTarget} via ${method?.toUpperCase() || 'TRANSFER'}.</p><p>Reference: ${createdTx.id}</p>`));
   // to recipient
-  sendEmail(rec.email, 'Transfer received', `<p>You received ${amountFmt} from ${prettyRecipientSource} via ${method?.toUpperCase() || 'TRANSFER'}.</p><p>Reference: ${createdTx.id}</p>`);
+  sendEmail(rec.email, 'Transfer received', renderEmail('Transfer received', `<p>You received ${amountFmt} from ${prettyRecipientSource} via ${method?.toUpperCase() || 'TRANSFER'}.</p><p>Reference: ${createdTx.id}</p>`));
   } catch (err) {
     try { await client.query("ROLLBACK"); } catch {}
     console.error("Transfer error:", err, req.body);

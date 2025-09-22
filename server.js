@@ -1233,7 +1233,22 @@ res.write(`data: ${JSON.stringify(profile)}\n\n`);
   });
 });
 
-// ✅ Only API, no static fallback
+// Serve static frontend files from project root so visiting `/` returns the UI
+// This also provides a fallback for client-side routes (SPA) while keeping API
+// routes under `/api` unaffected.
+const staticDir = path.join(process.cwd());
+app.use(express.static(staticDir, { extensions: ['html'] }));
+
+// Explicit root route -> index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(staticDir, 'index.html'));
+});
+
+// Fallback: for any non-API GET request, serve index.html (supports client-side routing)
+app.get(/^\/(?!api\/).*/, (req, res) => {
+  res.sendFile(path.join(staticDir, 'index.html'));
+});
+
 const PORT = Number(process.env.PORT) || 4000;
 app.listen(PORT, () => {
   console.log(`🚀 API server running on http://localhost:${PORT}`);

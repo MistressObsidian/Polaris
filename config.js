@@ -32,7 +32,7 @@
         ApiBase = "http://localhost:4000/api";
       } else if (origin.includes("shenzhenswift.online")) {
         // 🌐 Production → Render backend for your domain
-        ApiBase = "https://shenzhenswift-online.onrender.com/api";
+        ApiBase = "https://shenzhenswift.online.onrender.com/api/";
       } else {
         // Default fallback
         ApiBase = "http://localhost:4000/api";

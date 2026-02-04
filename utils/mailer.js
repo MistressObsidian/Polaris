@@ -6,10 +6,15 @@
 //   await sendEmail('me@example.com', 'Subject', renderEmail('Title', '<p>Body</p>'));
 
 import nodemailer from 'nodemailer';
-import fs from 'fs';
 import path from 'path';
+import fs from 'fs';
 
 let mailer = null;
+
+const BRAND_LOGO_PATH = process.env.BRAND_LOGO_PATH
+  || path.join(process.cwd(), 'assets', 'logo.png');
+
+const BRAND_LOGO_CID = 'bankswiftlogo';
 
 export async function initMailer() {
   const host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
@@ -47,19 +52,26 @@ export async function sendEmail(to, subject, html, opts = {}) {
     return false;
   }
   if (!to) throw new Error('sendEmail: missing "to" address');
-  const mailOptions = { from: mailer.from, to, subject, html, ...opts };
-  try {
-    const logoPath = path.join(process.cwd(), 'assets', 'logo.png');
-    if (fs.existsSync(logoPath)) {
-      mailOptions.attachments = mailOptions.attachments || [];
-      mailOptions.attachments.push({
-        path: logoPath,
-        cid: 'logocid',
-        filename: 'logo.png',
-        contentDisposition: 'inline',
-      });
-    }
-  } catch (e) { /* ignore attachment errors */ }
+
+  const attachments = Array.isArray(opts.attachments) ? opts.attachments : [];
+
+  if (fs.existsSync(BRAND_LOGO_PATH)) {
+    attachments.push({
+      filename: path.basename(BRAND_LOGO_PATH),
+      path: BRAND_LOGO_PATH,
+      cid: BRAND_LOGO_CID,
+    });
+  }
+
+  const mailOptions = {
+    from: mailer.from,
+    to,
+    subject,
+    html,
+    ...opts,
+    attachments,
+  };
+
   try {
     const info = await mailer.sendMail(mailOptions);
     console.log('sendEmail: mail queued', info.messageId || info.response || info);
@@ -72,10 +84,12 @@ export async function sendEmail(to, subject, html, opts = {}) {
 
 export function renderEmail(title, bodyHtml) {
   const BRAND_NAME = process.env.BRAND_NAME || 'Bank Swift';
+  const BRAND_LOGO_SRC = `cid:${BRAND_LOGO_CID}`;
   return `
   <div style="font-family:Arial,sans-serif; background:#f6f8fb; padding:24px;">
     <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; border:1px solid #e8edf3;">
       <div style="padding:18px 20px; border-bottom:1px solid #4d7fbc; display:flex; align-items:center; gap:12px;">
+        <img src="${BRAND_LOGO_SRC}" width="190" alt="${escapeHtml(BRAND_NAME)}" style="display:block; height:auto;" />
       </div>
       <div style="padding:20px;">
         <h2 style="margin:0 0 12px 0; font-size:18px; color:#0f172a;">${escapeHtml(title)}</h2>

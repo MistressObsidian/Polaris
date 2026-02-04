@@ -185,13 +185,14 @@
   </main>
 
 <script>
-let user = null;
+const user = JSON.parse(localStorage.getItem("bs-user"));
+
+if (!user || !user.token) {
+  window.location.replace("login.html");
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.Notifications) window.Notifications.init();
-  user = JSON.parse(localStorage.getItem("bs-user") || "null");
-  if (!user || !user.token) { window.location.href = "login.html"; return; }
-
   document.getElementById("heroName").textContent = user.fullname || user.accountname || user.email;
 
   wireSidebar();
@@ -218,7 +219,7 @@ function fmt(n){ return `$${Number(n||0).toFixed(2)}`; }
 
 function syncProfileToUI(profile) {
   if (!profile) return;
-  user = { ...user, ...profile };
+  Object.assign(user, profile);
   try { localStorage.setItem('bs-user', JSON.stringify(user)); } catch(_) {}
 
   const checking = Number(profile.checking ?? 0);

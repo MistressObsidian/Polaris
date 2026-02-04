@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Console • Bank Swift</title>
+
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Shared styles -->
+  <link rel="stylesheet" href="ui.css" />
+  <script src="config.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121833;
+      --panel-soft: #171f45;
+      --accent: #667eea;
+      --accent-2: #4facfe;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont;
+      background: radial-gradient(1200px 600px at 10% -10%, #1a2150, transparent), var(--bg);
+      color: var(--text);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: linear-gradient(180deg, #0f1635, #0b1020);
+      border-right: 1px solid rgba(255,255,255,.06);
+      padding: 1.25rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .brand {
+      font-weight: 800;
+      letter-spacing: .4px;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .brand span { color: var(--accent); }
+
+    .nav {
+      display: grid;
+      gap: .4rem;
+    }
+
+    .nav button {
+      all: unset;
+      padding: .7rem .8rem;
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .nav button.active,
+    .nav button:hover {
+      background: rgba(102,126,234,.15);
+      color: #fff;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      font-size: .75rem;
+      color: var(--muted);
+    }
+
+    /* Main */
+    .main {
+      padding: 1.5rem 1.75rem 2.5rem;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .topbar h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .badge {
+      padding: .3rem .6rem;
+      border-radius: 999px;
+      font-size: .65rem;
+      background: rgba(79,172,254,.15);
+      color: #93c5fd;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel), var(--panel-soft));
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem 1.2rem;
+    }
+
+    .card h3 {
+      margin: 0 0 .75rem;
+      font-size: .9rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .stat {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -.5px;
+    }
+
+    .muted { color: var(--muted); font-size: .75rem; }
+
+    /* Forms & tables */
+    .field { display: grid; gap: .25rem; }
+
+    .field label {
+      font-size: .7rem;
+      color: var(--muted);
+    }
+
+    .input {
+      background: #0b1020;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: .55rem .65rem;
+      color: #fff;
+      font-size: .8rem;
+    }
+
+    .btn {
+      all: unset;
+      cursor: pointer;
+      padding: .55rem .9rem;
+      border-radius: 10px;
+      font-size: .75rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      text-align: center;
+    }
+
+    .btn.secondary {
+      background: rgba(255,255,255,.08);
+      color: #e5e7eb;
+    }
+
+    .btn.danger {
+      background: linear-gradient(135deg, #ef4444, #f97316);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #f97316);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .75rem;
+    }
+
+    th, td {
+      padding: .55rem .5rem;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      text-align: left;
+    }
+
+    th { color: var(--muted); font-weight: 600; }
+
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    .status {
+      font-weight: 600;
+      font-size: .65rem;
+    }
+
+    .ok { color: var(--success); }
+    .bad { color: var(--danger); }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .2rem .5rem;
+      border-radius: 999px;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .2px;
+      text-transform: uppercase;
+    }
+
+    .pill.ok {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+    }
+
+    .pill.danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+
+    .hidden { display: none !important; }
+
+    .kpi {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .kpi .k {
+      background: linear-gradient(180deg, var(--panel), var(--panel-soft));
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .kpi .k span { color: var(--muted); font-size: .75rem; }
+    .kpi .k strong { font-size: 1.4rem; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 20, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 1.5rem;
+    }
+
+    .modal-card {
+      width: min(820px, 100%);
+      background: linear-gradient(180deg, var(--panel), var(--panel-soft));
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.4rem 1.4rem;
+      display: grid;
+      gap: .6rem;
+    }
+
+    .modal-card label { font-size: .7rem; color: var(--muted); }
+    .modal-card input,
+    .modal-card textarea {
+      background: #0b1020;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: .55rem .65rem;
+      color: #fff;
+      font-size: .8rem;
+      font-family: inherit;
+    }
+
+    .modal-card textarea { min-height: 120px; resize: vertical; }
+
+    .actions {
+      display: flex;
+      gap: .5rem;
+      justify-content: flex-end;
+      margin-top: .4rem;
+    }
+  </style>
+</head>
+<body>
+
+<script>
+  const u = JSON.parse(localStorage.getItem("bs-user") || "null");
+  if (!u || u.is_admin !== true) {
+    localStorage.removeItem("bs-user");
+    localStorage.removeItem("bs-token");
+    location.href = "dashboard.html";
+  }
+  const storedUser = u;
+  const token = storedUser?.token || localStorage.getItem('bs-token');
+</script>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">Bank<span>Swift</span> Admin</div>
+
+    <nav class="nav">
+      <button class="active" data-view="dashboard">Dashboard</button>
+      <button data-view="users">Users</button>
+      <button data-view="transfers">Transfers</button>
+      <button data-view="templates">Email Templates</button>
+      <button data-view="logs">Audit Logs</button>
+    </nav>
+
+    <div class="sidebar-footer">Admin Console • Secure Access</div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <h1 id="viewTitle">Dashboard</h1>
+      <div style="display:flex; align-items:center; gap:.5rem;">
+        <button class="btn secondary" onclick="openManualEmail()">Send Email</button>
+        <button class="btn" onclick="openAddUser()">Add User</button>
+        <span class="badge">ADMIN</span>
+        <button class="btn secondary" id="logoutBtn">Log out</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <section id="view-dashboard">
+      <div class="kpi">
+        <div class="k"><span>Total users</span><strong id="statUsers">—</strong></div>
+        <div class="k"><span>Pending transfers</span><strong id="statPending">—</strong></div>
+        <div class="k"><span>Suspended users</span><strong id="statSuspended">—</strong></div>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section id="view-users" class="hidden">
+      <div class="card">
+        <h3>All Users</h3>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Total Balance</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+
+        <div style="display:flex; justify-content:space-between; margin-top:.75rem;">
+          <button class="btn secondary" id="prevPage">Previous</button>
+          <span class="muted" id="pageInfo">Page 1</span>
+          <button class="btn secondary" id="nextPage">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRANSFERS -->
+    <section id="view-transfers" class="hidden">
+      <div class="card">
+        <h3>Pending Transfers</h3>
+        <div id="pendingEmpty" class="muted" style="margin:.5rem 0 0;"></div>
+        <div id="pendingWrap" style="display:none; margin-top:.5rem;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Amount</th>
+                <th>Recipient</th>
+                <th>Email</th>
+                <th>Created</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="pendingRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEMPLATES -->
+    <section id="view-templates" class="hidden">
+      <div class="card">
+        <h3>Email Templates</h3>
+        <p class="muted">Edit and save transactional email templates.</p>
+        <button class="btn secondary" onclick="loadTemplates()">Refresh Templates</button>
+        <div id="tplList" class="grid" style="margin-top:.75rem;"></div>
+      </div>
+    </section>
+
+    <!-- LOGS -->
+    <section id="view-logs" class="hidden">
+      <div class="card">
+        <h3>Audit Logs</h3>
+        <pre id="auditLogs" class="muted">Loading…</pre>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="tplModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Edit Email Template</h2>
+
+    <label>Subject</label>
+    <input id="mSubject" />
+
+    <label>Preheader</label>
+    <input id="mPreheader" />
+
+    <label>Text Body</label>
+    <textarea id="mText"></textarea>
+
+    <label>HTML Body</label>
+    <textarea id="mHtml"></textarea>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveTemplate()">Save</button>
+      <button class="btn" onclick="closeTpl()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="emailModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Send Email</h2>
+
+    <label>Recipient Email</label>
+    <input id="emailTo" placeholder="user@example.com" />
+
+    <label>Subject</label>
+    <input id="emailSubject" />
+
+    <label>Message</label>
+    <textarea id="emailBody"></textarea>
+
+    <div class="actions">
+      <button class="btn secondary" onclick="closeEmail()">Cancel</button>
+      <button class="btn" onclick="sendManualEmail()">Send</button>
+    </div>
+  </div>
+</div>
+
+<div id="addUserModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Add New User</h2>
+
+    <label>Full Name</label>
+    <input id="newName" />
+
+    <label>Email</label>
+    <input id="newEmail" />
+
+    <label>Temporary Password</label>
+    <input id="newPassword" type="password" />
+
+    <div class="actions">
+      <button class="btn secondary" onclick="closeAddUser()">Cancel</button>
+      <button class="btn" onclick="createUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = window.API_BASE || "";
+  const $ = (sel) => document.querySelector(sel);
+  const headers = () => ({
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`,
+  });
+
+  const state = {
+    templatesCache: {},
+    editingTemplate: null,
+  };
+
+  const views = ['dashboard','users','transfers','templates','logs'];
+  document.querySelectorAll('.nav button').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      views.forEach(v => document.getElementById(`view-${v}`).classList.add('hidden'));
+      const v = btn.dataset.view;
+      document.getElementById(`view-${v}`).classList.remove('hidden');
+      document.getElementById('viewTitle').textContent = btn.textContent;
+      if (v === "templates") loadTemplates();
+    };
+  });
+
+  async function api(path, opts={}) {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...opts,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...(opts.headers||{})
+      }
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
+  async function loadStats() {
+    const res = await fetch(`${API}/admin/stats`, { headers: headers() });
+    const d = await res.json();
+    if (!res.ok) return;
+    document.getElementById("statUsers").textContent = d.total_users;
+    document.getElementById("statPending").textContent = d.pending_transfers;
+    document.getElementById("statSuspended").textContent = d.locked_users;
+  }
+  loadStats();
+
+  function toast(title, message, type) {
+    const text = message ? `${title}: ${message}` : title;
+    alert(text);
+  }
+
+  function openManualEmail(){
+    document.getElementById("emailModal").classList.remove("hidden");
+  }
+
+  function closeEmail(){
+    document.getElementById("emailModal").classList.add("hidden");
+  }
+
+  async function sendManualEmail(){
+    const to = emailTo.value.trim();
+    const subject = emailSubject.value.trim();
+    const body = emailBody.value.trim();
+
+    if (!to || !subject || !body) {
+      return toast("Missing fields", "All fields are required");
+    }
+
+    await fetch(`${API}/admin/send-email`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({
+        to,
+        subject,
+        bodyHtml: `<p>${body}</p>`,
+        text: body
+      })
+    });
+
+    toast("Sent", "Email sent successfully");
+    closeEmail();
+  }
+
+  function openAddUser(){
+    document.getElementById("addUserModal").classList.remove("hidden");
+  }
+
+  function closeAddUser(){
+    document.getElementById("addUserModal").classList.add("hidden");
+  }
+
+  async function createUser(){
+    const fullname = newName.value.trim();
+    const email = newEmail.value.trim();
+    const password = newPassword.value.trim();
+
+    if (!fullname || !email || !password) {
+      return toast("Missing fields", "All fields are required");
+    }
+
+    await fetch(`${API}/admin/create-user`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ fullname, email, password })
+    });
+
+    toast("User created", "Account created successfully");
+    closeAddUser();
+    loadAllUsers();
+  }
+
+  function renderTemplates() {
+    const list = $("#tplList");
+    list.innerHTML = "";
+    const keys = Object.keys(state.templatesCache || {});
+    if (!keys.length) {
+      const empty = document.createElement("div");
+      empty.className = "muted";
+      empty.textContent = "No templates available.";
+      list.appendChild(empty);
+      return;
+    }
+    keys.forEach((key) => {
+      const t = state.templatesCache[key] || {};
+      const card = document.createElement("div");
+      card.className = "card";
+      const title = document.createElement("h3");
+      title.textContent = key;
+      const subject = document.createElement("div");
+      subject.className = "muted";
+      subject.textContent = t.subject || "(no subject)";
+      const btn = document.createElement("button");
+      btn.className = "btn secondary";
+      btn.textContent = "Edit";
+      btn.onclick = () => openTemplate(key);
+      card.appendChild(title);
+      card.appendChild(subject);
+      card.appendChild(btn);
+      list.appendChild(card);
+    });
+  }
+
+  async function loadTemplates() {
+    const res = await fetch(`${API}/admin/email-templates`, { headers: headers() });
+    const d = await res.json();
+    if (!res.ok) return;
+    state.templatesCache = d || {};
+    renderTemplates();
+  }
+
+  function openTemplate(key) {
+    const t = state.templatesCache[key] || {};
+    $("#mSubject").value = t.subject || "";
+    $("#mPreheader").value = t.preheader || "";
+    $("#mText").value = t.text || "";
+    $("#mHtml").value = t.bodyHtml || "";
+    state.editingTemplate = key;
+    $("#tplModal").classList.remove("hidden");
+  }
+
+  function closeTpl(){
+    document.getElementById("tplModal").classList.add("hidden");
+  }
+
+  async function saveTemplate() {
+    const key = state.editingTemplate;
+    if (!key) return;
+    const template = {
+      subject: $("#mSubject").value,
+      preheader: $("#mPreheader").value,
+      text: $("#mText").value,
+      bodyHtml: $("#mHtml").value
+    };
+
+    const res = await fetch(`${API}/admin/email-templates`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ key, template })
+    });
+
+    if (!res.ok) return;
+
+    state.templatesCache[key] = template;
+    renderTemplates();
+    toast("Saved", "Template updated");
+    closeTpl();
+  }
+
+  async function loadPendingTransfers() {
+    const res = await fetch(`${API}/admin/transfers?status=pending`, { headers: headers() });
+    const rows = await res.json();
+    $("#pendingRows").innerHTML = "";
+    $("#pendingEmpty").textContent = "";
+    $("#pendingWrap").style.display = "none";
+
+    if (!rows.length) {
+      $("#pendingEmpty").textContent = "No pending transfers.";
+      return;
+    }
+
+    rows.forEach(t => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${t.id}</td>
+        <td>$${Number(t.amount).toFixed(2)}</td>
+        <td>${t.recipient_name || "—"}</td>
+        <td>${t.recipient_email || "—"}</td>
+        <td>${new Date(t.created_at).toLocaleString()}</td>
+        <td><button class="btn" onclick="confirmTransfer('${t.id}')">Confirm</button></td>
+      `;
+      $("#pendingRows").appendChild(tr);
+    });
+
+    $("#pendingWrap").style.display = "block";
+  }
+
+  async function confirmTransfer(id) {
+    const res = await fetch(`${API}/admin/transfers/confirm`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ transfer_id: id })
+    });
+    if (!res.ok) return;
+    loadPendingTransfers();
+  }
+
+  loadPendingTransfers();
+
+  // ---- USERS TABLE STATE ----
+  const usersState = {
+    page: 1,
+    perPage: 15,
+    all: []
+  };
+
+  async function loadAllUsers() {
+    const res = await fetch(`${API}/admin/users`, { headers: headers() });
+    if (!res.ok) return toast("Error", "Failed to load users");
+    usersState.all = await res.json();
+    renderUsersTable();
+  }
+
+  function renderUsersTable() {
+    const start = (usersState.page - 1) * usersState.perPage;
+    const end = start + usersState.perPage;
+    const rows = usersState.all.slice(start, end);
+
+    const tbody = document.getElementById("usersTable");
+    tbody.innerHTML = "";
+
+    rows.forEach(u => {
+      const status = u.suspended
+        ? `<span class="pill danger">Suspended</span>`
+        : `<span class="pill ok">Active</span>`;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${u.fullname || "—"}</td>
+        <td>${u.email}</td>
+        <td>$${Number(u.totalbalance || 0).toFixed(2)}</td>
+        <td>${status}</td>
+        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+        <td>
+          <button class="btn secondary" onclick="openEmail('${u.email}')">Email</button>
+          <button class="btn" onclick="openFee('${u.email}')">Fee</button>
+          ${
+            u.suspended
+              ? `<button class="btn" onclick="resumeUserInline('${u.email}')">Resume</button>`
+              : `<button class="btn danger" onclick="suspendUserInline('${u.email}')">Suspend</button>`
+          }
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("pageInfo").textContent =
+      `Page ${usersState.page} of ${Math.ceil(usersState.all.length / usersState.perPage)}`;
+  }
+
+  document.getElementById("nextPage").onclick = () => {
+    if (usersState.page * usersState.perPage < usersState.all.length) {
+      usersState.page++;
+      renderUsersTable();
+    }
+  };
+
+  document.getElementById("prevPage").onclick = () => {
+    if (usersState.page > 1) {
+      usersState.page--;
+      renderUsersTable();
+    }
+  };
+
+  // ---- ACTIONS ----
+  function openEmail(email) {
+    const subject = prompt("Email subject:");
+    if (!subject) return;
+    const body = prompt("Message:");
+    if (!body) return;
+
+    fetch(`${API}/admin/send-email`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({
+        to: email,
+        subject,
+        bodyHtml: `<p>${body}</p>`,
+        text: body
+      })
+    }).then(() => toast("Sent", "Email sent successfully"));
+  }
+
+  function openFee(email) {
+    const amount = prompt("Loan amount:");
+    const fee = prompt("Processing fee:");
+    if (!amount || !fee) return;
+
+    fetch(`${API}/admin/send-processing-fee-notice`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ email, amount, fee })
+    }).then(() => toast("Sent", "Processing fee notice sent"));
+  }
+
+  async function suspendUserInline(email) {
+    if (!confirm(`Suspend ${email}?`)) return;
+    await fetch(`${API}/admin/user/suspend`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ email })
+    });
+    loadAllUsers();
+  }
+
+  async function resumeUserInline(email) {
+    if (!confirm(`Resume ${email}?`)) return;
+    await fetch(`${API}/admin/user/resume`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ email })
+    });
+    loadAllUsers();
+  }
+
+  // Load users when Users tab is opened
+  document.querySelector('[data-view="users"]').addEventListener("click", loadAllUsers);
+
+  function logout(){
+    localStorage.removeItem("bs-user");
+    localStorage.removeItem("bs-token");
+    window.location.href = "login.html";
+  }
+  $("#logoutBtn").addEventListener("click", logout);
+</script>
+
+</body>
+</html>

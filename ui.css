@@ -203,6 +203,11 @@ footer, .app-footer { padding-bottom: max(1rem, var(--safe-bottom)) !important; 
 /* Toast animations */
 @keyframes toastIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
 
+#mobileMenu .btn{
+  width: min(280px, 80vw);
+  justify-content: center;
+}
+
 
 
 

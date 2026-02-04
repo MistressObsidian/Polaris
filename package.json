@@ -1,33 +1,45 @@
 {
-	"name": "banking-app",
-	"version": "1.0.0",
-	"private": true,
-	"type": "module",
-	"description": "Minimal backend for registration and login routes",
-	"main": "server.js",
-	"scripts": {
-		"start": "node server.js",
-		"api": "node server.js",
-		"serve": "http-server -p 5173 -c-1 .",
-		"dev": "nodemon server.js",
-		"dev:all": "concurrently -n api,web -c blue,magenta \"nodemon server.js\" \"http-server -p 5173 -c-1 .\""
-	},
-	"dependencies": {
-		"bcrypt": "^6.0.0",
-		"bcryptjs": "^2.4.3",
-		"busboy": "^1.6.0",
-		"cors": "^2.8.5",
-		"dotenv": "^16.6.1",
-		"express": "^4.21.2",
-		"jsonwebtoken": "^9.0.2",
-		"morgan": "^1.10.1",
-		"node-fetch": "^3.3.2",
-		"nodemailer": "^6.9.13",
-		"pg": "^8.16.3"
-	},
-	"devDependencies": {
-		"concurrently": "^9.1.0",
-		"http-server": "^14.1.1",
-		"nodemon": "^3.1.0"
-	}
+  "name": "polaris",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Minimal backend for registration and login routes",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "api": "node server.js",
+    "serve": "http-server -p 5173 -c-1 .",
+    "dev": "nodemon server.js",
+    "dev:all": "concurrently -n api,web -c blue,magenta \"nodemon server.js\" \"http-server -p 5173 -c-1 .\""
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "busboy": "^1.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "node-fetch": "^3.3.2",
+    "nodemailer": "^6.10.1",
+    "pdfkit": "^0.17.2",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "http-server": "^14.1.1",
+    "nodemon": "^3.1.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MistressObsidian/Polaris.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MistressObsidian/Polaris/issues"
+  },
+  "homepage": "https://github.com/MistressObsidian/Polaris#readme"
 }

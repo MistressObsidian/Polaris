@@ -8,17 +8,17 @@
   <script src="config.js"></script>
   <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Inline style removed; spacing handled by ui.css for consistency -->
 </head>
 <body>
   <div class="hero-background"></div>
   <div class="particles" id="particles"></div>
+
   <main class="auth-wrapper">
-  <a href="index.html" class="btn-shared btn-outline safe-fixed-top-left" aria-label="Go to home">← Go Back</a>
+    <a href="index.html" class="btn-shared btn-outline safe-fixed-top-left" aria-label="Go to home">← Go Back</a>
+
     <section class="auth-card" aria-labelledby="loginTitle">
       <div class="auth-head">
         <div class="auth-logo" aria-hidden="true">
-          <!-- gradient logo -->
           <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -43,12 +43,15 @@
         <h1 class="auth-title" id="loginTitle">Welcome Back</h1>
         <p class="auth-sub">Sign in to your Bank Swift account</p>
       </div>
+
       <div id="loginAlert" class="alert-auth" role="alert"></div>
-  <form id="loginForm" class="form-grid" method="post" novalidate>
+
+      <form id="loginForm" class="form-grid" method="post" novalidate>
         <div class="field">
           <label for="email">Email</label>
           <input class="input-base" id="email" type="email" placeholder="you@example.com" required />
         </div>
+
         <div class="field" id="pwFieldLogin">
           <label for="password">Password</label>
           <div class="pw-wrap">
@@ -56,21 +59,21 @@
             <button type="button" class="pw-toggle" id="pwToggleLogin" aria-label="Show password">Show</button>
           </div>
         </div>
+
         <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; font-size:.7rem;">
           <label style="display:flex; align-items:center; gap:.45rem; cursor:pointer; color:rgba(255,255,255,.7);">
             <input type="checkbox" id="remember" style="accent-color:#667eea; width:16px; height:16px;"> Remember me
           </label>
           <a href="forgot-password.html" style="color:#667eea; text-decoration:none; font-weight:600;">Forgot password?</a>
         </div>
+
         <button type="submit" class="btn-full" id="loginBtn">Sign In</button>
       </form>
 
-    
       <div class="auth-alt">Don't have an account? <a href="register.html">Sign up</a></div>
     </section>
   </main>
 
-<!-- removed common.js; using plain fetch directly -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById('loginForm');
@@ -78,7 +81,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const alertBox = document.getElementById('loginAlert');
   const pwToggleLogin = document.getElementById('pwToggleLogin');
 
-  // Match register page behavior: single toggle controls visibility
   if (pwToggleLogin) {
     pwToggleLogin.addEventListener('click', () => {
       const isHidden = pwField.type === 'password';
@@ -94,56 +96,62 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  alertBox.textContent = '';
+    e.preventDefault();
+    alertBox.textContent = '';
 
-  const email = document.getElementById('email').value.trim().toLowerCase();
-  const password = pwField.value;
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const password = pwField.value;
+    const remember = document.getElementById('remember')?.checked;
 
-  if (!email || !password) {
-    return showError('Email and password required');
-  }
+    if (!email || !password) return showError('Email and password required');
 
-  const btn = document.getElementById('loginBtn');
-  if (btn.disabled) return;
-  btn.disabled = true;
-  btn.textContent = 'Signing in...';
+    const btn = document.getElementById('loginBtn');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
 
-  try {
-    const res = await fetch(`${window.API_BASE}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    });
-    const text = await res.text();
-    const data = text ? JSON.parse(text) : {};
-    if (!res.ok) throw new Error(data?.error || `Login failed (${res.status})`);
+    try {
+      if (!window.API_BASE) throw new Error("API_BASE is not set. Check config.js");
 
-    // Save user with token (match backend fields)
-    const userObj = {
-      id: data.id,
-      fullname: data.fullname,
-      email: data.email,
-      accountname: data.accountname,
-      checking: data.checking ?? 0,
-      savings: data.savings ?? 0,
-      totalbalance: data.totalbalance ?? 0,
-      token: data.token,
-      isAuthenticated: true,
-      ts: Date.now()
-    };
-    localStorage.setItem('bs-user', JSON.stringify(userObj));
+      const res = await fetch(`${window.API_BASE}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
 
-    btn.textContent = 'Success!';
-    window.location.href = 'dashboard.html';
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
+      if (!res.ok) throw new Error(data?.error || `Login failed (${res.status})`);
 
-  } catch (err) {
-    console.error("Login error:", err);
-    showError(err.message || "Login failed");
-    btn.disabled = false;
-    btn.textContent = 'Sign In';
-  }
-});
+      // AFTER successful login response
+      const user = {
+        id: data.id,
+        fullname: data.fullname,
+        email: data.user_email || data.email,
+        accountname: data.accountname,
+        checking: data.checking,
+        savings: data.savings,
+        totalbalance: data.totalbalance,
+        is_admin: !!data.is_admin,
+        token: data.token
+      };
+
+      localStorage.removeItem("bs-user");
+      localStorage.removeItem("bs-token");
+
+      localStorage.setItem("bs-user", JSON.stringify(user));
+      localStorage.setItem("bs-token", data.token);
+
+      // Redirect AFTER storage
+      window.location.href = user.is_admin ? "admin.html" : "dashboard.html";
+
+    } catch (err) {
+      console.error("Login error:", err);
+      showError(err.message || "Login failed");
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  }); // ✅ FIXED: close addEventListener
 });
 </script>
 </body>

@@ -12,17 +12,26 @@ import path from 'path';
 let mailer = null;
 
 export async function initMailer() {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.MAIL_FROM || user;
+  const host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
+  const port = Number(process.env.SMTP_PORT || process.env.EMAIL_PORT || 587);
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+  const from = process.env.MAIL_FROM || process.env.EMAIL_FROM || user;
   if (!host || !user || !pass || !from) {
     console.warn('initMailer: SMTP not configured (SMTP_HOST/SMTP_USER/SMTP_PASS/MAIL_FROM required)');
     return;
   }
   try {
-    mailer = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
+    mailer = nodemailer.createTransport({
+  host,
+  port,
+  secure: port === 465,
+  auth: { user, pass },
+  pool: false,
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+});
     await mailer.verify();
     mailer.from = from;
     console.log('✉️  Mailer ready');
@@ -40,10 +49,15 @@ export async function sendEmail(to, subject, html, opts = {}) {
   if (!to) throw new Error('sendEmail: missing "to" address');
   const mailOptions = { from: mailer.from, to, subject, html, ...opts };
   try {
-    const logoPath = path.join(process.cwd(), 'assets', 'logo-128.png');
+    const logoPath = path.join(process.cwd(), 'assets', 'logo.png');
     if (fs.existsSync(logoPath)) {
       mailOptions.attachments = mailOptions.attachments || [];
-      mailOptions.attachments.push({ filename: 'logo-128.png', path: logoPath, cid: 'logo' });
+      mailOptions.attachments.push({
+        path: logoPath,
+        cid: 'logocid',
+        filename: 'logo.png',
+        contentDisposition: 'inline',
+      });
     }
   } catch (e) { /* ignore attachment errors */ }
   try {
@@ -58,17 +72,22 @@ export async function sendEmail(to, subject, html, opts = {}) {
 
 export function renderEmail(title, bodyHtml) {
   const BRAND_NAME = process.env.BRAND_NAME || 'Bank Swift';
-  const BRAND_PRIMARY = process.env.BRAND_PRIMARY || '#0b74de';
-  const CTA_COLOR = process.env.CTA_COLOR || '#0b74de';
-  return `<!doctype html>
-  <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-  <body style="font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;padding:20px;">
-    <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:6px;overflow:hidden">
-      <div style="background:${BRAND_PRIMARY};padding:12px;color:#fff;font-weight:700">${escapeHtml(BRAND_NAME)}</div>
-      <div style="padding:20px;color:#333">${bodyHtml}</div>
-      <div style="padding:12px;background:#f2f6fa;color:#8aa0b9;font-size:12px">&copy; ${new Date().getFullYear()} ${escapeHtml(BRAND_NAME)}</div>
+  return `
+  <div style="font-family:Arial,sans-serif; background:#f6f8fb; padding:24px;">
+    <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; border:1px solid #e8edf3;">
+      <div style="padding:18px 20px; border-bottom:1px solid #4d7fbc; display:flex; align-items:center; gap:12px;">
+      </div>
+      <div style="padding:20px;">
+        <h2 style="margin:0 0 12px 0; font-size:18px; color:#0f172a;">${escapeHtml(title)}</h2>
+        <div style="font-size:14px; color:#334155; line-height:1.5;">
+          ${bodyHtml}
+        </div>
+      </div>
+      <div style="padding:16px 20px; border-top:1px solid #e8edf3; font-size:12px; color:#64748b;">
+        &copy; ${new Date().getFullYear()} ${escapeHtml(BRAND_NAME)}
+      </div>
     </div>
-  </body></html>`;
+  </div>`;
 }
 
 function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]); }

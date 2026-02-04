@@ -4,6 +4,13 @@
 (function(){
 	if (window.Notifications) return; // singleton
 
+	window.getAuthHeaders = function () {
+		const u = JSON.parse(localStorage.getItem("bs-user") || "null");
+		return u?.token
+			? { Authorization: `Bearer ${u.token}` }
+			: {};
+	};
+
 	function ensureToastContainer(){
 		let el = document.getElementById('toast-container');
 		if (!el){
@@ -67,6 +74,36 @@
 		} catch { return null; }
 	}
 
+	function ensureAdminReturnButton(){
+		try{
+			const adminSessionRaw = localStorage.getItem('admin-session');
+			if (!adminSessionRaw) return;
+			const adminSession = JSON.parse(adminSessionRaw || 'null');
+			const user = JSON.parse(localStorage.getItem('bs-user')||'null');
+			if (!adminSession?.token || !user?.token) return;
+
+			// Don't show on admin or login pages
+			const path = String(window.location.pathname || '').toLowerCase();
+			if (path.endsWith('/admin.html') || path.endsWith('/login.html')) return;
+
+			if (document.getElementById('return-admin-btn')) return;
+			const btn = document.createElement('button');
+			btn.id = 'return-admin-btn';
+			btn.type = 'button';
+			btn.textContent = 'Return to Admin';
+			btn.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9999;background:#2663ff;color:#fff;border:none;border-radius:999px;padding:.55rem .9rem;font-size:.8rem;box-shadow:0 8px 20px rgba(0,0,0,.35);cursor:pointer;';
+			btn.addEventListener('click', ()=>{
+				try{
+					localStorage.setItem('bs-user', JSON.stringify(adminSession));
+					localStorage.setItem('bs-token', adminSession.token || '');
+					localStorage.removeItem('admin-session');
+					window.location.href = 'admin.html';
+				} catch {}
+			});
+			document.body.appendChild(btn);
+		} catch {}
+	}
+
 	async function markRead(id){
 		const user = JSON.parse(localStorage.getItem('bs-user')||'null');
 		if (!user || !user.token) return;
@@ -82,6 +119,7 @@
 	window.Notifications = {
 		init(){
 			connect();
+			ensureAdminReturnButton();
 		},
 		toast,
 		markRead,

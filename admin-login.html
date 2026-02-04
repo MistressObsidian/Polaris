@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Login · Bank Swift</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
+  <link rel="stylesheet" href="ui.css" />
+  <style>
+    body { background:#0d0f14; color:#eef3f8; font-family: system-ui, Arial, sans-serif; }
+    .wrap { max-width:420px; margin:10vh auto; background:#141a24; border:1px solid #1f2530; border-radius:14px; padding:1.25rem; }
+    h1 { font-size:1.1rem; margin:0 0 1rem; }
+    label { font-size:.8rem; color:#8aa0b9; }
+    input { width:100%; background:#0f141d; border:1px solid #202a39; color:#e8eef6; border-radius:8px; padding:.7rem .8rem; font-size:.9rem; outline:none; margin:.35rem 0 .8rem; }
+    .btn { width:100%; border:none; border-radius:10px; padding:.8rem 1rem; background:#2663ff; color:#fff; font-size:.9rem; cursor:pointer; }
+    .btn:hover { background:#1f55dc; }
+    .error { color:#ff8a8a; font-size:.78rem; min-height:1.1rem; margin-top:.6rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Admin Login Moved</h1>
+    <p class="muted" style="font-size:.85rem;color:#7a889a;">
+      Please sign in using the standard login page.
+    </p>
+    <button class="btn" type="button" id="goLoginBtn">Go to Login</button>
+  </div>
+
+  <script>
+    document.getElementById('goLoginBtn').addEventListener('click', () => {
+      window.location.href = 'login.html';
+    });
+    setTimeout(() => {
+      window.location.href = 'login.html';
+    }, 800);
+  </script>
+</body>
+</html>

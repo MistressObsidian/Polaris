@@ -31,6 +31,7 @@ import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { initMailer as initMailerUtils, sendEmail, renderEmail } from "./utils/mailer.js";
 import multer from "multer";
 import PDFDocument from "pdfkit";
 import os from "os";
@@ -347,8 +348,10 @@ async function initMailer() {
 }
 
 await initMailer();
+await initMailerUtils();
 
 // ---- Branded Email Helper (logo on every email) ----
+const APP_BASE_URL = (process.env.APP_BASE_URL || "").replace(/\/+$/, "");
 const BRAND = {
   name: process.env.BRAND_NAME || "Bank Swift",
   supportEmail: process.env.SUPPORT_EMAIL || process.env.MAIL_FROM || "",
@@ -580,7 +583,7 @@ function escapeHtml(s = "") {
     .replaceAll("'", "&#039;");
 }
 
-function buildBrandedEmailHtml({ title, preheader = "", bodyHtml }) {
+function buildBrandedEmailHtml({ title, preheader = "", bodyHtml, emailId = "", appBaseUrl = "" }) {
   const safeTitle = escapeHtml(title);
   const safePreheader = escapeHtml(preheader);
 
@@ -609,12 +612,19 @@ function buildBrandedEmailHtml({ title, preheader = "", bodyHtml }) {
       <div style="padding:16px 20px;border-top:1px solid #e6edf5;font-size:12px;line-height:1.4;color:#64748b;background:#fbfdff;">
         <div>© ${new Date().getFullYear()} ${escapeHtml(BRAND.name)}. All rights reserved.</div>
         ${BRAND.supportEmail ? `<div style="margin-top:6px;">Support: ${escapeHtml(BRAND.supportEmail)}</div>` : ""}
+        ${appBaseUrl && emailId ? `
+        <p style="font-size:12px; margin:6px 0 0;">
+          <a href="${appBaseUrl}/emails/${emailId}" target="_blank" rel="noopener noreferrer">
+            View this email in your browser
+          </a>
+        </p>
+        ` : ""}
       </div>
     </div>
   </div>`;
 }
 
-async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text, attachments = [] }) {
+async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text, attachments = [], userId = null }) {
   if (!mailer) throw new Error("Mailer not configured (SMTP env vars missing)");
   if (!to) throw new Error("Missing recipient email (to)");
   if (!subject) throw new Error("Missing subject");
@@ -624,23 +634,59 @@ async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text,
     throw new Error(`Logo file not found at ${BRAND.logoPath}`);
   }
 
-  const html = buildBrandedEmailHtml({ title: title || subject, preheader, bodyHtml });
-
-  return mailer.sendMail({
-    from: mailer.from,
-    to,
-    subject,
-    text: text || subject,
-    html,
-    attachments: [
-      {
-        filename: path.basename(BRAND.logoPath),
-        path: BRAND.logoPath,
-        cid: BRAND.logoCid,
-      },
-      ...attachments,
-    ],
+  const htmlTemplate = buildBrandedEmailHtml({
+    title: title || subject,
+    preheader,
+    bodyHtml,
+    emailId: "__EMAIL_ID__",
+    appBaseUrl: APP_BASE_URL,
   });
+
+  const logQ = await pool.query(
+    `INSERT INTO email_logs (user_id, to_email, subject, html_body, text_body, status)
+     VALUES ($1,$2,$3,$4,$5,'pending')
+     RETURNING id`,
+    [userId || null, to, subject, htmlTemplate, text || null]
+  );
+
+  const emailId = logQ.rows[0].id;
+  const html = htmlTemplate.replaceAll("__EMAIL_ID__", String(emailId));
+
+  await pool.query(
+    "UPDATE email_logs SET html_body=$2 WHERE id=$1",
+    [emailId, html]
+  );
+
+  try {
+    const result = await mailer.sendMail({
+      from: mailer.from,
+      to,
+      subject,
+      text: text || subject,
+      html,
+      attachments: [
+        {
+          filename: path.basename(BRAND.logoPath),
+          path: BRAND.logoPath,
+          cid: BRAND.logoCid,
+        },
+        ...attachments,
+      ],
+    });
+
+    await pool.query(
+      "UPDATE email_logs SET status='sent' WHERE id=$1",
+      [emailId]
+    );
+
+    return result;
+  } catch (e) {
+    await pool.query(
+      "UPDATE email_logs SET status='failed', error=$2 WHERE id=$1",
+      [emailId, e.message]
+    );
+    throw e;
+  }
 }
 
 // Generate processing fee invoice PDF
@@ -726,6 +772,16 @@ async function sendPasswordResetEmail({ to, resetLink }) {
 }
 
 // --- API Routes ---
+
+// View email in browser
+app.get("/emails/:id", async (req, res) => {
+  const q = await pool.query(
+    "SELECT html_body FROM email_logs WHERE id=$1 LIMIT 1",
+    [req.params.id]
+  );
+  if (!q.rowCount) return res.status(404).send("Email not found");
+  return res.send(q.rows[0].html_body);
+});
 
 // Admin login
 app.post("/api/admin/login", async (req, res) => {
@@ -949,20 +1005,19 @@ app.post("/api/users", registerUploads, async (req, res) => {
       const token = issueToken({ id: user.id, email: user.email });
 
       try {
-        if (mailer) {
-          await sendBrandedEmail({
-            to: normEmail,
-            subject: "Welcome to Bank Swift",
-            title: "Your account is created",
-            preheader: "Welcome — your account has been successfully created.",
-            text: `Welcome to ${BRAND.name}. Your account has been created successfully.`,
-            bodyHtml: `
-        <p>Hi ${escapeHtml(user.fullname || "there")},</p>
-        <p>Welcome to <b>${escapeHtml(BRAND.name)}</b>. Your account has been created successfully.</p>
-        <p>If you did not create this account, please contact support immediately.</p>
-      `,
-          });
-        }
+        await sendBrandedEmail({
+          to: user.email,
+          subject: "Welcome to Bank Swift",
+          title: "Your account is ready",
+          preheader: "Welcome to Bank Swift — your account has been created.",
+          text: `Hi ${user.fullname}, your Bank Swift account has been created successfully.`,
+          bodyHtml: `
+    <p>Hi ${escapeHtml(user.fullname)},</p>
+    <p>Welcome to <b>${escapeHtml(BRAND.name)}</b>.</p>
+    <p>Your account has been created successfully and is now pending verification.</p>
+    <p>If you did not initiate this registration, please contact support immediately.</p>
+  `
+        });
       } catch (e) {
         console.warn("Welcome email failed:", e.message);
       }
@@ -2030,6 +2085,22 @@ app.get("/api/admin/users", requireAdminToken, async (req, res) => {
   } catch (err) {
     return handleError(res, "Admin list users", err);
   }
+});
+
+// Admin: list recent emails for a user
+app.get("/api/admin/users/:id/emails", authMiddleware, async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+
+  const q = await pool.query(
+    `SELECT id, subject, status, created_at
+     FROM email_logs
+     WHERE user_id=$1
+     ORDER BY created_at DESC
+     LIMIT 50`,
+    [req.params.id]
+  );
+
+  res.json(q.rows);
 });
 
 // Admin: update user profile fields

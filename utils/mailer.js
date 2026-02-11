@@ -89,7 +89,7 @@ export function renderEmail(title, bodyHtml) {
   <div style="font-family:Arial,sans-serif; background:#f6f8fb; padding:24px;">
     <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; border:1px solid #e8edf3;">
       <div style="padding:18px 20px; border-bottom:1px solid #4d7fbc; display:flex; align-items:center; gap:12px;">
-        <img src="${BRAND_LOGO_SRC}" width="190" alt="${escapeHtml(BRAND_NAME)}" style="display:block; height:auto;" />
+        <img src="${BRAND_LOGO_SRC}" width="150" alt="${escapeHtml(BRAND_NAME)}" style="display:block; height:auto;" />
       </div>
       <div style="padding:20px;">
         <h2 style="margin:0 0 12px 0; font-size:18px; color:#0f172a;">${escapeHtml(title)}</h2>

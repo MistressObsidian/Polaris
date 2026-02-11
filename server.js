@@ -38,6 +38,8 @@ import os from "os";
 
 dotenv.config();
 
+const NODE_ENV = process.env.NODE_ENV || "development";
+
 console.log("ENV CHECK", {
   db: !!process.env.DATABASE_URL,
   email: !!process.env.EMAIL_HOST,
@@ -48,8 +50,6 @@ if (!process.env.ADMIN_USER || !process.env.ADMIN_PASS) {
     console.warn("⚠️  ADMIN_USER/ADMIN_PASS not set. Using default admin credentials for development.");
   }
 }
-
-const NODE_ENV = process.env.NODE_ENV || "development";
 const PORT = Number(process.env.PORT) || 4000;
 
 const DATABASE_URL = process.env.DATABASE_URL || "";

@@ -1,1 +1,2 @@
-/api/*   https://app-silent-bird-08639041.dpl.myneon.app/:splat   200
+# Netlify: external proxy rewrite for same-origin API calls from the frontend.
+/api/*   https://app-silent-bird-08639041.dpl.myneon.tech/api/:splat   200

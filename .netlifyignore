@@ -1,0 +1,17 @@
+# Prevent sensitive/local-only files from being uploaded to Netlify
+.env
+.env.*
+
+# Backend/runtime-only code (frontend is static on Netlify)
+server.js
+utils/
+data/
+uploads/
+
+# Local scripts / CI artifacts
+neon_workflow.yml
+generate-jwt*.js
+
+# Local/E2E tooling
+cypress/
+cypress.config.js

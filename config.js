@@ -26,7 +26,7 @@
     ApiBase = stripTrailingSlash(override);
   }
 
-  window.API_BASE = "/api";
+  window.API_BASE = ApiBase;
 
   // Safe debug log (remove if you want)
   console.log("🌐 API_BASE set to:", window.API_BASE);

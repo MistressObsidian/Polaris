@@ -34,7 +34,13 @@ import { fileURLToPath } from "url";
 import { initMailer as initMailerUtils, sendEmail, renderEmail } from "./utils/mailer.js";
 import multer from "multer";
 import PDFDocument from "pdfkit";
-import os from "os";
+import cors from "cors"; 
+
+app.use(cors({
+  origin: "https://swift-bank.netlify.app", // ✅ RESTRICTED to your frontend origin
+  credentials: true
+}));
+
 
 dotenv.config();
 

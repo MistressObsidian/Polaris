@@ -20,7 +20,7 @@
   const override = window.BS_API_BASE || getQueryParam("api");
 
   // ✅ Default: SAME ORIGIN API (no CORS, no failures)
-  let ApiBase = "/api";
+  let ApiBase = "https://polaris-uru5.onrender.com/api";
 
   if (override) {
     ApiBase = stripTrailingSlash(override);

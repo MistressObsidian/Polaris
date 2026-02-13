@@ -21,6 +21,7 @@
  */
 
 import express from "express";
+import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
@@ -34,12 +35,6 @@ import { fileURLToPath } from "url";
 import { initMailer as initMailerUtils, sendEmail, renderEmail } from "./utils/mailer.js";
 import multer from "multer";
 import PDFDocument from "pdfkit";
-import cors from "cors"; 
-
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
 
 
 dotenv.config();
@@ -741,10 +736,14 @@ function getFeeExpiry(hours = 48) {
 
 // --- Express App ---
 const app = express();
+
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
-
-// ✅ NO CORS needed when frontend and backend are served from same origin (localhost:4000)
 
 function sha256Hex(input) {
   return crypto.createHash("sha256").update(String(input)).digest("hex");

@@ -37,7 +37,7 @@ import PDFDocument from "pdfkit";
 import cors from "cors"; 
 
 app.use(cors({
-  origin: "https://swift-bank.netlify.app", // ✅ RESTRICTED to your frontend origin
+  origin: true,
   credentials: true
 }));
 

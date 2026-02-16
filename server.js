@@ -3,10 +3,10 @@
  * One-origin local dev: serves frontend + API from the SAME server/port.
  *
  * ✅ Open your pages like:
- *   http://localhost:4000/
- *   http://localhost:4000/login.html
- *   http://localhost:4000/register.html
- *   http://localhost:4000/dashboard.html
+ *   https://polaris-uru5.onrender.com/
+ *   https://polaris-uru5.onrender.com/login.html
+ *   https://polaris-uru5.onrender.com/register.html
+ *   https://polaris-uru5.onrender.com/dashboard.html
  *
  * ✅ Then set config.js to:
  *   window.API_BASE = "/api";
@@ -218,7 +218,7 @@ function handleError(res, label, err) {
   return res.status(500).json({ error: err.message || "Server error", stack: err.stack });
 }
 
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   const auth = req.headers.authorization || "";
   let token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   if (!token && req.query?.token) token = String(req.query.token);
@@ -232,14 +232,14 @@ function authMiddleware(req, res, next) {
     // Admin impersonation (optional)
     const asEmail = String(req.headers["x-admin-user-email"] || req.query?.as_user_email || "").trim().toLowerCase();
     if (isAdmin && asEmail) {
-      return pool
-        .query("SELECT id, user_email AS email FROM users WHERE user_email=$1 LIMIT 1", [asEmail])
-        .then((q) => {
-          if (!q.rowCount) return res.status(404).json({ error: "User not found" });
-          req.user = { sub: q.rows[0].id, email: q.rows[0].email, admin_override: true };
-          return next();
-        })
-        .catch((err) => handleError(res, "Impersonation lookup error", err));
+      try {
+        const q = await pool.query("SELECT id, user_email AS email FROM users WHERE user_email=$1 LIMIT 1", [asEmail]);
+        if (!q.rowCount) return res.status(404).json({ error: "User not found" });
+        req.user = { sub: q.rows[0].id, email: q.rows[0].email, admin_override: true };
+        return next();
+      } catch (err) {
+        return handleError(res, "Impersonation lookup error", err);
+      }
     }
 
     req.user = payload;
@@ -250,6 +250,17 @@ function authMiddleware(req, res, next) {
       const userFlags = flags[String(req.user.sub)] || {};
       if (userFlags.locked === true) {
         return res.status(403).json({ error: "Account is locked" });
+      }
+
+      const loanLock = await pool.query(
+        "SELECT locked FROM loans WHERE user_id=$1 AND locked=true LIMIT 1",
+        [req.user.sub]
+      );
+
+      if (loanLock.rowCount) {
+        return res.status(403).json({
+          error: "Account temporarily locked pending loan processing fee."
+        });
       }
     }
 
@@ -754,9 +765,9 @@ function getAppBaseUrl(req) {
   const envBase = process.env.APP_BASE_URL;
   if (envBase) return envBase.replace(/\/+$/, "");
 
-  // Fallback to request host (works locally)
+  // Fallback to request host
   const proto = (req.headers["x-forwarded-proto"] || req.protocol || "http").toString();
-  const host = (req.headers["x-forwarded-host"] || req.headers.host || `localhost:${PORT}`).toString();
+  const host = (req.headers["x-forwarded-host"] || req.headers.host || "polaris-uru5.onrender.com").toString();
   return `${proto}://${host}`.replace(/\/+$/, "");
 }
 
@@ -1790,6 +1801,59 @@ app.post("/api/transfers/confirm", async (req, res) => {
   }
 });
 
+// Apply for Loan
+app.post("/api/loans", authMiddleware, async (req, res) => {
+  try {
+    const { amount, term_months } = req.body;
+
+    if (!amount || !term_months) {
+      return res.status(400).json({ error: "Amount and term required" });
+    }
+
+    const apr = 8.5;
+    const monthly = (Number(amount) / Number(term_months)).toFixed(2);
+
+    const q = await pool.query(
+      `INSERT INTO loans
+       (user_id, amount, term_months, apr_estimate, monthly_payment_estimate)
+       VALUES ($1,$2,$3,$4,$5)
+       RETURNING *`,
+      [req.user.sub, amount, term_months, apr, monthly]
+    );
+
+    res.status(201).json(q.rows[0]);
+  } catch (err) {
+    handleError(res, "Loan apply error", err);
+  }
+});
+
+// Get User Loans
+app.get("/api/loans", authMiddleware, async (req, res) => {
+  try {
+    const q = await pool.query(
+      `SELECT * FROM loans WHERE user_id=$1 ORDER BY created_at DESC`,
+      [req.user.sub]
+    );
+
+    res.json(q.rows);
+  } catch (err) {
+    handleError(res, "Loan fetch error", err);
+  }
+});
+
+app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
+  await pool.query(
+    `UPDATE loans
+     SET fee_paid=true,
+         locked=false,
+         status='under_review'
+     WHERE id=$1 AND user_id=$2`,
+    [req.params.id, req.user.sub]
+  );
+
+  res.json({ success: true });
+});
+
 // --- Admin ---
 // Admin: dashboard stats
 app.get("/api/admin/stats", requireAuth, requireAdmin, async (req, res) => {
@@ -1826,6 +1890,103 @@ app.get("/api/admin/transfers", requireAdminToken, async (req, res) => {
   );
 
   res.json(q.rows);
+});
+
+app.post("/api/admin/loans/:id/status", requireAdminToken, async (req, res) => {
+  const { status, processing_fee } = req.body;
+  const loanId = req.params.id;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const loanQ = await client.query(
+      "SELECT * FROM loans WHERE id=$1 FOR UPDATE",
+      [loanId]
+    );
+
+    if (!loanQ.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Loan not found" });
+    }
+
+    const loan = loanQ.rows[0];
+
+    await client.query(
+      `UPDATE loans
+       SET status=$1,
+           processing_fee=$2,
+           locked=$3,
+           updated_at=NOW()
+       WHERE id=$4`,
+      [
+        status,
+        processing_fee || null,
+        status === "processing_fee_required",
+        loanId
+      ]
+    );
+
+    if (status === "approved") {
+      await client.query(
+        `UPDATE accounts
+         SET balance = balance + $1,
+             available = available + $1
+         WHERE user_id=$2 AND type='checking'`,
+        [loan.amount, loan.user_id]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    // 🔔 AUTO EMAIL
+    if (mailer) {
+      if (status === "processing_fee_required") {
+        const expiresAt = getFeeExpiry(48);
+
+        const invoicePdf = await generateFeeInvoicePDF({
+          borrowerEmail: loan.user_id,
+          amount: loan.amount,
+          fee: processing_fee,
+          expiresAt
+        });
+
+        await sendBrandedEmail({
+          to: loan.user_email,
+          subject: "Processing Fee Required",
+          title: "Processing Fee Required",
+          bodyHtml: `
+            <p>Your loan requires a processing fee of <b>$${processing_fee}</b>.</p>
+            <p>Please complete payment to proceed.</p>
+          `,
+          attachments: [{
+            filename: "processing-fee-invoice.pdf",
+            content: invoicePdf,
+            contentType: "application/pdf"
+          }]
+        });
+      }
+
+      if (status === "approved") {
+        await sendBrandedEmail({
+          to: loan.user_email,
+          subject: "Loan Approved",
+          title: "Loan Approved",
+          bodyHtml: `
+            <p>Your loan of <b>$${loan.amount}</b> has been approved.</p>
+          `
+        });
+      }
+    }
+
+    res.json({ success: true });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    handleError(res, "Loan status update", err);
+  } finally {
+    client.release();
+  }
 });
 
 // Admin: email templates
@@ -2560,5 +2721,5 @@ app.get(/^\/(?!api\/).*/, (req, res) => res.sendFile(path.join(__dirname, "index
 
 // --- Start ---
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT} (env=${NODE_ENV})`);
+  console.log(`🚀 Server running at https://polaris-uru5.onrender.com (env=${NODE_ENV})`);
 });

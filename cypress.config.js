@@ -1,6 +1,6 @@
 module.exports = {
   e2e: {
-  baseUrl: 'http://localhost:5000',
+  baseUrl: 'https://polaris-uru5.onrender.com',
     setupNodeEvents(on, config) {
       // implement node event listeners here
     },

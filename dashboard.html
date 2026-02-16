@@ -71,6 +71,8 @@
     .btn:hover { background:#233040; }
     .btn-primary { background: var(--accent); color:#fff; }
     .btn-primary:hover { background:#1f55dc; }
+    .btn-outline { background:transparent; color:#e9eef5; border:1px solid rgba(255,255,255,.25); border-radius:10px; padding:.7rem 1rem; cursor:pointer; }
+    .btn-outline:hover { background:rgba(255,255,255,.06); }
 
     /* Charts */
     .chart-card canvas { width:100%; height:auto; }
@@ -84,6 +86,79 @@
     /* Pills */
     .pills { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.75rem; }
     .pill { background: var(--pill); padding:.35rem .65rem; border-radius:999px; font-size:.7rem; color:#9fb1c9; }
+
+    .glass-card { backdrop-filter: blur(12px); }
+    .loan-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .loan-header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
+    .loan-header h2 { margin:0; }
+    .loan-body { margin-top:.8rem; display:grid; gap:.35rem; }
+    .loan-body p { margin:0; color:#d6dfeb; }
+    .badge.pending {
+      background: #facc15;
+      color: #000;
+      padding: 4px 10px;
+      border-radius: 50px;
+      font-size: 12px;
+    }
+    .badge.approved {
+      background: #22c55e;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 50px;
+      font-size: 12px;
+    }
+    .badge.rejected {
+      background: #ef4444;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 50px;
+      font-size: 12px;
+    }
+    .badge.under_review {
+      background: #38bdf8;
+      color: #001018;
+      padding: 4px 10px;
+      border-radius: 50px;
+      font-size: 12px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+    .modal.hidden {
+      display: none;
+    }
+    .modal-card {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(16px);
+      padding: 24px;
+      border-radius: 20px;
+      width: 400px;
+      border: 1px solid rgba(255,255,255,0.1);
+      display:grid;
+      gap:.7rem;
+    }
+    .modal-card input {
+      width:100%;
+      background:#101826;
+      color:#eef3f8;
+      border:1px solid #223048;
+      border-radius:10px;
+      padding:.65rem .75rem;
+    }
+    #loanPreview p { margin:.2rem 0; color:#d6dfeb; }
 
     /* Responsive sidebar */
     @media (max-width: 980px){
@@ -151,6 +226,11 @@
         <a class="btn" href="accounts.html">View Accounts</a>
         <a class="btn" href="transactions.html">View Transactions</a>
       </div>
+      <div class="dashboard-actions" style="margin-top:.75rem;">
+        <button id="applyLoanBtn" class="btn-primary">
+          Apply for Personal Loan
+        </button>
+      </div>
     </section>
 
     <!-- Two panels: Charts -->
@@ -178,11 +258,49 @@
       </table>
     </section>
 
+    <section id="loan-section" class="panel" style="margin-top:1rem;">
+      <section class="loan-card glass-card" style="margin-top:.9rem;">
+        <div class="loan-header">
+          <h2>Personal Loan</h2>
+          <span id="loanBadge" class="badge pending">Pending Review</span>
+        </div>
+
+        <div class="loan-body">
+          <p id="loanAmountText">Amount: $5,000</p>
+          <p id="loanAprText">APR: 8.5%</p>
+          <p id="loanMonthlyText">Monthly: $416.66</p>
+        </div>
+
+        <button id="payFeeBtn" class="btn-primary" type="button" style="margin-top:.9rem;padding:.65rem 1rem;border:none;border-radius:10px;cursor:pointer;display:none;">Pay Processing Fee</button>
+      </section>
+
+      <div id="loanStatusContainer" style="margin-top:.9rem;display:grid;gap:.6rem;"></div>
+    </section>
+
     <!-- Footer -->
     <footer style="margin-top:1rem; text-align:center; font-size:.8rem; color:#9ab0c9;">
       © 2025 Bank Swift • All rights reserved
     </footer>
   </main>
+
+  <div id="loanModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Personal Loan Application</h2>
+
+      <input type="number" id="loanAmount" placeholder="Loan Amount ($)" />
+      <input type="number" id="loanTerm" placeholder="Term (months)" />
+
+      <div id="loanPreview"></div>
+
+      <button id="submitLoan" class="btn-primary">
+        Submit Application
+      </button>
+
+      <button id="closeLoanModal" class="btn-outline">
+        Cancel
+      </button>
+    </div>
+  </div>
 
 <script>
 const user = JSON.parse(localStorage.getItem("bs-user"));
@@ -190,6 +308,9 @@ const user = JSON.parse(localStorage.getItem("bs-user"));
 if (!user || !user.token) {
   window.location.replace("login.html");
 }
+
+const token = localStorage.getItem("bs-token") || localStorage.getItem("token") || user?.token || "";
+let activeLoanId = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.Notifications) window.Notifications.init();
@@ -213,6 +334,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     } catch (_) {}
   });
+
+  const applyLoanBtn = document.getElementById("applyLoanBtn");
+  const closeLoanModalBtn = document.getElementById("closeLoanModal");
+  const loanModal = document.getElementById("loanModal");
+
+  if (applyLoanBtn && loanModal) {
+    applyLoanBtn.addEventListener("click", () => loanModal.classList.remove("hidden"));
+  }
+
+  if (closeLoanModalBtn && loanModal) {
+    closeLoanModalBtn.addEventListener("click", () => loanModal.classList.add("hidden"));
+  }
 });
 
 function fmt(n){ return `$${Number(n||0).toFixed(2)}`; }
@@ -280,6 +413,138 @@ async function loadTransactions() {
     });
   } catch (err) { console.error("Transaction load error:", err); }
 }
+
+function calculateLoan(P, annualRate, months) {
+  const r = annualRate / 100 / 12;
+  return (P * r * Math.pow(1 + r, months)) /
+         (Math.pow(1 + r, months) - 1);
+}
+
+const amountInput = document.getElementById("loanAmount");
+const termInput = document.getElementById("loanTerm");
+const preview = document.getElementById("loanPreview");
+
+function updatePreview() {
+  const P = Number(amountInput.value);
+  const months = Number(termInput.value);
+  if (!P || !months) return;
+
+  const payment = calculateLoan(P, 8.5, months);
+
+  preview.innerHTML = `
+    <p>APR: 8.5%</p>
+    <p>Estimated Monthly: $${payment.toFixed(2)}</p>
+  `;
+}
+
+amountInput.addEventListener("input", updatePreview);
+termInput.addEventListener("input", updatePreview);
+
+async function loadLoans() {
+  try {
+    const res = await fetch(`${window.API_BASE}/loans`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const loans = await res.json();
+    const loanList = Array.isArray(loans) ? loans : [];
+    const latest = loanList[0] || null;
+
+    const badge = document.getElementById("loanBadge");
+    const amountEl = document.getElementById("loanAmountText");
+    const aprEl = document.getElementById("loanAprText");
+    const monthlyEl = document.getElementById("loanMonthlyText");
+    const payBtn = document.getElementById("payFeeBtn");
+
+    if (latest) {
+      activeLoanId = latest.id;
+      const amount = Number(latest.amount || 0);
+      const apr = Number(latest.apr_estimate || 8.5);
+      const months = Number(latest.term_months || 0);
+      const monthly = latest.monthly_payment_estimate
+        ? Number(latest.monthly_payment_estimate)
+        : (months > 0 ? calculateLoan(amount, apr, months) : 0);
+      const status = String(latest.status || "pending").toLowerCase();
+
+      amountEl.textContent = `Amount: $${amount.toLocaleString()}`;
+      aprEl.textContent = `APR: ${apr}%`;
+      monthlyEl.textContent = `Monthly: $${Number(monthly || 0).toFixed(2)}`;
+
+      badge.className = `badge ${status}`;
+      badge.textContent = status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+      payBtn.style.display = status === "processing_fee_required" ? "inline-block" : "none";
+      payBtn.disabled = false;
+      payBtn.textContent = "Pay Processing Fee";
+    } else {
+      activeLoanId = null;
+      badge.className = "badge pending";
+      badge.textContent = "Pending Review";
+      amountEl.textContent = "Amount: $5,000";
+      aprEl.textContent = "APR: 8.5%";
+      monthlyEl.textContent = "Monthly: $416.66";
+      payBtn.style.display = "none";
+    }
+
+    const container = document.getElementById("loanStatusContainer");
+    container.innerHTML = "";
+
+    loanList.forEach(l => {
+      container.innerHTML += `
+        <div class="loan-card glass-card">
+          <h3>Loan $${l.amount}</h3>
+          <span class="badge ${l.status}">
+            ${String(l.status || "pending").replace("_", " ").toUpperCase()}
+          </span>
+        </div>
+      `;
+    });
+  } catch (err) {
+    console.error("Loan load error:", err);
+  }
+}
+
+document.getElementById("submitLoan").addEventListener("click", async () => {
+  const amount = amountInput.value;
+  const term = termInput.value;
+
+  await fetch(`${window.API_BASE}/loans`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      amount,
+      term_months: term
+    })
+  });
+
+  alert("Loan application submitted for review.");
+  document.getElementById("loanModal").classList.add("hidden");
+  loadLoans();
+});
+
+document.getElementById("payFeeBtn").addEventListener("click", async () => {
+  if (!activeLoanId) return;
+  const btn = document.getElementById("payFeeBtn");
+  btn.disabled = true;
+  btn.textContent = "Processing...";
+
+  try {
+    await fetch(`${window.API_BASE}/loans/${activeLoanId}/pay-fee`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    await loadLoans();
+  } catch (err) {
+    console.error("Fee payment simulation failed:", err);
+    btn.disabled = false;
+    btn.textContent = "Pay Processing Fee";
+  }
+});
+
+loadLoans();
 
 function connectSSE(){
   try{

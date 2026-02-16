@@ -63,9 +63,9 @@
    ```
 
 5. **Access the application**
-   - Frontend: http://localhost:5173
-   - API: http://localhost:3001
-   - Health check: http://localhost:3001/api/health
+   - Frontend: https://polaris-uru5.onrender.com
+   - API: https://polaris-uru5.onrender.com/api
+   - Health check: https://polaris-uru5.onrender.com/api/health
 
 ## 📜 Available Scripts
 

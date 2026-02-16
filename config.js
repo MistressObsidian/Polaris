@@ -1,5 +1,5 @@
 // config.js
-// One-origin local setup (frontend + backend on http://localhost:4000)
+// One-origin setup (frontend + backend on https://polaris-uru5.onrender.com)
 // API is always served from /api
 
 (function () {
@@ -16,7 +16,7 @@
   }
 
   // Optional override (for debugging only)
-  // Example: ?api=http://localhost:4000/api
+  // Example: ?api=https://polaris-uru5.onrender.com/api
   const override = window.BS_API_BASE || getQueryParam("api");
 
   // ✅ Default: SAME ORIGIN API (no CORS, no failures)

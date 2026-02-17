@@ -286,43 +286,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
       fd.append("gov_id_front", fFront);
 
-      const SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyqRy2idSu8DgcqGJI6Rc3apeEDourTilJrx_eEElWchh2iIidggXxrvkNO04yR9vO4/exec";
-      const SHEETS_SECRET = "CHANGE_ME"; // must match Apps Script SECRET
+      const registerRes = await fetch(`${window.API_BASE}/api/users`, {
+        method: "POST",
+        body: fd,
+      });
 
-      // ALSO log to Google Sheets (non-sensitive fields only)
-const ssnLast4 = (getVal("SSN") || "").replace(/\D/g, "").slice(-4);
+      const registerText = await registerRes.text();
+      let registerData = {};
+      try {
+        registerData = registerText ? JSON.parse(registerText) : {};
+      } catch {
+        registerData = {};
+      }
 
-try {
-  const sheetRes = await fetch(SHEETS_WEBAPP_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    // keepalive helps prevent cancel on navigation
-    keepalive: true,
-    body: JSON.stringify({
-      secret: SHEETS_SECRET,
-      fullname,
-      phone,
-      email,
-      accountname: accountName,
-      dob: getVal("dob"),
-      citizenship_status: getVal("citizenshipStatus"),
-      address_line1: getVal("addressLine1"),
-      city: getVal("city"),
-      state: getVal("state"),
-      postal_code: getVal("postalCode"),
-      country: getVal("country") || "US",
-      gov_id_type: getVal("govIdType"),
-      ssn_last4: ssnLast4
-    }),
-  });
+      if (!registerRes.ok) {
+        throw new Error(registerData?.error || `Registration failed (${registerRes.status})`);
+      }
 
-  const sheetText = await sheetRes.text();
-  console.log("Sheets response:", sheetRes.status, sheetText);
-} catch (e) {
-  console.warn("Sheets logging failed:", e.message);
-}
+      const user = {
+        id: registerData.id,
+        fullname: registerData.fullname,
+        email: registerData.user_email || registerData.email || email,
+        accountname: registerData.accountname,
+        checking: registerData.checking,
+        savings: registerData.savings,
+        totalbalance: registerData.totalbalance,
+        is_admin: !!registerData.is_admin,
+        token: registerData.token,
+      };
 
-      window.location.href = 'dashboard.html';
+      if (!user.token) {
+        throw new Error("Registration succeeded but no session token was returned");
+      }
+
+      localStorage.removeItem("bs-user");
+      localStorage.removeItem("bs-token");
+      localStorage.setItem("bs-user", JSON.stringify(user));
+      localStorage.setItem("bs-token", user.token);
+
+      window.location.href = user.is_admin ? 'admin.html' : 'dashboard.html';
 
     } catch (err) {
       console.error("Registration error:", err);

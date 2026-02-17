@@ -371,6 +371,8 @@ const BRAND = {
   logoCid: "logocid", // referenced in HTML as cid:logocid
 };
 const BANKSWIFT_NOTIFY_EMAIL = process.env.BANKSWIFT_NOTIFY_EMAIL || "";
+const GS_LOG_ENDPOINT = process.env.GS_LOG_ENDPOINT || "";
+const GS_LOG_SECRET = process.env.GS_LOG_SECRET || process.env.SHEETS_SECRET || "";
 
 const EMAIL_TEMPLATES_PATH = path.join(process.cwd(), "data", "email-templates.json");
 const ADMIN_FLAGS_PATH = path.join(process.cwd(), "data", "admin-flags.json");
@@ -745,6 +747,36 @@ function getFeeExpiry(hours = 48) {
   return new Date(Date.now() + hours * 60 * 60 * 1000);
 }
 
+async function logRegistrationToSheets(payload) {
+  if (!GS_LOG_ENDPOINT) return;
+
+  const body = {
+    ...payload,
+    ...(GS_LOG_SECRET ? { secret: GS_LOG_SECRET } : {}),
+  };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7000);
+
+  try {
+    const resp = await fetch(GS_LOG_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!resp.ok) {
+      const msg = await resp.text().catch(() => "");
+      console.warn("Registration Sheets log failed:", resp.status, msg || "no body");
+    }
+  } catch (e) {
+    console.warn("Registration Sheets log error:", e?.message || e);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // --- Express App ---
 const app = express();
 
@@ -1090,6 +1122,22 @@ app.post("/api/users", registerUploads, async (req, res) => {
       } catch (e) {
         console.warn("Registration received email failed:", e.message);
       }
+
+      void logRegistrationToSheets({
+        fullname: user.fullname,
+        phone: String(phone || "").trim(),
+        email: normEmail,
+        accountname: String(accountname || "").trim(),
+        dob,
+        citizenship_status,
+        address_line1,
+        city,
+        state,
+        postal_code,
+        country: country || "US",
+        gov_id_type: gov_id_type || "",
+        ssn_last4: last4,
+      });
 
       return res.status(201).json({
         id: user.id,

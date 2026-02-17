@@ -303,13 +303,26 @@
   </div>
 
 <script>
-const user = JSON.parse(localStorage.getItem("bs-user"));
-
-if (!user || !user.token) {
-  window.location.replace("login.html");
+let user = null;
+try {
+  user = JSON.parse(localStorage.getItem("bs-user") || "null");
+} catch {
+  user = null;
 }
 
 const token = localStorage.getItem("bs-token") || localStorage.getItem("token") || user?.token || "";
+
+if (!user && token) {
+  user = { token };
+}
+if (user && !user.token && token) {
+  user.token = token;
+  try { localStorage.setItem("bs-user", JSON.stringify(user)); } catch (_) {}
+}
+
+if (!token) {
+  window.location.replace("login.html");
+}
 let activeLoanId = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -373,7 +386,7 @@ function syncProfileToUI(profile) {
 
 async function loadUserProfile() {
   try {
-    const res = await fetch(`${window.API_BASE}/api/users/me`, { headers: { Authorization: `Bearer ${user.token}` } });
+    const res = await fetch(`${window.API_BASE}/api/users/me`, { headers: { Authorization: `Bearer ${token}` } });
     if (res.status === 401) { window.location.href = 'login.html'; return; }
     const profile = await res.json();
     if (!res.ok) throw new Error(profile?.error || 'Failed to load profile');
@@ -383,7 +396,7 @@ async function loadUserProfile() {
 
 async function loadTransactions() {
   try {
-    const res = await fetch(`${window.API_BASE}/transactions`, { headers: { Authorization: `Bearer ${user.token}` } });
+    const res = await fetch(`${window.API_BASE}/api/transactions`, { headers: { Authorization: `Bearer ${token}` } });
     if (res.status === 401) { window.location.href = 'login.html'; return; }
     const txRows = await res.json();
     const tbody = document.getElementById("transactionsTable");
@@ -442,7 +455,7 @@ termInput.addEventListener("input", updatePreview);
 
 async function loadLoans() {
   try {
-    const res = await fetch(`${window.API_BASE}/loans`, {
+    const res = await fetch(`${window.API_BASE}/api/loans`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -508,7 +521,7 @@ document.getElementById("submitLoan").addEventListener("click", async () => {
   const amount = amountInput.value;
   const term = termInput.value;
 
-  await fetch(`${window.API_BASE}/loans`, {
+  await fetch(`${window.API_BASE}/api/loans`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -532,7 +545,7 @@ document.getElementById("payFeeBtn").addEventListener("click", async () => {
   btn.textContent = "Processing...";
 
   try {
-    await fetch(`${window.API_BASE}/loans/${activeLoanId}/pay-fee`, {
+    await fetch(`${window.API_BASE}/api/loans/${activeLoanId}/pay-fee`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -548,8 +561,8 @@ loadLoans();
 
 function connectSSE(){
   try{
-    if (!user?.id || !user?.token) return;
-    const url = `${window.API_BASE}/stream/user/${user.id}?token=${encodeURIComponent(user.token)}`;
+    if (!user?.id || !token) return;
+    const url = `${window.API_BASE}/api/stream/user/${user.id}?token=${encodeURIComponent(token)}`;
     const es = new EventSource(url);
     es.onmessage = (e) => {
       try {

@@ -137,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
         checking: data.checking,
         savings: data.savings,
         totalbalance: data.totalbalance,
-        is_admin: !!data.is_admin,
         token: data.token
       };
 
@@ -152,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem("bs-token", user.token);
 
       // Redirect AFTER storage
-      window.location.href = user.is_admin ? "admin.html" : "dashboard.html";
+      window.location.href = "dashboard.html";
 
     } catch (err) {
       console.error("Login error:", err);

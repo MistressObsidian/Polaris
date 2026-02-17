@@ -18,30 +18,32 @@ const BRAND_LOGO_CID = 'bankswiftlogo';
 
 export async function initMailer() {
   const host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
-  const port = Number(process.env.SMTP_PORT || process.env.EMAIL_PORT || 587);
+  const smtpPort = process.env.SMTP_PORT;
+  const emailPort = process.env.EMAIL_PORT;
+  const port = Number(smtpPort || emailPort || 587);
   const user = process.env.SMTP_USER || process.env.EMAIL_USER;
   const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-  const from = process.env.MAIL_FROM || process.env.EMAIL_FROM || user;
+  const from = process.env.MAIL_FROM || process.env.SMTP_FROM || process.env.EMAIL_FROM || user;
   if (!host || !user || !pass || !from) {
-    console.warn('initMailer: SMTP not configured (SMTP_HOST/SMTP_USER/SMTP_PASS/MAIL_FROM required)');
+    console.warn('initMailer: SMTP not configured (SMTP_HOST/SMTP_USER/SMTP_PASS + MAIL_FROM/SMTP_FROM/EMAIL_FROM required)');
     return;
   }
   try {
     mailer = nodemailer.createTransport({
-  host,
-  port,
-  secure: port === 465,
-  auth: { user, pass },
-  pool: false,
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-});
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+      pool: false,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+    });
     await mailer.verify();
     mailer.from = from;
     console.log('✉️  Mailer ready');
   } catch (e) {
-    console.warn('initMailer: Mailer verify failed', e);
+    console.warn('initMailer: Mailer verify failed:', e?.message || e);
     mailer = null;
   }
 }
@@ -77,7 +79,7 @@ export async function sendEmail(to, subject, html, opts = {}) {
     console.log('sendEmail: mail queued', info.messageId || info.response || info);
     return true;
   } catch (e) {
-    console.warn('sendEmail failed', e);
+    console.warn('sendEmail failed:', e?.message || e);
     return false;
   }
 }

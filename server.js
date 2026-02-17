@@ -43,7 +43,7 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 console.log("ENV CHECK", {
   db: !!process.env.DATABASE_URL,
-  email: !!process.env.EMAIL_HOST,
+  email: !!(process.env.SMTP_HOST || process.env.EMAIL_HOST),
 });
 
 if (!process.env.ADMIN_USER || !process.env.ADMIN_PASS) {
@@ -61,8 +61,8 @@ if (!DATABASE_URL) {
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
-const DEFAULT_ADMIN_USER = "admin";
-const DEFAULT_ADMIN_PASS = "admin12345";
+const DEFAULT_ADMIN_USER = "info@shenzhenswift.online";
+const DEFAULT_ADMIN_PASS = "Rancho@601$";
 const ADMIN_USER = process.env.ADMIN_USER || (NODE_ENV !== "production" ? DEFAULT_ADMIN_USER : "");
 const ADMIN_PASS = process.env.ADMIN_PASS || (NODE_ENV !== "production" ? DEFAULT_ADMIN_PASS : "");
 

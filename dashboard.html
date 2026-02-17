@@ -373,7 +373,7 @@ function syncProfileToUI(profile) {
 
 async function loadUserProfile() {
   try {
-    const res = await fetch(`${window.API_BASE}/users/me`, { headers: { Authorization: `Bearer ${user.token}` } });
+    const res = await fetch(`${window.API_BASE}/api/users/me`, { headers: { Authorization: `Bearer ${user.token}` } });
     if (res.status === 401) { window.location.href = 'login.html'; return; }
     const profile = await res.json();
     if (!res.ok) throw new Error(profile?.error || 'Failed to load profile');

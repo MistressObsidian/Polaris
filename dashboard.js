@@ -1,11 +1,6 @@
 /*
   dashboard.js
-  Defensive startup, debounced transaction reloads, and robust SSE reconnect/backoff.
-  Designed to replace the inline script previously in dashboard.html.
-
-  - Uses window.BSStorage (if present) for JSON-safe storage access.
-  - Uses window.Notifications (if present) but falls back gracefully.
-  - Exposes window._BS hooks for testing.
+  Full dashboard including hero, transactions, charts, SSE, sidebar, notifications, and loan modal.
 */
 
 (() => {
@@ -18,241 +13,371 @@
   let _loadTxTimeout = null;
   let sse = null;
   let sseRetryDelay = SSE_INITIAL_RETRY_MS;
-  let sseConnected = false;
 
-  // ---- Storage helpers (use BSStorage if available) ----
+  // ---- Storage helpers ----
   async function safeGetJSON(key, fallback = null) {
     try {
-      if (window.BSStorage && typeof window.BSStorage.getJSON === 'function') {
-        return await window.BSStorage.getJSON(key, fallback);
-      }
+      if (window.BSStorage?.getJSON) return await window.BSStorage.getJSON(key, fallback);
       const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : fallback;
-    } catch (err) {
-      console.warn('safeGetJSON parse error for', key, err);
-      try { localStorage.removeItem(key); } catch {}
-      return fallback;
-    }
+    } catch { try { localStorage.removeItem(key); } catch {} return fallback; }
   }
 
   async function safeSetJSON(key, obj) {
     try {
-      if (window.BSStorage && typeof window.BSStorage.setJSON === 'function') {
-        return await window.BSStorage.setJSON(key, obj);
-      }
+      if (window.BSStorage?.setJSON) return await window.BSStorage.setJSON(key, obj);
       localStorage.setItem(key, JSON.stringify(obj));
+    } catch {}
+  }
+
+  // ---- Hero sync ----
+  function fmt(n) {
+    return `$${Number(n || 0).toFixed(2)}`;
+  }
+
+  function syncProfileToUI(profile) {
+    if (!profile) return;
+    try {
+      const merged = Object.assign({}, user || {}, profile || {});
+      user = merged;
+      safeSetJSON('bs-user', merged);
+    } catch {}
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const checking = Number(profile.checking || 0);
+    const savings = Number(profile.savings || 0);
+    const available = checking + savings;
+    set('heroChecking', `$${checking.toFixed(2)}`);
+    set('heroSavings', `$${savings.toFixed(2)}`);
+    set('heroAvailable', `$${available.toFixed(2)}`);
+    set('heroName', profile.fullname || profile.accountname || profile.email || '');
+    const syncPill = document.getElementById('syncPill');
+    if (syncPill) syncPill.textContent = 'Sync — ' + new Date().toLocaleTimeString();
+  }
+
+  async function loadUserProfile() {
+    if (!user?.token) return;
+    try {
+      const res = await fetch(`${window.API_BASE}/api/users/me`, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (res.status === 401) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const profile = await res.json();
+      if (!res.ok) throw new Error(profile?.error || 'Failed to load profile');
+      syncProfileToUI(profile);
     } catch (err) {
-      console.warn('safeSetJSON failed', key, err);
+      console.error('Profile load error:', err);
     }
   }
 
-  // Debounced loader for transactions to coalesce multiple triggers
+  async function loadTransactions() {
+    if (!user?.token) return;
+    try {
+      const res = await fetch(`${window.API_BASE}/api/transactions`, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (res.status === 401) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const txRows = await res.json();
+      const tbody = document.getElementById('transactionsTable');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (!Array.isArray(txRows) || !txRows.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;opacity:.6">No transactions yet</td></tr>`;
+        return;
+      }
+
+      txRows.slice(0, 10).forEach((tx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+        <td>${tx.created_at ? new Date(tx.created_at).toLocaleDateString() : '—'}</td>
+        <td>${tx.description || (tx.type === 'credit' ? 'Credit' : 'Debit')}</td>
+        <td>${tx.reference || tx.id || '—'}</td>
+        <td class="${tx.type === 'credit' ? 'amount-positive' : 'amount-negative'}">
+          ${tx.type === 'credit' ? '+' : '-'}$${Number(tx.amount || 0).toFixed(2)}
+        </td>
+        <td>$${Number(tx.total_balance_after ?? tx.balance_after ?? 0).toFixed(2)}</td>`;
+
+        tr.addEventListener('click', () => {
+          try {
+            localStorage.setItem('last-transfer', JSON.stringify(tx));
+          } catch {}
+          window.location.href = 'transactions.html';
+        });
+
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error('Transaction load error:', err);
+    }
+  }
+
+  function renderCharts() {
+    const spendingCanvas = document.getElementById('spendingChart');
+    const savingsCanvas = document.getElementById('savingsChart');
+    if (!window.Chart || !spendingCanvas || !savingsCanvas) return;
+
+    const spendingCtx = spendingCanvas.getContext('2d');
+    if (spendingCtx) {
+      new Chart(spendingCtx, {
+        type: 'line',
+        data: {
+          labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+          datasets: [{
+            label: 'Monthly Spending',
+            data: [1200, 950, 1350, 1100, 1400, 1250],
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239,68,68,.15)',
+            fill: true,
+            tension: .35,
+            pointRadius: 2
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#1f2530' } }, y: { grid: { color: '#1f2530' } } } }
+      });
+    }
+
+    const savingsCtx = savingsCanvas.getContext('2d');
+    if (savingsCtx) {
+      new Chart(savingsCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+          datasets: [{
+            label: 'Savings Balance',
+            data: [2000, 2500, 2800, 3200, 3500, 4000],
+            backgroundColor: '#10b981'
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#1f2530' } }, y: { grid: { color: '#1f2530' } } } }
+      });
+    }
+  }
+
+  // ---- Transactions ----
   function scheduleLoadTransactions() {
     clearTimeout(_loadTxTimeout);
     _loadTxTimeout = setTimeout(async () => {
-      try {
-        if (typeof window.loadTransactions === 'function') {
-          await window.loadTransactions();
-        } else {
-          console.warn('scheduleLoadTransactions: window.loadTransactions is not defined.');
-        }
-      } catch (err) {
-        console.error('Error while loading transactions:', err);
+      if (typeof window.loadTransactions === 'function') {
+        try { await window.loadTransactions(); } catch (err) { console.error(err); }
       }
     }, LOAD_TX_DEBOUNCE_MS);
   }
 
-  // Safe Notifications init
-  function initNotifications() {
-    if (window.Notifications && typeof window.Notifications.init === 'function') {
-      try { window.Notifications.init(); } catch (err) { console.warn('Notifications.init failed', err); }
-      return;
-    }
-    if ('Notification' in window && Notification.permission !== 'granted') {
-      try { Notification.requestPermission().catch(() => {}); } catch (err) {}
-    }
+  // ---- Loan helpers ----
+  function calculateLoan(P, annualRate, months) {
+    const r = annualRate / 100 / 12;
+    return (P * r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1);
   }
 
-  // ---- SSE (Server-Sent Events) with reconnect/backoff ----
+  let activeLoanId = null;
+
+  async function loadLoansAndUI() {
+    if (!user?.token) return;
+    try {
+      const res = await fetch(`${window.API_BASE}/api/loans`, { headers: { Authorization: `Bearer ${user.token}` } });
+      const loans = await res.json();
+      const latest = Array.isArray(loans) && loans[0] ? loans[0] : null;
+
+      const badge = document.getElementById("loanBadge");
+      const amountEl = document.getElementById("loanAmountText");
+      const aprEl = document.getElementById("loanAprText");
+      const monthlyEl = document.getElementById("loanMonthlyText");
+      const payBtn = document.getElementById("payFeeBtn");
+
+      if (latest) {
+        activeLoanId = latest.id;
+        const amount = Number(latest.amount || 0);
+        const apr = Number(latest.apr_estimate || 8.5);
+        const months = Number(latest.term_months || 12);
+        const monthly = latest.monthly_payment_estimate || calculateLoan(amount, apr, months);
+
+        amountEl.textContent = `Amount: $${amount.toLocaleString()}`;
+        aprEl.textContent = `APR: ${apr}%`;
+        monthlyEl.textContent = `Monthly: $${monthly.toFixed(2)}`;
+
+        const status = String(latest.status || 'pending').toLowerCase();
+        badge.className = `badge ${status}`;
+        badge.textContent = status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+
+        payBtn.style.display = status === 'processing_fee_required' ? 'inline-block' : 'none';
+        payBtn.disabled = false;
+      } else {
+        activeLoanId = null;
+        badge.className = 'badge pending';
+        badge.textContent = 'Pending Review';
+        amountEl.textContent = 'Amount: $5,000';
+        aprEl.textContent = 'APR: 8.5%';
+        monthlyEl.textContent = 'Monthly: $416.66';
+        payBtn.style.display = 'none';
+      }
+
+      // Update loan history container
+      const container = document.getElementById("loanStatusContainer");
+      if (container) {
+        container.innerHTML = '';
+        Array.isArray(loans) && loans.forEach(l => {
+          const div = document.createElement('div');
+          div.className = 'loan-card glass-card';
+          div.innerHTML = `<h3>Loan $${l.amount}</h3><span class="badge ${l.status}">${String(l.status || "pending").replace("_", " ").toUpperCase()}</span>`;
+          container.appendChild(div);
+        });
+      }
+
+    } catch (err) { console.error('loadLoansAndUI error', err); }
+  }
+
+  // ---- Loan modal logic ----
+  function initLoanModal() {
+    const modal = document.getElementById("loanModal");
+    const applyBtn = document.getElementById("applyLoanBtn");
+    const closeBtn = document.getElementById("closeLoanModal");
+    const submitBtn = document.getElementById("submitLoan");
+    const amountInput = document.getElementById("loanAmount");
+    const termInput = document.getElementById("loanTerm");
+    const preview = document.getElementById("loanPreview");
+    const payBtn = document.getElementById("payFeeBtn");
+
+    if (applyBtn && modal) applyBtn.addEventListener("click", () => modal.classList.remove("hidden"));
+    if (closeBtn && modal) closeBtn.addEventListener("click", () => modal.classList.add("hidden"));
+
+    function updatePreview() {
+      const P = Number(amountInput.value);
+      const months = Number(termInput.value);
+      if (!P || !months) return preview.innerHTML = '';
+      const payment = calculateLoan(P, 8.5, months);
+      preview.innerHTML = `<p>APR: 8.5%</p><p>Estimated Monthly: $${payment.toFixed(2)}</p>`;
+    }
+
+    amountInput?.addEventListener("input", updatePreview);
+    termInput?.addEventListener("input", updatePreview);
+
+    submitBtn?.addEventListener("click", async () => {
+      const amount = amountInput.value;
+      const term = termInput.value;
+      if (!amount || !term) return alert("Enter amount and term");
+
+      try {
+        await fetch(`${window.API_BASE}/api/loans`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
+          body: JSON.stringify({ amount, term_months: term })
+        });
+        alert("Loan application submitted for review.");
+        modal.classList.add("hidden");
+        await loadLoansAndUI();
+      } catch (err) {
+        console.error(err);
+        alert("Failed to submit loan.");
+      }
+    });
+
+    payBtn?.addEventListener("click", async () => {
+      if (!activeLoanId) return;
+      payBtn.disabled = true; payBtn.textContent = "Processing...";
+      try {
+        await fetch(`${window.API_BASE}/api/loans/${activeLoanId}/pay-fee`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+        await loadLoansAndUI();
+      } catch (err) { console.error(err); payBtn.disabled = false; payBtn.textContent = "Pay Processing Fee"; }
+    });
+  }
+
+  // ---- SSE ----
   function getSseUrl() {
     const cfg = window.BS_CONFIG || {};
-    const base = cfg.sseUrl || '/sse';
+    const base = cfg.sseUrl || `/api/stream/user/${user?.id || ''}`;
     const tokenParam = cfg.sseTokenParam || 'token';
-    const token = (user && user.token) ? encodeURIComponent(user.token) : null;
-    if (token) return `${base}?${tokenParam}=${token}`;
-    return base;
+    return user?.token ? `${base}?${tokenParam}=${encodeURIComponent(user.token)}` : base;
   }
 
   function connectSSE() {
-    if (typeof EventSource === 'undefined') {
-      console.warn('SSE not supported in this environment (EventSource missing).');
-      return;
-    }
-
-    const url = getSseUrl();
-    if (!url) {
-      console.warn('connectSSE: no SSE URL available');
-      return;
-    }
-
-    if (sse) {
-      try { sse.close(); } catch (e) {}
-      sse = null;
-      sseConnected = false;
-    }
-
-    try {
-      sse = new EventSource(url, { withCredentials: false });
-    } catch (err) {
-      console.error('Failed to create EventSource:', err);
-      scheduleSseReconnect();
-      return;
-    }
-
-    sse.onopen = () => {
-      console.info('SSE connected to', url);
-      sseConnected = true;
-      sseRetryDelay = SSE_INITIAL_RETRY_MS;
-    };
-
-    sse.onmessage = (ev) => {
-      if (!ev || !ev.data) return;
-      let payload = null;
-      try { payload = JSON.parse(ev.data); } catch (err) { payload = ev.data; }
-      try {
-        if (payload && payload.type === 'transfer') {
-          window.dispatchEvent(new CustomEvent('transfer-completed', { detail: payload.data }));
-        } else if (payload && payload.type === 'profile.updated') {
-          if (payload.data) {
-            (async () => {
-              const existing = await safeGetJSON('bs-user', {});
-              const merged = Object.assign({}, existing || {}, payload.data);
-              await safeSetJSON('bs-user', merged);
-              // Notify same-window listeners manually
-              window.dispatchEvent(new Event('bs-user-updated'));
-            })();
-          }
-        } else {
-          scheduleLoadTransactions();
+    if (!window.EventSource) return;
+    if (sse) try { sse.close(); } catch {}
+    sse = new EventSource(getSseUrl());
+    sse.onopen = () => { console.info('SSE connected'); sseRetryDelay = SSE_INITIAL_RETRY_MS; };
+    sse.onmessage = async (ev) => {
+      if (!ev?.data) return;
+      let payload; try { payload = JSON.parse(ev.data); } catch { payload = ev.data; }
+      if (payload?.type === 'transfer') window.dispatchEvent(new CustomEvent('transfer-completed', { detail: payload.data }));
+      else if (payload?.type === 'profile.updated') {
+        if (payload.data) {
+          const existing = await safeGetJSON('bs-user', {});
+          const merged = Object.assign({}, existing || {}, payload.data);
+          await safeSetJSON('bs-user', merged);
+          window.dispatchEvent(new Event('bs-user-updated'));
         }
-      } catch (err) {
-        console.error('Error handling SSE message:', err, payload);
-      }
+      } else scheduleLoadTransactions();
     };
-
-    sse.onerror = (err) => {
-      if (sse && sse.readyState === EventSource.CLOSED) {
-        console.warn('SSE closed — scheduling reconnect', err);
-      } else {
-        console.warn('SSE error', err);
-      }
-      try { sse.close(); } catch (_) {}
+    sse.onerror = () => {
+      try { sse.close(); } catch {}
       sse = null;
-      sseConnected = false;
-      scheduleSseReconnect();
+      setTimeout(() => { sseRetryDelay = Math.min(Math.ceil(sseRetryDelay * SSE_RETRY_FACTOR), SSE_MAX_RETRY_MS); connectSSE(); }, sseRetryDelay);
     };
   }
 
-  function scheduleSseReconnect() {
-    setTimeout(() => {
-      sseRetryDelay = Math.min(Math.ceil(sseRetryDelay * SSE_RETRY_FACTOR), SSE_MAX_RETRY_MS);
-      connectSSE();
-    }, sseRetryDelay);
-  }
-
-  // ---- Storage event handling ----
-  async function onStorageEvent(e) {
-    try {
-      if (!e) return;
-      if (e.key === 'bs-user' && e.newValue) {
-        const updated = safeParseJSON(e.newValue, null);
-        if (updated) syncProfileToUI(updated);
-      }
-      if (['transfer', 'last-transfer'].includes(e.key)) {
-        scheduleLoadTransactions();
-      }
-      if (e.key === 'bs-user' && !e.newValue) {
-        window.location.href = 'login.html';
-      }
-    } catch (err) {
-      console.error('Error in onStorageEvent handler', err);
+  // ---- Notifications ----
+  function initNotifications() {
+    if (window.Notifications?.init) { try { window.Notifications.init(); } catch {} return; }
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      try { Notification.requestPermission().catch(() => {}); } catch {}
     }
   }
 
-  // fallback safe parse used above in onStorageEvent (string parsing only)
-  function safeParseJSON(raw, fallback = null) {
-    if (!raw) return fallback;
-    try { return JSON.parse(raw); } catch (err) { console.warn('safeParseJSON failed', err); return fallback; }
+  // ---- Sidebar ----
+  function wireSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const menuBtn = document.getElementById('menuBtn');
+    if (!sidebar || !menuBtn) return;
+    menuBtn.addEventListener('click', e => { e.stopPropagation(); sidebar.classList.toggle('active'); });
+    document.addEventListener('click', e => { if (!sidebar.classList.contains('active')) return; if (!sidebar.contains(e.target) && e.target!==menuBtn) sidebar.classList.remove('active'); });
+    document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>sidebar.classList.remove('active')));
+    document.addEventListener('keydown', e=>{if(e.key==='Escape') sidebar.classList.remove('active');});
   }
 
-  function syncProfileToUI(profile) {
-    try {
-      if (typeof window.syncProfileToUI === 'function') {
-        window.syncProfileToUI(profile);
-        return;
-      }
-      const hero = document.getElementById('heroName');
-      if (hero) hero.textContent = profile.fullname || profile.accountname || profile.email || '';
-    } catch (err) {
-      console.warn('syncProfileToUI fallback failed', err);
-    }
-  }
-
-  // ---- Defensive startup ----
+  // ---- Init ----
   async function init() {
     initNotifications();
+    user = await safeGetJSON('bs-user', null);
+    if (!user?.token) return window.location.href = 'login.html';
 
-    // Load user from BSStorage or localStorage
-    try {
-      user = await safeGetJSON('bs-user', null);
-    } catch (err) {
-      user = null;
-    }
+    try { wireSidebar(); } catch {}
+    try { if (window.loadUserProfile) await window.loadUserProfile(); } catch {}
+    try { scheduleLoadTransactions(); } catch {}
+    try { if (window.renderCharts) window.renderCharts(); } catch {}
+    try { connectSSE(); } catch {}
+    try { initLoanModal(); } catch {}
 
-    if (!user || !user.token) {
-      try { window.location.href = 'login.html'; } catch (err) {}
-      return;
-    }
-
-    try {
-      const heroEl = document.getElementById('heroName');
-      if (heroEl) heroEl.textContent = user.fullname || user.accountname || user.email || '';
-    } catch (err) {}
-
-    try {
-      if (typeof window.wireSidebar === 'function') window.wireSidebar();
-    } catch (err) { console.error('wireSidebar error', err); }
-
-    try {
-      if (typeof window.loadUserProfile === 'function') {
-        await window.loadUserProfile();
-      }
-    } catch (err) { console.error('loadUserProfile failed', err); }
-
-    try { scheduleLoadTransactions(); } catch (err) { console.error('scheduleLoadTransactions failed', err); }
-
-    try { if (typeof window.renderCharts === 'function') window.renderCharts(); } catch (err) { console.error('renderCharts failed', err); }
-
-    try { connectSSE(); } catch (err) { console.error('connectSSE failed at init', err); }
-
-    try {
-      window.addEventListener('transfer-completed', scheduleLoadTransactions);
-      window.addEventListener('storage', onStorageEvent);
-      window.addEventListener('bs-user-updated', async () => {
-        const updated = await safeGetJSON('bs-user', null);
-        if (updated) syncProfileToUI(updated);
-      });
-    } catch (err) { console.warn('Event registration failed', err); }
+    window.addEventListener('transfer-completed', scheduleLoadTransactions);
+    window.addEventListener('storage', async e => {
+      if (!e) return;
+      if (e.key==='bs-user' && e.newValue) syncProfileToUI(JSON.parse(e.newValue));
+      if (['transfer','last-transfer'].includes(e.key)) scheduleLoadTransactions();
+      if (e.key==='bs-user' && !e.newValue) window.location.href='login.html';
+    });
+    window.addEventListener('bs-user-updated', async ()=>syncProfileToUI(await safeGetJSON('bs-user', null)));
+    await loadLoansAndUI();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    setTimeout(init, 0);
-  }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init,0);
 
+  // ---- Expose hooks ----
   window._BS = window._BS || {};
+  window.loadUserProfile = loadUserProfile;
+  window.loadTransactions = loadTransactions;
+  window.renderCharts = renderCharts;
   window._BS.connectSSE = connectSSE;
   window._BS.scheduleLoadTransactions = scheduleLoadTransactions;
-  window._BS.getUserFromStorage = async () => await safeGetJSON('bs-user', null);
+  window._BS.getUserFromStorage = async ()=>await safeGetJSON('bs-user',null);
+  window._BS.syncProfileToUI = syncProfileToUI;
+  window._BS.loadLoansAndUI = loadLoansAndUI;
 })();

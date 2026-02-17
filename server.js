@@ -359,9 +359,6 @@ async function initMailer() {
   }
 }
 
-await initMailer();
-await initMailerUtils();
-
 // ---- Branded Email Helper (logo on every email) ----
 const APP_BASE_URL = (process.env.APP_BASE_URL || "").replace(/\/+$/, "");
 const BRAND = {
@@ -2771,4 +2768,11 @@ app.get(/^\/(?!api\/).*/, (req, res) => res.sendFile(path.join(__dirname, "index
 // --- Start ---
 app.listen(PORT, () => {
   console.log(`🚀 Server running at https://polaris-uru5.onrender.com (env=${NODE_ENV})`);
+
+  (async () => {
+    await initMailer();
+    await initMailerUtils();
+  })().catch((err) => {
+    console.warn("Mailer startup init failed:", err?.message || err);
+  });
 });

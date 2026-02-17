@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       if (!window.API_BASE) throw new Error("API_BASE is not set. Check config.js");
 
-      const res = await fetch(`${window.API_BASE}/login`, {
+      const res = await fetch(`${window.API_BASE}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })

@@ -48,7 +48,7 @@ console.log("ENV CHECK", {
 
 if (!process.env.ADMIN_USER || !process.env.ADMIN_PASS) {
   if (NODE_ENV !== "production") {
-    console.warn("⚠️  ADMIN_USER/ADMIN_PASS not set. Using default admin credentials for development.");
+    console.warn("⚠️  ADMIN_USER/ADMIN_PASS not set. Admin login routes may be disabled.");
   }
 }
 const PORT = Number(process.env.PORT) || 4000;
@@ -59,12 +59,15 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
+if (NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  console.error("❌ Missing JWT_SECRET in production");
+  process.exit(1);
+}
 
-const DEFAULT_ADMIN_USER = "info@shenzhenswift.online";
-const DEFAULT_ADMIN_PASS = "Rancho@601$";
-const ADMIN_USER = process.env.ADMIN_USER || (NODE_ENV !== "production" ? DEFAULT_ADMIN_USER : "");
-const ADMIN_PASS = process.env.ADMIN_PASS || (NODE_ENV !== "production" ? DEFAULT_ADMIN_PASS : "");
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-registration";
+
+const ADMIN_USER = String(process.env.ADMIN_USER || "").trim().toLowerCase();
+const ADMIN_PASS = String(process.env.ADMIN_PASS || "");
 
 const ADMIN_EMAILS = String(process.env.ADMIN_EMAILS || "")
   .split(",")
@@ -109,10 +112,15 @@ function ssnHash(ssnDigits) {
 }
 
 function isAdminEmail(email) {
-  const admins = [
-    process.env.ADMIN_USER.toLowerCase()
-  ];
-  return admins.includes(email.toLowerCase());
+  const normalized = String(email || "").trim().toLowerCase();
+  if (!normalized) return false;
+
+  const admins = new Set([
+    ADMIN_USER,
+    ...ADMIN_EMAILS,
+  ].filter(Boolean));
+
+  return admins.has(normalized);
 }
 
 function requireAuth(req, res, next) {
@@ -777,8 +785,25 @@ async function logRegistrationToSheets(payload) {
 // --- Express App ---
 const app = express();
 
+const CORS_ORIGINS = String(
+  process.env.CORS_ORIGINS || "https://shenzhenswift.online,https://polaris-uru5.onrender.com"
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+if (NODE_ENV !== "production") {
+  CORS_ORIGINS.push("http://localhost:4000", "http://localhost:5173", "http://127.0.0.1:5173");
+}
+
+const ALLOWED_ORIGINS = Array.from(new Set(CORS_ORIGINS));
+
 app.use(cors({
-  origin: "https://shenzhenswift.online",
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  },
   credentials: true
 }));
 

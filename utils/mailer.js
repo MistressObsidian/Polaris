@@ -1,53 +1,53 @@
 // utils/mailer.js
-// Adds initMailer(), sendEmail(to, subject, html, opts) and renderEmail(title, bodyHtml).
-// Usage:
-//   import { initMailer, sendEmail, renderEmail } from './utils/mailer.js';
-//   await initMailer(); // call once at startup
-//   await sendEmail('me@example.com', 'Subject', renderEmail('Title', '<p>Body</p>'));
-
 import nodemailer from 'nodemailer';
 import path from 'path';
 import fs from 'fs';
 
 let mailer = null;
 
-const BRAND_LOGO_PATH = process.env.BRAND_LOGO_PATH
-  || path.join(process.cwd(), 'assets', 'logo.png');
-
+// Path to your logo (optional)
+const BRAND_LOGO_PATH = process.env.BRAND_LOGO_PATH || path.join(process.cwd(), 'assets', 'logo.png');
 const BRAND_LOGO_CID = 'bankswiftlogo';
 
+/**
+ * Initialize SMTP mailer
+ */
 export async function initMailer() {
-  const host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
-  const smtpPort = process.env.SMTP_PORT;
-  const emailPort = process.env.EMAIL_PORT;
-  const port = Number(smtpPort || emailPort || 587);
-  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
-  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-  const from = process.env.MAIL_FROM || process.env.SMTP_FROM || process.env.EMAIL_FROM || user;
+  const host = process.env.SMTP_HOST || 'mail.privateemail.com'; // ✅ Use official Private Email host
+  const port = Number(process.env.SMTP_PORT || 587); // 587 preferred on cloud hosts
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const from = process.env.MAIL_FROM || user;
+
   if (!host || !user || !pass || !from) {
-    console.warn('initMailer: SMTP not configured (SMTP_HOST/SMTP_USER/SMTP_PASS + MAIL_FROM/SMTP_FROM/EMAIL_FROM required)');
+    console.warn("✉️  Mailer disabled: missing SMTP env vars (SMTP_USER, SMTP_PASS, MAIL_FROM required)");
     return;
   }
+
   try {
     mailer = nodemailer.createTransport({
       host,
       port,
-      secure: port === 465,
+      secure: port === 465, // SSL only for 465, STARTTLS for 587
       auth: { user, pass },
-      pool: false,
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
+      connectionTimeout: 15000, // 15 seconds timeout
+      greetingTimeout: 15000,
+      socketTimeout: 15000,
     });
-    await mailer.verify();
+
+    await mailer.verify(); // Throws error if connection fails
     mailer.from = from;
-    console.log('✉️  Mailer ready');
+
+    console.log(`✉️  Mailer ready: ${user} via ${host}:${port}`);
   } catch (e) {
-    console.warn('initMailer: Mailer verify failed:', e?.message || e);
     mailer = null;
+    console.warn("❌ Mailer init failed:", e.message);
   }
 }
 
+/**
+ * Send an email
+ */
 export async function sendEmail(to, subject, html, opts = {}) {
   if (!mailer) {
     console.warn('sendEmail: mailer not initialized; skipping send', { to, subject });
@@ -70,8 +70,8 @@ export async function sendEmail(to, subject, html, opts = {}) {
     to,
     subject,
     html,
-    ...opts,
     attachments,
+    ...opts,
   };
 
   try {
@@ -79,14 +79,18 @@ export async function sendEmail(to, subject, html, opts = {}) {
     console.log('sendEmail: mail queued', info.messageId || info.response || info);
     return true;
   } catch (e) {
-    console.warn('sendEmail failed:', e?.message || e);
+    console.warn('sendEmail failed:', e.message);
     return false;
   }
 }
 
+/**
+ * Render a simple HTML email template
+ */
 export function renderEmail(title, bodyHtml) {
   const BRAND_NAME = process.env.BRAND_NAME || 'Bank Swift';
   const BRAND_LOGO_SRC = `cid:${BRAND_LOGO_CID}`;
+
   return `
   <div style="font-family:Arial,sans-serif; background:#f6f8fb; padding:24px;">
     <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; border:1px solid #e8edf3;">
@@ -106,4 +110,7 @@ export function renderEmail(title, bodyHtml) {
   </div>`;
 }
 
-function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]); }
+function escapeHtml(s){ 
+  if(!s) return ''; 
+  return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]); 
+}

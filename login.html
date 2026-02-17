@@ -120,7 +120,12 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const text = await res.text();
-      const data = text ? JSON.parse(text) : {};
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = {};
+      }
       if (!res.ok) throw new Error(data?.error || `Login failed (${res.status})`);
 
       // AFTER successful login response
@@ -136,11 +141,15 @@ document.addEventListener("DOMContentLoaded", () => {
         token: data.token
       };
 
+      if (!user.token) {
+        throw new Error("Login succeeded but no session token was returned");
+      }
+
       localStorage.removeItem("bs-user");
       localStorage.removeItem("bs-token");
 
       localStorage.setItem("bs-user", JSON.stringify(user));
-      localStorage.setItem("bs-token", data.token);
+      localStorage.setItem("bs-token", user.token);
 
       // Redirect AFTER storage
       window.location.href = user.is_admin ? "admin.html" : "dashboard.html";

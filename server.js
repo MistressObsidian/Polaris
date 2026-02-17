@@ -781,7 +781,7 @@ async function logRegistrationToSheets(payload) {
 const app = express();
 
 app.use(cors({
-  origin: true,
+  origin: "https://shenzhenswift.online",
   credentials: true
 }));
 

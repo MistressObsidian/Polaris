@@ -232,7 +232,7 @@
 
     async function loadProfile(){
       try {
-        const data = await fetchJSON(API_BASE + '/users/me', { headers: authHeaders() });
+        const data = await fetchJSON(API_BASE + '/api/users/me', { headers: authHeaders() });
         applyProfile(data);
       } catch(e){
         console.warn('Profile load failed', e);

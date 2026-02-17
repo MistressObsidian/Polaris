@@ -171,7 +171,7 @@
         const key = (email||'').toLowerCase();
         if (!key) return null;
         if (nameCache.has(key)) return nameCache.get(key);
-        const res = await fetch(`${window.API_BASE}/users/lookup?email=${encodeURIComponent(key)}`, {
+        const res = await fetch(`${window.API_BASE}/api/users/lookup?email=${encodeURIComponent(key)}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('lookup failed');

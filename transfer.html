@@ -254,7 +254,7 @@
 
     async function refreshProfile(){
       try {
-        const res = await fetch(API_BASE + '/users/me', {
+        const res = await fetch(API_BASE + '/api/users/me', {
           headers: authHeaders()
         });
         if (!res.ok) return;

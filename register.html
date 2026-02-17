@@ -303,16 +303,18 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(registerData?.error || `Registration failed (${registerRes.status})`);
       }
 
+      const data = registerData;
+
       const user = {
-        id: registerData.id,
-        fullname: registerData.fullname,
-        email: registerData.user_email || registerData.email || email,
-        accountname: registerData.accountname,
-        checking: registerData.checking,
-        savings: registerData.savings,
-        totalbalance: registerData.totalbalance,
-        is_admin: !!registerData.is_admin,
-        token: registerData.token,
+        id: data.id,
+        fullname: data.fullname,
+        email: data.user_email || data.email || email,
+        accountname: data.accountname,
+        checking: data.checking,
+        savings: data.savings,
+        totalbalance: data.totalbalance,
+        is_admin: !!data.is_admin,
+        token: data.token,
       };
 
       if (!user.token) {
@@ -322,9 +324,9 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.removeItem("bs-user");
       localStorage.removeItem("bs-token");
       localStorage.setItem("bs-user", JSON.stringify(user));
-      localStorage.setItem("bs-token", user.token);
+      localStorage.setItem("bs-token", data.token);
 
-      window.location.href = user.is_admin ? 'admin.html' : 'dashboard.html';
+      window.location.href = "/dashboard.html";
 
     } catch (err) {
       console.error("Registration error:", err);

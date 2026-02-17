@@ -1140,6 +1140,8 @@ app.post("/api/users", registerUploads, async (req, res) => {
       });
 
       return res.status(201).json({
+        message: "User created successfully",
+        token,
         id: user.id,
         fullname: user.fullname,
         email: user.email,
@@ -1153,7 +1155,6 @@ app.post("/api/users", registerUploads, async (req, res) => {
         // modern
   balances: { total: totalbalance, accounts },
 
-        token,
       });
     } catch (err) {
       await client.query("ROLLBACK").catch(() => {});

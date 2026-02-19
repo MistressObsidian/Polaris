@@ -145,12 +145,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       localStorage.removeItem("bs-user");
-      localStorage.removeItem("bs-token");
-      localStorage.removeItem("token");
 
       localStorage.setItem("bs-user", JSON.stringify(user));
-      localStorage.setItem("bs-token", user.token);
-      localStorage.setItem("token", user.token);
 
       // Redirect AFTER storage
       window.location.href = "dashboard.html";

@@ -74,6 +74,8 @@ const ADMIN_EMAILS = String(process.env.ADMIN_EMAILS || "")
   .map((s) => s.trim().toLowerCase())
   .filter(Boolean);
 const ADMIN_SECRET = process.env.ADMIN_SECRET ? String(process.env.ADMIN_SECRET) : "";
+const JWT_EXPIRES_IN = String(process.env.JWT_EXPIRES_IN || "2h");
+const JWT_ALGORITHMS = ["HS256"];
 
 // --- Helpers ---
 function validateEmail(email) {
@@ -88,12 +90,22 @@ function issueToken(user) {
       is_admin: user.is_admin === true
     },
     JWT_SECRET,
-    { expiresIn: "2h" }
+    { expiresIn: JWT_EXPIRES_IN, algorithm: "HS256" }
   );
 }
 
 function issueAdminToken(username) {
-  return jwt.sign({ sub: "admin", username, is_admin: true }, JWT_SECRET, { expiresIn: "2h" });
+  return jwt.sign(
+    { sub: "admin", username, is_admin: true },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN, algorithm: "HS256" }
+  );
+}
+
+function extractBearerToken(req) {
+  const auth = String(req.headers.authorization || "").trim();
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  return m ? m[1].trim() : "";
 }
 
 function makeToken(len = 24) {
@@ -124,11 +136,11 @@ function isAdminEmail(email) {
 }
 
 function requireAuth(req, res, next) {
-  const token = req.headers.authorization?.replace("Bearer ", "");
+  const token = extractBearerToken(req);
   if (!token) return res.status(401).json({ error: "Missing token" });
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: JWT_ALGORITHMS });
     req.user = payload; // ← REQUIRED
     next();
   } catch {
@@ -161,11 +173,10 @@ function requireAdminSecret(req, res) {
 }
 
 function requireAdminToken(req, res, next) {
-  const auth = req.headers.authorization || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const token = extractBearerToken(req);
   if (!token) return res.status(401).json({ error: "Unauthorized: missing admin token" });
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: JWT_ALGORITHMS });
     const email = payload?.email || "";
     const isAdmin = payload?.is_admin === true || isAdminEmail(email);
     if (!payload || !isAdmin) {
@@ -227,14 +238,14 @@ function handleError(res, label, err) {
 }
 
 async function authMiddleware(req, res, next) {
-  const auth = req.headers.authorization || "";
-  let token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  if (!token && req.query?.token) token = String(req.query.token);
+  let token = extractBearerToken(req);
+  const isStreamRoute = req.path.startsWith("/api/stream/");
+  if (!token && isStreamRoute && req.query?.token) token = String(req.query.token);
 
   if (!token) return res.status(401).json({ error: "Unauthorized: missing token" });
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: JWT_ALGORITHMS });
     const isAdmin = payload?.is_admin === true || isAdminEmail(payload?.email);
 
     // Admin impersonation (optional)

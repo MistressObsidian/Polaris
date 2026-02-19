@@ -307,7 +307,7 @@
     location.href = "dashboard.html";
   }
   const storedUser = u;
-  const token = storedUser?.token;
+  const token = storedUser?.token || localStorage.getItem('bs-token');
 </script>
 
 <div class="layout">

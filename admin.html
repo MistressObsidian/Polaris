@@ -303,6 +303,7 @@
   const u = JSON.parse(localStorage.getItem("bs-user") || "null");
   if (!u || u.is_admin !== true) {
     localStorage.removeItem("bs-user");
+    localStorage.removeItem("bs-token");
     location.href = "dashboard.html";
   }
   const storedUser = u;
@@ -833,6 +834,8 @@
 
   function logout(){
     localStorage.removeItem("bs-user");
+    localStorage.removeItem("bs-token");
+    localStorage.removeItem("token");
     window.location.href = "login.html";
   }
   $("#logoutBtn").addEventListener("click", logout);

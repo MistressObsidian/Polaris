@@ -95,6 +95,7 @@
 			btn.addEventListener('click', ()=>{
 				try{
 					localStorage.setItem('bs-user', JSON.stringify(adminSession));
+					localStorage.setItem('bs-token', adminSession.token || '');
 					localStorage.removeItem('admin-session');
 					window.location.href = 'admin.html';
 				} catch {}

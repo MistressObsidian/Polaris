@@ -67,6 +67,15 @@
    - API: https://polaris-uru5.onrender.com/api
    - Health check: https://polaris-uru5.onrender.com/api/health
 
+## ☁️ Cloudflare Worker Routing
+
+For Cloudflare proxy deployments, use same-origin API calls from the frontend and route only API paths through the Worker.
+
+- Frontend config: `window.API_BASE = window.location.origin`
+- Frontend requests: `fetch('/api/...')`
+- Worker route: `Shenzhenswift.online/api/*`
+- Do **not** set Worker route to `polaris-uru5.onrender.com/api/*`
+
 ## 📜 Available Scripts
 
 - `npm run api` - Start the Express API server on port 3001

@@ -19,17 +19,17 @@
   </style>
   <script src="config.js"></script>
 <script>
-const API_BASE = window.API_BASE;
-
 // Simulate webhook event (manual trigger)
 async function sendWebhookTest() {
   try {
-    const res = await fetch(`${API_BASE}/api/webhooks/test`, {
+    const reference = (document.getElementById('ref')?.value || '').trim() || 'TXN-DEMO-123';
+    const status = (document.getElementById('status')?.value || '').trim() || 'completed';
+    const res = await fetch(`/api/transfers/confirm`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        event: "transfer.completed",
-        data: { id: "demo123", amount: 500 }
+        reference,
+        status
       })
     });
 
@@ -84,7 +84,7 @@ async function sendWebhookTest() {
       <label for="secret">Shared Secret</label>
       <input id="secret" placeholder="WEBHOOK_SECRET (default change-me)" />
     </div>
-    <button class="primary" onclick="sendWebhook()">Send Webhook</button>
+    <button class="primary" onclick="sendWebhookTest()">Send Webhook</button>
     <h3>Response</h3>
     <pre id="log" class="log"></pre>
   </main>

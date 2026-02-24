@@ -232,7 +232,7 @@
 
     async function loadProfile(){
       try {
-        const data = await fetchJSON(API_BASE + '/api/users/me', { headers: authHeaders() });
+        const data = await fetchJSON('/api/users/me', { headers: authHeaders() });
         applyProfile(data);
       } catch(e){
         console.warn('Profile load failed', e);
@@ -241,7 +241,7 @@
 
     async function loadTransactions(){
       try {
-        const data = await fetchJSON(API_BASE + '/api/transactions', { headers: authHeaders() });
+        const data = await fetchJSON('/api/transactions', { headers: authHeaders() });
         state.transactions = data;
         renderTransactions();
       } catch(e){
@@ -252,23 +252,7 @@
     const scheduleApplyProfile = debounce((p)=>applyProfile(p), 1200);
 
     function connectSSE(){
-      if(!state.user || !state.user.id || !state.user.token) return;
-      try {
-        if(state.sse) state.sse.close();
-        state.sse = new EventSource(API_BASE.replace(/\/api$/,'') + `/api/stream/user/${state.user.id}?token=${state.user.token}`);
-        state.sse.onmessage = (ev) => {
-          try {
-            const p = JSON.parse(ev.data);
-            if(p && p.id) scheduleApplyProfile(p);
-          } catch {}
-        };
-        state.sse.onerror = () => {
-          state.sse.close();
-          setTimeout(connectSSE, 8000);
-        };
-      } catch(e){
-        console.warn('SSE connect failed', e);
-      }
+      return;
     }
 
     // Event handlers

@@ -172,7 +172,7 @@
     async function loadProfile(){
       qs('#profileStatus').textContent = 'Loading…';
       try {
-        const p = await fetchJSON(API_BASE + '/api/users/me', { headers: authHeaders() });
+        const p = await fetchJSON('/api/users/me', { headers: authHeaders() });
         state.profile = p;
         fillProfileForm(p);
         // mirror
@@ -198,7 +198,7 @@
       qs('#profileStatus').textContent = 'Saving…';
       // Try PUT /api/users/me; if not supported, inform user
       try {
-        const res = await fetch(API_BASE + '/api/users/me', { method:'PUT', headers: authHeaders(), body: JSON.stringify(body) });
+        const res = await fetch('/api/users/me', { method:'PUT', headers: authHeaders(), body: JSON.stringify(body) });
         if(res.ok){
           showToast('Profile updated');
           await loadProfile();
@@ -223,7 +223,7 @@
       if(a !== b){ qs('#pwStatus').textContent='Passwords do not match'; return; }
       qs('#pwStatus').textContent = 'Saving…';
       try {
-        const res = await fetch(API_BASE + '/api/users/password', {
+        const res = await fetch('/api/users/password', {
           method:'POST', headers: authHeaders(), body: JSON.stringify({ new_password: a })
         });
         if(res.ok){

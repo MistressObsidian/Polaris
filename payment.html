@@ -273,29 +273,7 @@
       }
 
       try{
-        const created = await fetchJSON(API_BASE + '/api/payments', {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify(payload)
-        });
-
-        // Success modal
-        const ref = created.reference || created.id || (payload.reference || ('PMT-'+Date.now()));
-        document.getElementById('successDetails').innerHTML = `
-          <div class="kv"><span>Payee</span><strong>${payload.payee_name}</strong></div>
-          <div class="kv"><span>Amount</span><strong>${fmtAmt(payload.amount)}</strong></div>
-          <div class="kv"><span>Method</span><strong>${currentMethod.toUpperCase()}</strong></div>
-          <div class="kv"><span>Reference</span><strong>${ref}</strong></div>
-          <div class="kv"><span>Scheduled</span><strong>${payload.schedule_date || 'Today'}</strong></div>
-        `;
-        qs('#successModal').style.display='flex';
-
-        // Store and refresh list
-        try { localStorage.setItem('last-payment', JSON.stringify(created)); } catch {}
-        qs('#payForm').reset();
-        selectMethod('billpay');
-        updateSummary(0);
-        await loadPayments();
+        throw new Error('Payments are not enabled on this server. Please use the Transfers page.');
       } catch(err){
         qs('#formError').textContent = err.message || 'Payment failed';
       }
@@ -307,40 +285,8 @@
       const list = document.getElementById('payList');
       const empty = document.getElementById('payEmpty');
       list.innerHTML = '';
-      empty.style.display = 'none';
-      try{
-        const rows = await fetchJSON(API_BASE + '/api/payments', { headers: authHeaders() });
-        const items = Array.isArray(rows) ? rows : [];
-        if(!items.length){ empty.style.display='block'; return; }
-        items.slice(0,50).forEach((p, idx)=>{
-          const div = document.createElement('div');
-          div.className = 'item';
-          const amt = Number(p.amount||0);
-          const when = p.created_at ? new Date(p.created_at).toLocaleString() : (p.schedule_date || '');
-          div.innerHTML = `
-            <div class="item-left">
-              <div class="item-icon">💳</div>
-              <div>
-                <div class="item-title">${p.payee_name || 'Payment'}</div>
-                <div class="item-meta">${when}</div>
-              </div>
-            </div>
-            <div class="amt neg">-${fmtAmt(amt)}</div>
-          `;
-          div.addEventListener('click', ()=>{
-            Array.from(list.children).forEach(c => c.classList.remove('active'));
-            div.classList.add('active');
-            renderPaymentDetails(p);
-          });
-          if(idx===0) div.classList.add('active');
-          list.appendChild(div);
-          if(idx===0) renderPaymentDetails(p);
-        });
-      } catch(err){
-        empty.style.display='block';
-        empty.textContent = 'Failed to load payments';
-        console.warn('Load payments:', err);
-      }
+      empty.style.display='block';
+      empty.textContent = 'Payments are not available on this server.';
     }
 
     function renderPaymentDetails(p){
@@ -364,21 +310,7 @@
     }
 
     function connectSSE(){
-      if(!user?.id || !user?.token) return;
-      try{
-        const sse = new EventSource(API_BASE.replace(/\/api$/,'') + `/api/stream/user/${user.id}?token=${user.token}`);
-        sse.onmessage = (e)=>{
-          try {
-            const profile = JSON.parse(e.data);
-            if(profile && profile.id){
-              updateBalancePill(profile);
-              user = { ...user, ...profile };
-              localStorage.setItem('bs-user', JSON.stringify(user));
-            }
-          } catch {}
-        };
-        sse.onerror = ()=> sse.close();
-      } catch {}
+      return;
     }
 
     (function init(){

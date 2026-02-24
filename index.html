@@ -1147,13 +1147,11 @@
                                     await bsLogToSheet({ type:'contact', name, email, message }, { await:true });
 
                         // Optional: also forward to backend API if endpoint exists
-                        if(window.API_BASE){
-                            fetch(`${window.API_BASE}/api/contact`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ name, email, message })
-                            }).catch(()=>{}); // non-blocking
-                        }
+                        fetch(`/api/contact`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name, email, message })
+                        }).catch(()=>{}); // non-blocking
 
                         statusEl.style.display='block';
                         statusEl.textContent='Message sent successfully!';

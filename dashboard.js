@@ -8,6 +8,7 @@
   const SSE_INITIAL_RETRY_MS = 1000;
   const SSE_MAX_RETRY_MS = 30000;
   const SSE_RETRY_FACTOR = 1.7;
+  const AUTH_REDIRECT_DELAY_MS = 2500;
 
   let user = null;
   let _loadTxTimeout = null;
@@ -30,6 +31,30 @@
     } catch {}
   }
 
+  async function extractApiErrorMessage(res, fallback = 'Unauthorized') {
+    if (!res) return fallback;
+    try {
+      const text = await res.text();
+      if (!text) return fallback;
+      try {
+        const data = JSON.parse(text);
+        return data?.error || data?.message || fallback;
+      } catch {
+        return text;
+      }
+    } catch {
+      return fallback;
+    }
+  }
+
+  async function handleUnauthorized(res, source) {
+    const details = await extractApiErrorMessage(res, 'Unauthorized');
+    const message = `Unauthorized (${source}): ${details}. Redirecting to login...`;
+    console.error(message);
+    await clearSession();
+    setTimeout(() => { window.location.href = 'login.html'; }, AUTH_REDIRECT_DELAY_MS);
+  }
+
   function safeGetStorageValue(key) {
     try { return localStorage.getItem(key); } catch { return null; }
   }
@@ -42,19 +67,17 @@
   }
 
   function getSessionTokenFromStorage() {
-    return safeGetStorageValue('bs-token') || safeGetStorageValue('token') || null;
+    return safeGetStorageValue('bs-token') || null;
   }
 
   function persistSessionToken(token) {
     if (!token) return;
     safeSetStorageValue('bs-token', token);
-    safeSetStorageValue('token', token);
   }
 
   async function clearSession() {
     await safeSetJSON('bs-user', null);
     safeSetStorageValue('bs-token', null);
-    safeSetStorageValue('token', null);
   }
 
   async function bootstrapSession() {
@@ -77,7 +100,7 @@
     }
 
     try {
-      const res = await fetch(`${window.API_BASE}/api/users/me`, {
+      const res = await fetch(`/api/users/me`, {
         headers: { Authorization: `Bearer ${sessionToken}` }
       });
       if (!res.ok) {
@@ -121,12 +144,11 @@
   async function loadUserProfile() {
     if (!user?.token) return;
     try {
-      const res = await fetch(`${window.API_BASE}/api/users/me`, {
+      const res = await fetch(`/api/users/me`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (res.status === 401) {
-        await clearSession();
-        window.location.href = 'login.html';
+        await handleUnauthorized(res, '/api/users/me');
         return;
       }
       const profile = await res.json();
@@ -140,12 +162,11 @@
   async function loadTransactions() {
     if (!user?.token) return;
     try {
-      const res = await fetch(`${window.API_BASE}/api/transactions`, {
+      const res = await fetch(`/api/transactions`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (res.status === 401) {
-        await clearSession();
-        window.location.href = 'login.html';
+        await handleUnauthorized(res, '/api/transactions');
         return;
       }
 
@@ -247,7 +268,7 @@
   async function loadLoansAndUI() {
     if (!user?.token) return;
     try {
-      const res = await fetch(`${window.API_BASE}/api/loans`, { headers: { Authorization: `Bearer ${user.token}` } });
+      const res = await fetch(`/api/loans`, { headers: { Authorization: `Bearer ${user.token}` } });
       const loans = await res.json();
       const latest = Array.isArray(loans) && loans[0] ? loans[0] : null;
 
@@ -330,7 +351,7 @@
       if (!amount || !term) return alert("Enter amount and term");
 
       try {
-        await fetch(`${window.API_BASE}/api/loans`, {
+        await fetch(`/api/loans`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
           body: JSON.stringify({ amount, term_months: term })
@@ -348,7 +369,7 @@
       if (!activeLoanId) return;
       payBtn.disabled = true; payBtn.textContent = "Processing...";
       try {
-        await fetch(`${window.API_BASE}/api/loans/${activeLoanId}/pay-fee`, {
+        await fetch(`/api/loans/${activeLoanId}/pay-fee`, {
           method: "POST",
           headers: { Authorization: `Bearer ${user.token}` }
         });
@@ -359,35 +380,11 @@
 
   // ---- SSE ----
   function getSseUrl() {
-    const cfg = window.BS_CONFIG || {};
-    const base = cfg.sseUrl || `/api/stream/user/${user?.id || ''}`;
-    const tokenParam = cfg.sseTokenParam || 'token';
-    return user?.token ? `${base}?${tokenParam}=${encodeURIComponent(user.token)}` : base;
+    return '';
   }
 
   function connectSSE() {
-    if (!window.EventSource) return;
-    if (sse) try { sse.close(); } catch {}
-    sse = new EventSource(getSseUrl());
-    sse.onopen = () => { console.info('SSE connected'); sseRetryDelay = SSE_INITIAL_RETRY_MS; };
-    sse.onmessage = async (ev) => {
-      if (!ev?.data) return;
-      let payload; try { payload = JSON.parse(ev.data); } catch { payload = ev.data; }
-      if (payload?.type === 'transfer') window.dispatchEvent(new CustomEvent('transfer-completed', { detail: payload.data }));
-      else if (payload?.type === 'profile.updated') {
-        if (payload.data) {
-          const existing = await safeGetJSON('bs-user', {});
-          const merged = Object.assign({}, existing || {}, payload.data);
-          await safeSetJSON('bs-user', merged);
-          window.dispatchEvent(new Event('bs-user-updated'));
-        }
-      } else scheduleLoadTransactions();
-    };
-    sse.onerror = () => {
-      try { sse.close(); } catch {}
-      sse = null;
-      setTimeout(() => { sseRetryDelay = Math.min(Math.ceil(sseRetryDelay * SSE_RETRY_FACTOR), SSE_MAX_RETRY_MS); connectSSE(); }, sseRetryDelay);
-    };
+    return;
   }
 
   // ---- Notifications ----

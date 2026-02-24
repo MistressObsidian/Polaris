@@ -157,7 +157,7 @@
 
     async function loadSettings(){
       try{
-        const res = await fetch(`${window.API_BASE}/api/settings`);
+        const res = await fetch(`/api/settings`);
         const data = await res.json().catch(()=> ({}));
         if (res.ok && data?.feeRate != null) {
           const rate = Number(data.feeRate);
@@ -171,20 +171,15 @@
         const key = (email||'').toLowerCase();
         if (!key) return null;
         if (nameCache.has(key)) return nameCache.get(key);
-        const res = await fetch(`${window.API_BASE}/api/users/lookup?email=${encodeURIComponent(key)}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error('lookup failed');
-        const data = await res.json();
-        nameCache.set(key, data?.fullname || null);
-        return data?.fullname || null;
+        nameCache.set(key, null);
+        return null;
       } catch { return null; }
     }
 
     async function loadAllTransactions(){
       try{
         const user = JSON.parse(localStorage.getItem("bs-user") || "null");
-        const res = await fetch(`${window.API_BASE}/api/transactions`, {
+        const res = await fetch(`/api/transactions`, {
           headers: { Authorization: `Bearer ${user?.token || ''}` }
         });
         const text = await res.text();

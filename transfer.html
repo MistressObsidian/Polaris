@@ -216,7 +216,7 @@
 
     async function loadFeeRate(){
       try {
-        const res = await fetch(API_BASE + '/api/settings');
+        const res = await fetch('/api/settings');
         const data = await res.json();
         if (res.ok && data?.feeRate != null) {
           const rate = Number(data.feeRate);
@@ -254,7 +254,7 @@
 
     async function refreshProfile(){
       try {
-        const res = await fetch(API_BASE + '/api/users/me', {
+        const res = await fetch('/api/users/me', {
           headers: authHeaders()
         });
         if (!res.ok) return;
@@ -332,7 +332,7 @@
 
       try {
         setSubmitting(true);
-        const res = await fetch(API_BASE + '/api/transfers', { method:'POST', headers: authHeaders(), body: JSON.stringify(payload) });
+        const res = await fetch('/api/transfers', { method:'POST', headers: authHeaders(), body: JSON.stringify(payload) });
         const tx = await res.json().catch(()=> ({}));
         if(!res.ok) throw new Error(tx?.error || ('Transfer failed ('+res.status+')'));
 
@@ -387,23 +387,7 @@
     }
 
     function connectSSE(){
-      if(!user?.id || !user?.token) return;
-      try {
-        const sse = new EventSource(API_BASE.replace(/\/api$/,'') + `/api/stream/user/${user.id}?token=${user.token}`);
-        sse.onmessage = (e)=>{
-          try {
-            const profile = JSON.parse(e.data);
-            if(profile && profile.id){
-              // Update balance pill and mirror
-              const accounts = profile?.balances?.accounts || profile?.accounts;
-              if (accounts) updateBalancePillFromAccounts(accounts);
-              user = { ...user, ...profile };
-              localStorage.setItem('bs-user', JSON.stringify(user));
-            }
-          } catch {}
-        };
-        sse.onerror = ()=> sse.close();
-      } catch {}
+      return;
     }
 
     // Init

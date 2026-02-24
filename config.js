@@ -1,6 +1,6 @@
 // config.js
-// One-origin setup (frontend + backend on https://polaris-uru5.onrender.com)
-// API is always served from /api
+// One-origin setup
+// API routes are served under /api
 
 (function () {
   function getQueryParam(name) {
@@ -19,11 +19,17 @@
   // Example: ?api=https://polaris-uru5.onrender.com
   const override = window.BS_API_BASE || getQueryParam("api");
 
-  // ✅ Default API origin
-  let ApiBase = "https://polaris-uru5.onrender.com";
+  function normalizeApiBase(url) {
+    const base = stripTrailingSlash(url);
+    return base.replace(/\/api$/i, "");
+  }
+
+  // Default API base provided for this project.
+  const API_BASE = "https://polaris-uru5.onrender.com/";
+  let ApiBase = normalizeApiBase(API_BASE);
 
   if (override) {
-    ApiBase = stripTrailingSlash(override);
+    ApiBase = normalizeApiBase(override);
   }
 
   window.API_BASE = ApiBase;

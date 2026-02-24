@@ -216,7 +216,7 @@
 
     async function loadFeeRate(){
       try {
-        const res = await fetch(API_BASE + '/settings');
+        const res = await fetch(API_BASE + '/api/settings');
         const data = await res.json();
         if (res.ok && data?.feeRate != null) {
           const rate = Number(data.feeRate);
@@ -332,7 +332,7 @@
 
       try {
         setSubmitting(true);
-        const res = await fetch(API_BASE + '/transfers', { method:'POST', headers: authHeaders(), body: JSON.stringify(payload) });
+        const res = await fetch(API_BASE + '/api/transfers', { method:'POST', headers: authHeaders(), body: JSON.stringify(payload) });
         const tx = await res.json().catch(()=> ({}));
         if(!res.ok) throw new Error(tx?.error || ('Transfer failed ('+res.status+')'));
 

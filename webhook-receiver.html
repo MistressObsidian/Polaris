@@ -24,7 +24,7 @@ const API_BASE = window.API_BASE;
 // Simulate webhook event (manual trigger)
 async function sendWebhookTest() {
   try {
-    const res = await fetch(`${API_BASE}/webhooks/test`, {
+    const res = await fetch(`${API_BASE}/api/webhooks/test`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

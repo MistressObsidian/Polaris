@@ -157,7 +157,7 @@
 
     async function loadSettings(){
       try{
-        const res = await fetch(`${window.API_BASE}/settings`);
+        const res = await fetch(`${window.API_BASE}/api/settings`);
         const data = await res.json().catch(()=> ({}));
         if (res.ok && data?.feeRate != null) {
           const rate = Number(data.feeRate);
@@ -184,7 +184,7 @@
     async function loadAllTransactions(){
       try{
         const user = JSON.parse(localStorage.getItem("bs-user") || "null");
-        const res = await fetch(`${window.API_BASE}/transactions`, {
+        const res = await fetch(`${window.API_BASE}/api/transactions`, {
           headers: { Authorization: `Bearer ${user?.token || ''}` }
         });
         const text = await res.text();

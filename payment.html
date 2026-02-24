@@ -273,7 +273,7 @@
       }
 
       try{
-        const created = await fetchJSON(API_BASE + '/payments', {
+        const created = await fetchJSON(API_BASE + '/api/payments', {
           method: 'POST',
           headers: authHeaders(),
           body: JSON.stringify(payload)
@@ -309,7 +309,7 @@
       list.innerHTML = '';
       empty.style.display = 'none';
       try{
-        const rows = await fetchJSON(API_BASE + '/payments', { headers: authHeaders() });
+        const rows = await fetchJSON(API_BASE + '/api/payments', { headers: authHeaders() });
         const items = Array.isArray(rows) ? rows : [];
         if(!items.length){ empty.style.display='block'; return; }
         items.slice(0,50).forEach((p, idx)=>{

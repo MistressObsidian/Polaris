@@ -262,8 +262,6 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.textContent = 'Creating...';
 
     try {
-      if (!window.API_BASE) throw new Error("API_BASE is not set. Check config.js");
-
       const fd = new FormData();
 
       fd.append("fullname", fullname);
@@ -286,7 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       fd.append("gov_id_front", fFront);
 
-      const registerRes = await fetch(`${window.API_BASE}/api/users`, {
+      const registerRes = await fetch(`/api/users`, {
         method: "POST",
         body: fd,
       });
@@ -323,10 +321,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       localStorage.removeItem("bs-user");
       localStorage.removeItem("bs-token");
-      localStorage.removeItem("token");
       localStorage.setItem("bs-user", JSON.stringify(user));
       localStorage.setItem("bs-token", data.token);
-      localStorage.setItem("token", data.token);
 
       window.location.href = "/dashboard.html";
 

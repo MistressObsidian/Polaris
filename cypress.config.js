@@ -1,6 +1,6 @@
 module.exports = {
   e2e: {
-  baseUrl: 'https://polaris-uru5.onrender.com',
+  baseUrl: 'https://shenzhenswift.online',
     setupNodeEvents(on, config) {
       // implement node event listeners here
     },

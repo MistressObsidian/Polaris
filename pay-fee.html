@@ -61,54 +61,12 @@
   const resultEl = document.getElementById('result');
   const form = document.getElementById('claim-form');
 
-  const lookupUrl = token ? `/api/transfers/claim/${encodeURIComponent(token)}` : (transferId ? `/api/transfers/${encodeURIComponent(transferId)}` : null);
-  if (!lookupUrl) {
-    infoEl.innerHTML = '<p style="color:#b00">Missing transfer id or token in URL.</p>';
-    form.style.display = 'none';
-  } else {
-    fetch(lookupUrl)
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.id) {
-          infoEl.innerHTML = `<div><strong>Reference:</strong> ${data.id} • <strong>Amount:</strong> $${Number(data.amount).toFixed(2)} • <strong>Status:</strong> ${data.status}</div>`;
-          if (data.account_number) infoEl.innerHTML += `<div class="hint">Destination bank: ${data.account_number} (routing ${data.routing_number})</div>`;
-          if (data.btc_address) infoEl.innerHTML += `<div class="hint">BTC address: ${data.btc_address}</div>`;
-        } else {
-          infoEl.innerHTML = '<p style="color:#b00">Transfer not found or not accessible.</p>';
-          form.style.display = 'none';
-        }
-      }).catch(e => { infoEl.innerHTML = '<p style="color:#b00">Error loading transfer details</p>'; form.style.display='none' });
-  }
+  infoEl.innerHTML = '<p style="color:#b00">Transfer claim endpoint is not enabled on this server.</p>';
+  form.style.display = 'none';
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
-    resultEl.innerHTML = 'Submitting…';
-    const payment_option = document.getElementById('payment_option').value;
-    const receipt = document.getElementById('receipt').value.trim();
-    const payer_email = document.getElementById('payer_email').value.trim();
-    const receipt_file = document.getElementById('receipt_file').files[0];
-
-    // Use FormData so we can upload files
-    const fd = new FormData();
-    if (token) fd.append('token', token);
-    if (transferId && !token) fd.append('transfer_id', transferId);
-    fd.append('payment_option', payment_option);
-    fd.append('receipt', receipt);
-    fd.append('payer_email', payer_email);
-    if (receipt_file) fd.append('receipt_file', receipt_file);
-
-    try {
-      const r = await fetch('/api/transfers/claim', { method: 'POST', body: fd });
-      const j = await r.json();
-      if (r.ok) {
-        resultEl.innerHTML = `<div style="color:green">${j.message || 'Claim submitted. Thank you!'}</div>`;
-        form.reset();
-      } else {
-        resultEl.innerHTML = `<div style="color:#b00">${j.error || 'Failed to submit claim'}</div>`;
-      }
-    } catch (e) {
-      resultEl.innerHTML = '<div style="color:#b00">Network error</div>';
-    }
+    resultEl.innerHTML = '<div style="color:#b00">Transfer claim endpoint is not enabled on this server.</div>';
   });
 
   document.getElementById('cancel').addEventListener('click', () => { window.location.href = '/'; });

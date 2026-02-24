@@ -483,7 +483,6 @@
 </div>
 
 <script>
-  const API = window.API_BASE || "";
   const $ = (sel) => document.querySelector(sel);
   const headers = () => ({
     "Content-Type": "application/json",
@@ -509,7 +508,7 @@
   });
 
   async function api(path, opts={}) {
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await fetch(path, {
       ...opts,
       headers: {
         'Content-Type': 'application/json',
@@ -522,7 +521,7 @@
   }
 
   async function loadStats() {
-    const res = await fetch(`${API}/admin/stats`, { headers: headers() });
+    const res = await fetch(`/api/admin/stats`, { headers: headers() });
     const d = await res.json();
     if (!res.ok) return;
     document.getElementById("statUsers").textContent = d.total_users;
@@ -835,7 +834,6 @@
   function logout(){
     localStorage.removeItem("bs-user");
     localStorage.removeItem("bs-token");
-    localStorage.removeItem("token");
     window.location.href = "login.html";
   }
   $("#logoutBtn").addEventListener("click", logout);

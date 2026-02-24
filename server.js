@@ -65,6 +65,12 @@ if (NODE_ENV === "production" && !process.env.JWT_SECRET) {
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-registration";
+const JWT_SECRET_FALLBACKS = String(process.env.JWT_SECRET_FALLBACKS || process.env.JWT_SECRETS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean)
+  .filter((secret) => secret !== JWT_SECRET);
+const JWT_VERIFY_SECRETS = [JWT_SECRET, ...JWT_SECRET_FALLBACKS];
 
 const ADMIN_USER = String(process.env.ADMIN_USER || "").trim().toLowerCase();
 const ADMIN_PASS = String(process.env.ADMIN_PASS || "");
@@ -74,7 +80,10 @@ const ADMIN_EMAILS = String(process.env.ADMIN_EMAILS || "")
   .map((s) => s.trim().toLowerCase())
   .filter(Boolean);
 const ADMIN_SECRET = process.env.ADMIN_SECRET ? String(process.env.ADMIN_SECRET) : "";
-const JWT_EXPIRES_IN = String(process.env.JWT_EXPIRES_IN || "2h");
+const JWT_EXPIRES_IN_RAW = String(process.env.JWT_EXPIRES_IN || "7d").trim();
+const JWT_EXPIRES_IN = ["", "none", "false", "0", "off", "no"].includes(JWT_EXPIRES_IN_RAW.toLowerCase())
+  ? null
+  : JWT_EXPIRES_IN_RAW;
 const JWT_ALGORITHMS = ["HS256"];
 
 // --- Helpers ---
@@ -83,6 +92,8 @@ function validateEmail(email) {
 }
 
 function issueToken(user) {
+  const options = { algorithm: "HS256" };
+  if (JWT_EXPIRES_IN) options.expiresIn = JWT_EXPIRES_IN;
   return jwt.sign(
     {
       sub: user.id,
@@ -90,16 +101,30 @@ function issueToken(user) {
       is_admin: user.is_admin === true
     },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN, algorithm: "HS256" }
+    options
   );
 }
 
 function issueAdminToken(username) {
+  const options = { algorithm: "HS256" };
+  if (JWT_EXPIRES_IN) options.expiresIn = JWT_EXPIRES_IN;
   return jwt.sign(
     { sub: "admin", username, is_admin: true },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN, algorithm: "HS256" }
+    options
   );
+}
+
+function verifyJwtToken(token) {
+  let lastError = null;
+  for (const secret of JWT_VERIFY_SECRETS) {
+    try {
+      return jwt.verify(token, secret, { algorithms: JWT_ALGORITHMS });
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError || new Error("Invalid token");
 }
 
 function extractBearerToken(req) {
@@ -140,7 +165,7 @@ function requireAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: "Missing token" });
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET, { algorithms: JWT_ALGORITHMS });
+    const payload = verifyJwtToken(token);
     req.user = payload; // ← REQUIRED
     next();
   } catch {
@@ -176,7 +201,7 @@ function requireAdminToken(req, res, next) {
   const token = extractBearerToken(req);
   if (!token) return res.status(401).json({ error: "Unauthorized: missing admin token" });
   try {
-    const payload = jwt.verify(token, JWT_SECRET, { algorithms: JWT_ALGORITHMS });
+    const payload = verifyJwtToken(token);
     const email = payload?.email || "";
     const isAdmin = payload?.is_admin === true || isAdminEmail(email);
     if (!payload || !isAdmin) {
@@ -245,7 +270,7 @@ async function authMiddleware(req, res, next) {
   if (!token) return res.status(401).json({ error: "Unauthorized: missing token" });
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET, { algorithms: JWT_ALGORITHMS });
+    const payload = verifyJwtToken(token);
     const isAdmin = payload?.is_admin === true || isAdminEmail(payload?.email);
 
     // Admin impersonation (optional)
@@ -797,7 +822,7 @@ async function logRegistrationToSheets(payload) {
 const app = express();
 
 const CORS_ORIGINS = String(
-  process.env.CORS_ORIGINS || "https://shenzhenswift.online,https://polaris-uru5.onrender.com"
+  process.env.CORS_ORIGINS || "https://shenzhenswift.online,https://www.shenzhenswift.online"
 )
   .split(",")
   .map((s) => s.trim())

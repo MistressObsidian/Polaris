@@ -30,6 +30,70 @@
     } catch {}
   }
 
+  function safeGetStorageValue(key) {
+    try { return localStorage.getItem(key); } catch { return null; }
+  }
+
+  function safeSetStorageValue(key, value) {
+    try {
+      if (value === null || value === undefined || value === '') localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    } catch {}
+  }
+
+  function getSessionTokenFromStorage() {
+    return safeGetStorageValue('bs-token') || safeGetStorageValue('token') || null;
+  }
+
+  function persistSessionToken(token) {
+    if (!token) return;
+    safeSetStorageValue('bs-token', token);
+    safeSetStorageValue('token', token);
+  }
+
+  async function clearSession() {
+    await safeSetJSON('bs-user', null);
+    safeSetStorageValue('bs-token', null);
+    safeSetStorageValue('token', null);
+  }
+
+  async function bootstrapSession() {
+    const storedUser = await safeGetJSON('bs-user', null);
+    const fallbackToken = getSessionTokenFromStorage();
+    const sessionToken = storedUser?.token || fallbackToken;
+
+    if (!sessionToken) return null;
+
+    if (storedUser?.token) {
+      persistSessionToken(storedUser.token);
+      return storedUser;
+    }
+
+    if (storedUser && !storedUser.token) {
+      const merged = Object.assign({}, storedUser, { token: sessionToken });
+      await safeSetJSON('bs-user', merged);
+      persistSessionToken(sessionToken);
+      return merged;
+    }
+
+    try {
+      const res = await fetch(`${window.API_BASE}/api/users/me`, {
+        headers: { Authorization: `Bearer ${sessionToken}` }
+      });
+      if (!res.ok) {
+        if (res.status === 401) await clearSession();
+        return null;
+      }
+      const profile = await res.json();
+      const hydrated = Object.assign({}, profile || {}, { token: sessionToken });
+      await safeSetJSON('bs-user', hydrated);
+      persistSessionToken(sessionToken);
+      return hydrated;
+    } catch {
+      return null;
+    }
+  }
+
   // ---- Hero sync ----
   function fmt(n) {
     return `$${Number(n || 0).toFixed(2)}`;
@@ -61,6 +125,7 @@
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (res.status === 401) {
+        await clearSession();
         window.location.href = 'login.html';
         return;
       }
@@ -79,6 +144,7 @@
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (res.status === 401) {
+        await clearSession();
         window.location.href = 'login.html';
         return;
       }
@@ -346,7 +412,7 @@
   // ---- Init ----
   async function init() {
     initNotifications();
-    user = await safeGetJSON('bs-user', null);
+    user = await bootstrapSession();
     if (!user?.token) return window.location.href = 'login.html';
 
     try { wireSidebar(); } catch {}
@@ -361,7 +427,10 @@
       if (!e) return;
       if (e.key==='bs-user' && e.newValue) syncProfileToUI(JSON.parse(e.newValue));
       if (['transfer','last-transfer'].includes(e.key)) scheduleLoadTransactions();
-      if (e.key==='bs-user' && !e.newValue) window.location.href='login.html';
+      if (e.key==='bs-user' && !e.newValue) {
+        user = await bootstrapSession();
+        if (!user?.token) window.location.href='login.html';
+      }
     });
     window.addEventListener('bs-user-updated', async ()=>syncProfileToUI(await safeGetJSON('bs-user', null)));
     await loadLoansAndUI();

@@ -138,11 +138,28 @@
   <script src="config.js"></script>
   <script src="common.js"></script>
   <script>
+    function getSessionUser() {
+      let user = null;
+      let fallbackToken = "";
+      try { user = JSON.parse(localStorage.getItem("bs-user") || "null"); } catch { user = null; }
+      try { fallbackToken = localStorage.getItem("bs-token") || ""; } catch { fallbackToken = ""; }
+
+      const token = user?.token || fallbackToken;
+      if (!token) return null;
+
+      if (user && !user.token) {
+        user.token = token;
+        try { localStorage.setItem("bs-user", JSON.stringify(user)); } catch {}
+      }
+
+      return user || { token };
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
       if (window.Notifications) window.Notifications.init();
       try {
-        const user = JSON.parse(localStorage.getItem("bs-user"));
-        if (!user || !user.token) { window.location.href = "login.html"; return; }
+        const user = getSessionUser();
+        if (!user?.token) { window.location.href = "login.html"; return; }
         await loadSettings();
         loadAllTransactions();
       } catch (err) {
@@ -178,9 +195,13 @@
 
     async function loadAllTransactions(){
       try{
-        const user = JSON.parse(localStorage.getItem("bs-user") || "null");
+        const user = getSessionUser();
+        if (!user?.token) {
+          window.location.href = "login.html";
+          return;
+        }
         const res = await fetch(`/api/transactions`, {
-          headers: { Authorization: `Bearer ${user?.token || ''}` }
+          headers: { Authorization: `Bearer ${user.token}` }
         });
         const text = await res.text();
         const txRows = text ? JSON.parse(text) : [];

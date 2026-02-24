@@ -107,15 +107,21 @@
       try {
         state.user = JSON.parse(localStorage.getItem('bs-user')||'null');
       } catch { state.user = null; }
-      if(!state.user || !state.user.token){
+      const fallbackToken = localStorage.getItem('bs-token') || '';
+      if (state.user && !state.user.token && fallbackToken) {
+        state.user.token = fallbackToken;
+        try { localStorage.setItem('bs-user', JSON.stringify(state.user)); } catch {}
+      }
+      if((!state.user || !state.user.token) && !fallbackToken){
         location.href = 'login.html';
       }
     }
 
     function authHeaders(){
+      const token = state.user?.token || localStorage.getItem('bs-token') || '';
       return {
         'Content-Type':'application/json',
-        'Authorization':'Bearer '+ state.user.token
+        'Authorization':'Bearer '+ token
       };
     }
 

@@ -160,10 +160,15 @@
   }
 
   async function loadTransactions() {
-    if (!user?.token) return;
+    const token = user?.token || getSessionTokenFromStorage();
+    if (!token) return;
+    if (user && !user.token) {
+      user.token = token;
+      await safeSetJSON('bs-user', user);
+    }
     try {
       const res = await fetch(`/api/transactions`, {
-        headers: { Authorization: `Bearer ${user.token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.status === 401) {
         await handleUnauthorized(res, '/api/transactions');

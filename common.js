@@ -4,10 +4,19 @@
 (function(){
 	if (window.Notifications) return; // singleton
 
+	function getStoredToken() {
+		try {
+			const u = JSON.parse(localStorage.getItem("bs-user") || "null");
+			return u?.token || localStorage.getItem("bs-token") || localStorage.getItem("token") || "";
+		} catch {
+			return localStorage.getItem("bs-token") || localStorage.getItem("token") || "";
+		}
+	}
+
 	window.getAuthHeaders = function () {
-		const u = JSON.parse(localStorage.getItem("bs-user") || "null");
-		return u?.token
-			? { Authorization: `Bearer ${u.token}` }
+		const token = getStoredToken();
+		return token
+			? { Authorization: `Bearer ${token}` }
 			: {};
 	};
 

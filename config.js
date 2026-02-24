@@ -13,7 +13,7 @@
   // Use same-origin by default
   const API_BASE = override || window.location.origin;
 
-  window.API_BASE = API_BASE;
+  window.API_BASE = "/api";
 
   console.log("🌐 API_BASE set to:", window.API_BASE);
 })();

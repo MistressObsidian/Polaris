@@ -62,7 +62,7 @@
 							try{
 								const user = JSON.parse(localStorage.getItem('bs-user')||'null');
 								if (!user || !user.token) return;
-								await fetch(`${window.API_BASE}/notifications/read`,{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization: `Bearer ${user.token}` }, body: JSON.stringify({ id: nid }) });
+								await fetch(`${window.API_BASE}/api/notifications/read`,{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization: `Bearer ${user.token}` }, body: JSON.stringify({ id: nid }) });
 							}catch(e){}
 						})();
 					}
@@ -107,13 +107,13 @@
 	async function markRead(id){
 		const user = JSON.parse(localStorage.getItem('bs-user')||'null');
 		if (!user || !user.token) return;
-		await fetch(`${window.API_BASE}/notifications/read`,{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization: `Bearer ${user.token}` }, body: JSON.stringify({ id }) });
+		await fetch(`${window.API_BASE}/api/notifications/read`,{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization: `Bearer ${user.token}` }, body: JSON.stringify({ id }) });
 	}
 
 	async function markAllRead(){
 		const user = JSON.parse(localStorage.getItem('bs-user')||'null');
 		if (!user || !user.token) return;
-		await fetch(`${window.API_BASE}/notifications/read-all`,{ method:'POST', headers:{ Authorization: `Bearer ${user.token}` } });
+		await fetch(`${window.API_BASE}/api/notifications/read-all`,{ method:'POST', headers:{ Authorization: `Bearer ${user.token}` } });
 	}
 
 	window.Notifications = {

@@ -241,7 +241,7 @@
 
     async function loadTransactions(){
       try {
-        const data = await fetchJSON(API_BASE + '/transactions', { headers: authHeaders() });
+        const data = await fetchJSON(API_BASE + '/api/transactions', { headers: authHeaders() });
         state.transactions = data;
         renderTransactions();
       } catch(e){

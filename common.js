@@ -5,6 +5,7 @@
 	if (window.Notifications) return; // singleton
 
 	function getStoredToken() {
+		if (window.BSSession?.getToken) return window.BSSession.getToken() || "";
 		try {
 			const u = JSON.parse(localStorage.getItem("bs-user") || "null");
 			return u?.token || localStorage.getItem("bs-token") || "";
@@ -66,8 +67,12 @@
 			btn.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9999;background:#2663ff;color:#fff;border:none;border-radius:999px;padding:.55rem .9rem;font-size:.8rem;box-shadow:0 8px 20px rgba(0,0,0,.35);cursor:pointer;';
 			btn.addEventListener('click', ()=>{
 				try{
-					localStorage.setItem('bs-user', JSON.stringify(adminSession));
-					localStorage.setItem('bs-token', adminSession.token || '');
+						if (window.BSSession?.setSession) {
+							window.BSSession.setSession(adminSession, adminSession.token || '');
+						} else {
+							localStorage.setItem('bs-user', JSON.stringify(adminSession));
+							localStorage.setItem('bs-token', adminSession.token || '');
+						}
 					localStorage.removeItem('admin-session');
 					window.location.href = 'admin.html';
 				} catch {}

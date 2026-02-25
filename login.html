@@ -142,11 +142,14 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Login succeeded but no session token was returned");
       }
 
-      localStorage.removeItem("bs-user");
-      localStorage.removeItem("bs-token");
-
-      localStorage.setItem("bs-user", JSON.stringify(user));
-      localStorage.setItem("bs-token", user.token);
+      if (window.BSSession?.setSession) {
+        window.BSSession.setSession(user, user.token);
+      } else {
+        localStorage.removeItem("bs-user");
+        localStorage.removeItem("bs-token");
+        localStorage.setItem("bs-user", JSON.stringify(user));
+        localStorage.setItem("bs-token", user.token);
+      }
 
       // Redirect AFTER storage
       window.location.href = "dashboard.html";

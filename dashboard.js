@@ -121,8 +121,16 @@
         headers: { Authorization: `Bearer ${sessionToken}` }
       });
       if (!res.ok) {
-        if (res.status === 401) await clearSession();
-        return null;
+        if (res.status === 401) {
+          await clearSession();
+          return null;
+        }
+
+        // Keep session for non-auth failures (e.g. temporarily restricted account)
+        const fallbackUser = Object.assign({}, storedUser || {}, { token: sessionToken });
+        await safeSetJSON('bs-user', fallbackUser);
+        persistSessionToken(sessionToken);
+        return fallbackUser;
       }
       const profile = await res.json();
       const hydrated = Object.assign({}, profile || {}, { token: sessionToken });
@@ -284,6 +292,20 @@
 
   let activeLoanId = null;
 
+  function getLoanStatusMeta(rawStatus) {
+    const status = String(rawStatus || 'pending').toLowerCase();
+    const labelByStatus = {
+      pending: 'Pending Review',
+      under_review: 'Under Review',
+      processing_fee_required: 'Processing Fee Required',
+      approved: 'Approved',
+      rejected: 'Rejected',
+      paid: 'Paid'
+    };
+    const className = labelByStatus[status] ? status : 'pending';
+    return { className, label: labelByStatus[status] || 'Pending Review' };
+  }
+
   async function loadLoansAndUI() {
     const token = await resolveSessionToken();
     if (!token) return;
@@ -309,11 +331,11 @@
         aprEl.textContent = `APR: ${apr}%`;
         monthlyEl.textContent = `Monthly: $${monthly.toFixed(2)}`;
 
-        const status = String(latest.status || 'pending').toLowerCase();
-        badge.className = `badge ${status}`;
-        badge.textContent = status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+        const statusMeta = getLoanStatusMeta(latest.status);
+        badge.className = `badge ${statusMeta.className}`;
+        badge.textContent = statusMeta.label;
 
-        payBtn.style.display = status === 'processing_fee_required' ? 'inline-block' : 'none';
+        payBtn.style.display = statusMeta.className === 'processing_fee_required' ? 'inline-block' : 'none';
         payBtn.disabled = false;
       } else {
         activeLoanId = null;
@@ -330,9 +352,10 @@
       if (container) {
         container.innerHTML = '';
         Array.isArray(loans) && loans.forEach(l => {
+          const statusMeta = getLoanStatusMeta(l.status);
           const div = document.createElement('div');
           div.className = 'loan-card glass-card';
-          div.innerHTML = `<h3>Loan $${l.amount}</h3><span class="badge ${l.status}">${String(l.status || "pending").replace("_", " ").toUpperCase()}</span>`;
+          div.innerHTML = `<h3>Loan $${l.amount}</h3><span class="badge ${statusMeta.className}">${statusMeta.label}</span>`;
           container.appendChild(div);
         });
       }
@@ -438,6 +461,15 @@
     document.addEventListener('keydown', e=>{if(e.key==='Escape') sidebar.classList.remove('active');});
   }
 
+  function wireHeroActions() {
+    const makeTransferBtn = document.getElementById('makeTransferBtn');
+    if (makeTransferBtn) {
+      makeTransferBtn.addEventListener('click', () => {
+        window.location.href = 'transfer.html';
+      });
+    }
+  }
+
   // ---- Init ----
   async function init() {
     initNotifications();
@@ -445,6 +477,7 @@
     if (!user?.token) return window.location.href = 'login.html';
 
     try { wireSidebar(); } catch {}
+    try { wireHeroActions(); } catch {}
     try { if (window.loadUserProfile) await window.loadUserProfile(); } catch {}
     try { scheduleLoadTransactions(); } catch {}
     try { if (window.renderCharts) window.renderCharts(); } catch {}

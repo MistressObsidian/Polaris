@@ -127,6 +127,20 @@
       border-radius: 50px;
       font-size: 12px;
     }
+    .badge.processing_fee_required {
+      background: #fb923c;
+      color: #2b1100;
+      padding: 4px 10px;
+      border-radius: 50px;
+      font-size: 12px;
+    }
+    .badge.paid {
+      background: #22c55e;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 50px;
+      font-size: 12px;
+    }
 
     .modal {
       position: fixed;
@@ -220,9 +234,13 @@
           <div class="stat-label">Savings</div>
           <div class="stat-value" id="heroSavings">$0.00</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-label">Available</div>
+          <div class="stat-value" id="heroAvailable">$0.00</div>
+        </div>
       </div>
       <div class="hero-actions">
-        <button class="btn btn-primary" onclick="window.location.href='transfer.html'">➝ Make a Transfer</button>
+        <button id="makeTransferBtn" class="btn btn-primary" type="button">➝ Make a Transfer</button>
         <a class="btn" href="accounts.html">View Accounts</a>
         <a class="btn" href="transactions.html">View Transactions</a>
       </div>

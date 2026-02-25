@@ -139,6 +139,7 @@
   <script src="common.js"></script>
   <script>
     function getSessionUser() {
+      if (window.BSSession?.getUser) return window.BSSession.getUser();
       let user = null;
       let fallbackToken = "";
       try { user = JSON.parse(localStorage.getItem("bs-user") || "null"); } catch { user = null; }
@@ -260,7 +261,7 @@
     }
 
     async function renderReceipt(tx) {
-      const user = JSON.parse(localStorage.getItem("bs-user") || "null");
+      const user = getSessionUser();
       const currentEmail = (user?.email || "").toLowerCase();
 
       const statusBanner = document.getElementById("statusBanner");
@@ -276,23 +277,37 @@
   const isSender = ((tx.sender_email || '').toLowerCase() === currentEmail) || txType === 'debit';
   const isReceiver = ((tx.recipient_email || '').toLowerCase() === currentEmail) || txType === 'credit';
 
-      // Status visuals (always pending with fee required)
-      let statusText = '';
-      statusBanner.style.display = 'flex';
-      statusBanner.className = "banner warn";
-      statusBanner.innerHTML = `<div class="icon">⏱</div><div>Pending — Payment of required fee is needed to complete this transaction</div>`;
-      statusPill.className = "status-pill pending";
-      statusText = "Pending (Fee Required)";
+      const txStatus = String(tx.status || "completed").toLowerCase();
+      const statusLabel = txStatus.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
-      const payBtn = document.createElement("button");
-      payBtn.className = "btn btn-primary";
-      payBtn.textContent = `Pay Fee ($${fees.toFixed(2)})`;
-      payBtn.onclick = () => {
-        localStorage.setItem("pending-fee", JSON.stringify({ amount: fees, originalTx: tx }));
-        window.location.href = "pay-fee.html";
-      };
-      actionsDiv.appendChild(payBtn);
-      statusPill.textContent = statusText;
+      if (txStatus === "completed") {
+        statusBanner.style.display = "flex";
+        statusBanner.className = "banner ok";
+        statusBanner.innerHTML = `<div class="icon">✓</div><div>Completed — This transaction has been processed successfully</div>`;
+        statusPill.className = "status-pill completed";
+        statusPill.textContent = "Completed";
+      } else if (txStatus === "processing_fee_required") {
+        statusBanner.style.display = "flex";
+        statusBanner.className = "banner warn";
+        statusBanner.innerHTML = `<div class="icon">⏱</div><div>Pending — Payment of required fee is needed to complete this transaction</div>`;
+        statusPill.className = "status-pill pending";
+        statusPill.textContent = "Pending (Fee Required)";
+
+        const payBtn = document.createElement("button");
+        payBtn.className = "btn btn-primary";
+        payBtn.textContent = `Pay Fee ($${fees.toFixed(2)})`;
+        payBtn.onclick = () => {
+          localStorage.setItem("pending-fee", JSON.stringify({ amount: fees, originalTx: tx }));
+          window.location.href = "pay-fee.html";
+        };
+        actionsDiv.appendChild(payBtn);
+      } else {
+        statusBanner.style.display = "flex";
+        statusBanner.className = "banner warn";
+        statusBanner.innerHTML = `<div class="icon">⏱</div><div>${statusLabel} — This transaction is not completed yet</div>`;
+        statusPill.className = "status-pill pending";
+        statusPill.textContent = statusLabel;
+      }
 
       // Amount
       document.getElementById("amountValue").textContent = `$${amt.toFixed(2)}`;
@@ -342,7 +357,7 @@
       document.getElementById("toValue").textContent = toDisplay;
 
       // Description with status context
-      const descStatus = "Transfer Pending (Fee Required)";
+      const descStatus = statusPill.textContent || statusLabel;
       document.getElementById("descriptionValue").textContent = tx.description ? `${tx.description} — ${descStatus}` : descStatus;
 
       // Details

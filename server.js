@@ -1549,16 +1549,19 @@ app.get("/api/transactions", authMiddleware, async (req, res) => {
     const q = await pool.query(
       `SELECT
           t.id,
+          t.user_id,
           t.account_id,
-          t.type,
+          COALESCE(NULLIF(t.type, ''), t.direction) AS type,
+          t.direction,
+          COALESCE(NULLIF(t.status, ''), 'completed') AS status,
           t.amount,
           t.description,
           t.reference,
           t.created_at,
           a.type AS account_type,
           a.currency,
-          NULL::numeric AS balance_after,
-          NULL::numeric AS total_balance_after
+          t.balance_after,
+          t.balance_after AS total_balance_after
        FROM transactions t
        JOIN accounts a ON a.id = t.account_id
        WHERE t.account_id = ANY($1::uuid[])

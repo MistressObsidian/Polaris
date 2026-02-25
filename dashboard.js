@@ -67,11 +67,16 @@
   }
 
   function getSessionTokenFromStorage() {
+    if (window.BSSession?.getToken) return window.BSSession.getToken() || null;
     return safeGetStorageValue('bs-token') || null;
   }
 
   function persistSessionToken(token) {
     if (!token) return;
+    if (window.BSSession?.setSession) {
+      window.BSSession.setSession(user || null, token);
+      return;
+    }
     safeSetStorageValue('bs-token', token);
   }
 
@@ -93,6 +98,10 @@
   }
 
   async function clearSession() {
+    if (window.BSSession?.clearSession) {
+      window.BSSession.clearSession();
+      return;
+    }
     await safeSetJSON('bs-user', null);
     safeSetStorageValue('bs-token', null);
   }

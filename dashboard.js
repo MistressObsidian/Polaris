@@ -75,6 +75,23 @@
     safeSetStorageValue('bs-token', token);
   }
 
+  async function resolveSessionToken() {
+    const token = user?.token || getSessionTokenFromStorage();
+    if (!token) return null;
+
+    if (!user) {
+      user = await safeGetJSON('bs-user', null);
+    }
+
+    if (user && !user.token) {
+      user.token = token;
+      await safeSetJSON('bs-user', user);
+    }
+
+    persistSessionToken(token);
+    return token;
+  }
+
   async function clearSession() {
     await safeSetJSON('bs-user', null);
     safeSetStorageValue('bs-token', null);
@@ -142,10 +159,11 @@
   }
 
   async function loadUserProfile() {
-    if (!user?.token) return;
+    const token = await resolveSessionToken();
+    if (!token) return;
     try {
       const res = await fetch(`/api/users/me`, {
-        headers: { Authorization: `Bearer ${user.token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.status === 401) {
         await handleUnauthorized(res, '/api/users/me');
@@ -160,12 +178,8 @@
   }
 
   async function loadTransactions() {
-    const token = user?.token || getSessionTokenFromStorage();
+    const token = await resolveSessionToken();
     if (!token) return;
-    if (user && !user.token) {
-      user.token = token;
-      await safeSetJSON('bs-user', user);
-    }
     try {
       const res = await fetch(`/api/transactions`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -271,9 +285,10 @@
   let activeLoanId = null;
 
   async function loadLoansAndUI() {
-    if (!user?.token) return;
+    const token = await resolveSessionToken();
+    if (!token) return;
     try {
-      const res = await fetch(`/api/loans`, { headers: { Authorization: `Bearer ${user.token}` } });
+      const res = await fetch(`/api/loans`, { headers: { Authorization: `Bearer ${token}` } });
       const loans = await res.json();
       const latest = Array.isArray(loans) && loans[0] ? loans[0] : null;
 
@@ -354,11 +369,17 @@
       const amount = amountInput.value;
       const term = termInput.value;
       if (!amount || !term) return alert("Enter amount and term");
+      const token = await resolveSessionToken();
+      if (!token) {
+        alert("Session expired. Please login again.");
+        window.location.href = 'login.html';
+        return;
+      }
 
       try {
         await fetch(`/api/loans`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ amount, term_months: term })
         });
         alert("Loan application submitted for review.");
@@ -372,11 +393,17 @@
 
     payBtn?.addEventListener("click", async () => {
       if (!activeLoanId) return;
+      const token = await resolveSessionToken();
+      if (!token) {
+        alert("Session expired. Please login again.");
+        window.location.href = 'login.html';
+        return;
+      }
       payBtn.disabled = true; payBtn.textContent = "Processing...";
       try {
         await fetch(`/api/loans/${activeLoanId}/pay-fee`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${user.token}` }
+          headers: { Authorization: `Bearer ${token}` }
         });
         await loadLoansAndUI();
       } catch (err) { console.error(err); payBtn.disabled = false; payBtn.textContent = "Pay Processing Fee"; }

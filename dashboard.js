@@ -14,6 +14,17 @@
   let sse = null;
   let sseRetryDelay = SSE_INITIAL_RETRY_MS;
 
+  function getApiBase() {
+    const raw = String(window.API_BASE || window.location.origin || '').replace(/\/+$/, '');
+    if (!raw) return '/api';
+    return /\/api$/i.test(raw) ? raw : `${raw}/api`;
+  }
+
+  function apiUrl(path = '') {
+    const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
+    return `${getApiBase()}${normalizedPath}`;
+  }
+
   // ---- Storage helpers ----
   async function safeGetJSON(key, fallback = null) {
     try {
@@ -138,7 +149,7 @@
     }
 
     try {
-      const res = await fetch(`/api/users/me`, {
+      const res = await fetch(apiUrl('/users/me'), {
         headers: { Authorization: `Bearer ${sessionToken}` }
       });
       if (!res.ok) {
@@ -191,7 +202,7 @@
     const token = await resolveSessionToken();
     if (!token) return;
     try {
-      const res = await fetch(`/api/users/me`, {
+      const res = await fetch(apiUrl('/users/me'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.status === 401) {
@@ -210,7 +221,7 @@
     const token = await resolveSessionToken();
     if (!token) return;
     try {
-      const res = await fetch(`/api/transactions`, {
+      const res = await fetch(apiUrl('/transactions'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.status === 401) {
@@ -331,7 +342,7 @@
     const token = await resolveSessionToken();
     if (!token) return;
     try {
-      const res = await fetch(`/api/loans`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiUrl('/loans'), { headers: { Authorization: `Bearer ${token}` } });
       const loans = await res.json();
       const latest = Array.isArray(loans) && loans[0] ? loans[0] : null;
 
@@ -421,7 +432,7 @@
       }
 
       try {
-        await fetch(`/api/loans`, {
+        await fetch(apiUrl('/loans'), {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ amount, term_months: term })
@@ -445,7 +456,7 @@
       }
       payBtn.disabled = true; payBtn.textContent = "Processing...";
       try {
-        await fetch(`/api/loans/${activeLoanId}/pay-fee`, {
+        await fetch(apiUrl(`/loans/${activeLoanId}/pay-fee`), {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` }
         });

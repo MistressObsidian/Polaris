@@ -207,6 +207,17 @@
     function fmtAmt(n){ return isFinite(n) ? Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) : '$0.00'; }
     function setText(id, val){ const el = document.getElementById(id); if(el) el.textContent = val; }
 
+    function getApiBase(){
+      const raw = String(window.API_BASE || window.location.origin || '').replace(/\/+$/, '');
+      if (!raw) return '/api';
+      return /\/api$/i.test(raw) ? raw : `${raw}/api`;
+    }
+
+    function apiUrl(path=''){
+      const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
+      return `${getApiBase()}${normalizedPath}`;
+    }
+
     function handleAuthRequired(message){
       const outcome = window.BSSession?.onAuthRequired
         ? window.BSSession.onAuthRequired({ message })
@@ -230,7 +241,7 @@
 
     async function loadFeeRate(){
       try {
-        const res = await fetch('/api/settings');
+        const res = await fetch(apiUrl('/settings'));
         const data = await res.json();
         if (res.ok && data?.feeRate != null) {
           const rate = Number(data.feeRate);
@@ -268,7 +279,7 @@
 
     async function refreshProfile(){
       try {
-        const res = await fetch('/api/users/me', {
+        const res = await fetch(apiUrl('/users/me'), {
           headers: authHeaders()
         });
         if (res.status === 401) {
@@ -350,7 +361,7 @@
 
       try {
         setSubmitting(true);
-        const res = await fetch('/api/transfers', { method:'POST', headers: authHeaders(), body: JSON.stringify(payload) });
+        const res = await fetch(apiUrl('/transfers'), { method:'POST', headers: authHeaders(), body: JSON.stringify(payload) });
         const tx = await res.json().catch(()=> ({}));
         if(!res.ok) throw new Error(tx?.error || ('Transfer failed ('+res.status+')'));
 

@@ -81,6 +81,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const alertBox = document.getElementById('loginAlert');
   const pwToggleLogin = document.getElementById('pwToggleLogin');
 
+  function getApiBase(){
+    const raw = String(window.API_BASE || window.location.origin || '').replace(/\/+$/, '');
+    if (!raw) return '/api';
+    return /\/api$/i.test(raw) ? raw : `${raw}/api`;
+  }
+
+  function apiUrl(path=''){
+    const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
+    return `${getApiBase()}${normalizedPath}`;
+  }
+
   if (pwToggleLogin) {
     pwToggleLogin.addEventListener('click', () => {
       const isHidden = pwField.type === 'password';
@@ -111,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.textContent = 'Signing in...';
 
     try {
-      const res = await fetch(`/api/login`, {
+      const res = await fetch(apiUrl('/login'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })

@@ -104,14 +104,14 @@
   }
 
   async function resolveSessionToken() {
-    const token = user?.token || getSessionTokenFromStorage();
+    const token = getSessionTokenFromStorage() || user?.token;
     if (!token) return null;
 
     if (!user) {
       user = await safeGetJSON('bs-user', null);
     }
 
-    if (user && !user.token) {
+    if (user && user.token !== token) {
       user.token = token;
       await safeSetJSON('bs-user', user);
     }
@@ -132,21 +132,13 @@
   async function bootstrapSession() {
     const storedUser = await safeGetJSON('bs-user', null);
     const fallbackToken = getSessionTokenFromStorage();
-    const sessionToken = storedUser?.token || fallbackToken;
+    const sessionToken = fallbackToken || storedUser?.token;
 
     if (!sessionToken) return null;
 
-    if (storedUser?.token) {
-      persistSessionToken(storedUser.token);
-      return storedUser;
-    }
-
-    if (storedUser && !storedUser.token) {
-      const merged = Object.assign({}, storedUser, { token: sessionToken });
-      await safeSetJSON('bs-user', merged);
-      persistSessionToken(sessionToken);
-      return merged;
-    }
+    const mergedStoredUser = Object.assign({}, storedUser || {}, { token: sessionToken });
+    await safeSetJSON('bs-user', mergedStoredUser);
+    persistSessionToken(sessionToken);
 
     try {
       const res = await fetch(apiUrl('/users/me'), {
@@ -159,7 +151,7 @@
         }
 
         // Keep session for non-auth failures (e.g. temporarily restricted account)
-        const fallbackUser = Object.assign({}, storedUser || {}, { token: sessionToken });
+        const fallbackUser = Object.assign({}, mergedStoredUser || {}, { token: sessionToken });
         await safeSetJSON('bs-user', fallbackUser);
         persistSessionToken(sessionToken);
         return fallbackUser;
@@ -170,7 +162,10 @@
       persistSessionToken(sessionToken);
       return hydrated;
     } catch {
-      return null;
+      const fallbackUser = Object.assign({}, storedUser || {}, { token: sessionToken });
+      await safeSetJSON('bs-user', fallbackUser);
+      persistSessionToken(sessionToken);
+      return fallbackUser;
     }
   }
 

@@ -1,8 +1,29 @@
 window.API_BASE = window.location.origin;
 
+if (typeof window.BS_AUTO_AUTH_REDIRECT === "undefined") {
+	window.BS_AUTO_AUTH_REDIRECT = false;
+}
+
 (function () {
 	const USER_KEY = "bs-user";
 	const TOKEN_KEY = "bs-token";
+
+	function shouldAutoRedirect() {
+		return window.BS_AUTO_AUTH_REDIRECT === true;
+	}
+
+	function goToLogin() {
+		window.location.href = "login.html";
+	}
+
+	function onAuthRequired(options = {}) {
+		const message = String(options.message || "Session expired");
+		if (shouldAutoRedirect()) {
+			goToLogin();
+			return { redirected: true, message };
+		}
+		return { redirected: false, message };
+	}
 
 	function readUser() {
 		try {
@@ -84,7 +105,10 @@ window.API_BASE = window.location.origin;
 		getUser,
 		setSession,
 		clearSession,
-		authHeaders
+		authHeaders,
+		shouldAutoRedirect,
+		goToLogin,
+		onAuthRequired
 	};
 
 	try {

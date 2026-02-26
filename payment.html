@@ -213,13 +213,32 @@
     function fmtAmt(n){ return isFinite(n) ? Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) : '$0.00'; }
     function setText(id, v){ const el=document.getElementById(id); if(el) el.textContent=v; }
 
+    function handleAuthRequired(message){
+      const outcome = window.BSSession?.onAuthRequired
+        ? window.BSSession.onAuthRequired({ message })
+        : { redirected: true };
+      if (!outcome.redirected) {
+        const err = document.getElementById('formError');
+        if (err) err.textContent = outcome.message || message;
+        setText('userPill', 'Session required');
+      }
+      return outcome;
+    }
+
     function loadStoredUser(){
-      try { user = JSON.parse(localStorage.getItem('bs-user')||'null'); } catch { user = null; }
-      if(!user || !user.token){ location.href='login.html'; return; }
+      if (window.BSSession?.getUser) user = window.BSSession.getUser();
+      else {
+        try { user = JSON.parse(localStorage.getItem('bs-user')||'null'); } catch { user = null; }
+      }
+      if(!user || !user.token){
+        handleAuthRequired('Session expired. Please log in.');
+        return false;
+      }
       setText('userPill', user.fullname || user.accountname || '—');
       updateBalancePill(user);
       // default schedule date = today
       try { qs('#scheduleDate').value = new Date().toISOString().slice(0,10); } catch {}
+      return true;
     }
     function updateBalancePill(p){
       const avail = Number(p.checking||0) + Number(p.savings||0);
@@ -230,6 +249,9 @@
       const res = await fetch(url, opts);
       const txt = await res.text();
       const data = txt ? JSON.parse(txt) : null;
+      if (res.status === 401) {
+        handleAuthRequired(data?.error || 'Session expired. Please log in.');
+      }
       if(!res.ok) throw new Error(data?.error || ('HTTP '+res.status));
       return data;
     }
@@ -315,7 +337,7 @@
 
     (function init(){
       if (window.Notifications) window.Notifications.init();
-      loadStoredUser();
+      if (!loadStoredUser()) return;
       bindUI();
       selectMethod('billpay');
       connectSSE();

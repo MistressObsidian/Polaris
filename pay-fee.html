@@ -53,6 +53,8 @@
     <div id="result" style="margin-top:12px"></div>
   </div>
 
+<script src="config.js"></script>
+<script src="common.js"></script>
 <script>
   const params = new URLSearchParams(window.location.search);
   const transferId = params.get('transfer_id');
@@ -60,6 +62,21 @@
   const infoEl = document.getElementById('transfer-info');
   const resultEl = document.getElementById('result');
   const form = document.getElementById('claim-form');
+
+  function handleAuthRequired(message){
+    const outcome = window.BSSession?.onAuthRequired
+      ? window.BSSession.onAuthRequired({ message })
+      : { redirected: true };
+    if (!outcome.redirected) {
+      infoEl.innerHTML = `<p class="muted">${outcome.message || message}</p>`;
+    }
+    return outcome;
+  }
+
+  const sessionToken = window.BSSession?.getToken ? window.BSSession.getToken() : null;
+  if (!token && !sessionToken) {
+    handleAuthRequired('Session expired. Please log in to continue.');
+  }
 
   infoEl.innerHTML = '<p style="color:#b00">Transfer claim endpoint is not enabled on this server.</p>';
   form.style.display = 'none';

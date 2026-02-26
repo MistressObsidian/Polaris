@@ -156,11 +156,27 @@
       return user || { token };
     }
 
+    function showAuthMessage(message) {
+      const note = document.getElementById("txContainer");
+      if (note) note.textContent = message;
+      const list = document.getElementById("txList");
+      if (list) list.innerHTML = `<div style="padding:12px; color:var(--muted)">${message}</div>`;
+      const summary = document.getElementById("summaryText");
+      if (summary) summary.textContent = "Session required";
+    }
+
+    function handleAuthRequired(message) {
+      const outcome = window.BSSession?.onAuthRequired
+        ? window.BSSession.onAuthRequired({ message })
+        : { redirected: true };
+      if (!outcome.redirected) showAuthMessage(outcome.message || message);
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
       if (window.Notifications) window.Notifications.init();
       try {
         const user = getSessionUser();
-        if (!user?.token) { window.location.href = "login.html"; return; }
+        if (!user?.token) { handleAuthRequired("Session expired. Please log in."); return; }
         await loadSettings();
         loadAllTransactions();
       } catch (err) {
@@ -198,7 +214,7 @@
       try{
         const user = getSessionUser();
         if (!user?.token) {
-          window.location.href = "login.html";
+          handleAuthRequired("Session expired. Please log in.");
           return;
         }
         const res = await fetch(`/api/transactions`, {
@@ -206,6 +222,10 @@
         });
         const text = await res.text();
         const txRows = text ? JSON.parse(text) : [];
+        if (res.status === 401) {
+          handleAuthRequired(txRows?.error || "Session expired. Please log in.");
+          return;
+        }
         if (!res.ok) throw new Error(txRows?.error || `Failed to load transactions (${res.status})`);
         allTxs = Array.isArray(txRows) ? txRows : [];
         renderTxList(allTxs);

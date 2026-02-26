@@ -207,11 +207,25 @@
     function fmtAmt(n){ return isFinite(n) ? Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) : '$0.00'; }
     function setText(id, val){ const el = document.getElementById(id); if(el) el.textContent = val; }
 
+    function handleAuthRequired(message){
+      const outcome = window.BSSession?.onAuthRequired
+        ? window.BSSession.onAuthRequired({ message })
+        : { redirected: true };
+      if (!outcome.redirected) {
+        const errEl = document.getElementById('formError');
+        if (errEl) errEl.textContent = outcome.message || message;
+      }
+    }
+
     function loadStoredUser(){
-      try { user = JSON.parse(localStorage.getItem('bs-user')||'null'); } catch { user = null; }
-      if(!user || !user.token){ location.href='login.html'; return; }
+      if (window.BSSession?.getUser) user = window.BSSession.getUser();
+      else {
+        try { user = JSON.parse(localStorage.getItem('bs-user')||'null'); } catch { user = null; }
+      }
+      if(!user || !user.token){ handleAuthRequired('Session expired. Please log in.'); return false; }
       setText('userPill', user.fullname || user.accountname || '—');
       updateBalancePillFromAccounts(user?.balances?.accounts || user?.accounts);
+      return true;
     }
 
     async function loadFeeRate(){
@@ -257,6 +271,10 @@
         const res = await fetch('/api/users/me', {
           headers: authHeaders()
         });
+        if (res.status === 401) {
+          handleAuthRequired('Session expired. Please log in.');
+          return;
+        }
         if (!res.ok) return;
 
         const profile = await res.json();
@@ -393,7 +411,7 @@
     // Init
     (async function init(){
       if (window.Notifications) window.Notifications.init();
-      loadStoredUser();
+      if (!loadStoredUser()) return;
       await loadFeeRate();
       await refreshProfile();
       bindUI();

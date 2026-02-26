@@ -8,7 +8,6 @@
   const SSE_INITIAL_RETRY_MS = 1000;
   const SSE_MAX_RETRY_MS = 30000;
   const SSE_RETRY_FACTOR = 1.7;
-  const AUTH_REDIRECT_DELAY_MS = 2500;
 
   let user = null;
   let _loadTxTimeout = null;
@@ -49,10 +48,23 @@
 
   async function handleUnauthorized(res, source) {
     const details = await extractApiErrorMessage(res, 'Unauthorized');
-    const message = `Unauthorized (${source}): ${details}. Redirecting to login...`;
+    const message = `Unauthorized (${source}): ${details}`;
     console.error(message);
     await clearSession();
-    setTimeout(() => { window.location.href = 'login.html'; }, AUTH_REDIRECT_DELAY_MS);
+
+    const outcome = window.BSSession?.onAuthRequired
+      ? window.BSSession.onAuthRequired({ message })
+      : { redirected: true, message };
+
+    if (!outcome.redirected) {
+      const syncPill = document.getElementById('syncPill');
+      if (syncPill) syncPill.textContent = outcome.message;
+
+      const tbody = document.getElementById('transactionsTable');
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;opacity:.7">${outcome.message}. Please log in again.</td></tr>`;
+      }
+    }
   }
 
   function safeGetStorageValue(key) {
@@ -404,7 +416,7 @@
       const token = await resolveSessionToken();
       if (!token) {
         alert("Session expired. Please login again.");
-        window.location.href = 'login.html';
+        if (window.BSSession?.onAuthRequired) window.BSSession.onAuthRequired({ message: 'Session expired. Please login again.' });
         return;
       }
 
@@ -428,7 +440,7 @@
       const token = await resolveSessionToken();
       if (!token) {
         alert("Session expired. Please login again.");
-        window.location.href = 'login.html';
+        if (window.BSSession?.onAuthRequired) window.BSSession.onAuthRequired({ message: 'Session expired. Please login again.' });
         return;
       }
       payBtn.disabled = true; payBtn.textContent = "Processing...";
@@ -483,7 +495,16 @@
   async function init() {
     initNotifications();
     user = await bootstrapSession();
-    if (!user?.token) return window.location.href = 'login.html';
+    if (!user?.token) {
+      const outcome = window.BSSession?.onAuthRequired
+        ? window.BSSession.onAuthRequired({ message: 'No active session found.' })
+        : { redirected: true };
+      if (!outcome.redirected) {
+        const syncPill = document.getElementById('syncPill');
+        if (syncPill) syncPill.textContent = 'No active session found. Please log in.';
+      }
+      return;
+    }
 
     try { wireSidebar(); } catch {}
     try { wireHeroActions(); } catch {}
@@ -500,7 +521,9 @@
       if (['transfer','last-transfer'].includes(e.key)) scheduleLoadTransactions();
       if (e.key==='bs-user' && !e.newValue) {
         user = await bootstrapSession();
-        if (!user?.token) window.location.href='login.html';
+        if (!user?.token && window.BSSession?.onAuthRequired) {
+          window.BSSession.onAuthRequired({ message: 'Session cleared. Please log in.' });
+        }
       }
     });
     window.addEventListener('bs-user-updated', async ()=>syncProfileToUI(await safeGetJSON('bs-user', null)));

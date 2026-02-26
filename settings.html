@@ -147,9 +147,26 @@
 
     const state = { user: null, profile: null, prefs: null };
 
+    function handleAuthRequired(message){
+      const outcome = window.BSSession?.onAuthRequired
+        ? window.BSSession.onAuthRequired({ message })
+        : { redirected: true };
+      if (!outcome.redirected) {
+        qs('#profileStatus').textContent = outcome.message || message;
+      }
+      return outcome;
+    }
+
     function loadStoredUser(){
-      try { state.user = JSON.parse(localStorage.getItem('bs-user')||'null'); } catch { state.user = null; }
-      if(!state.user || !state.user.token){ location.href='login.html'; }
+      if (window.BSSession?.getUser) state.user = window.BSSession.getUser();
+      else {
+        try { state.user = JSON.parse(localStorage.getItem('bs-user')||'null'); } catch { state.user = null; }
+      }
+      if(!state.user || !state.user.token){
+        handleAuthRequired('Session expired. Please log in.');
+        return false;
+      }
+      return true;
     }
 
     function authHeaders(){
@@ -158,6 +175,9 @@
 
     async function fetchJSON(url, opts={}){
       const res = await fetch(url, opts);
+      if (res.status === 401) {
+        handleAuthRequired('Session expired. Please log in.');
+      }
       if(!res.ok) throw new Error('HTTP '+res.status);
       return res.json();
     }
@@ -273,11 +293,22 @@
     qs('#saveProfileBtn').addEventListener('click', saveProfile);
     qs('#changePwBtn').addEventListener('click', changePassword);
     qs('#savePrefsBtn').addEventListener('click', savePrefs);
-    qs('#logoutBtn').addEventListener('click', ()=>{ localStorage.removeItem('bs-user'); location.href='login.html'; });
+    qs('#logoutBtn').addEventListener('click', ()=>{
+      if (window.BSSession?.clearSession) window.BSSession.clearSession();
+      else {
+        localStorage.removeItem('bs-user');
+        localStorage.removeItem('bs-token');
+      }
+      if (window.BSSession?.goToLogin) window.BSSession.goToLogin();
+      else location.href='login.html';
+    });
 
     // Init
     if (window.Notifications) window.Notifications.init();
-    loadStoredUser();
+    if (!loadStoredUser()) {
+      loadPrefs();
+      return;
+    }
     loadProfile();
     loadPrefs();
   </script>

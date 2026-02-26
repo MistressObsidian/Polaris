@@ -103,18 +103,35 @@
     function fmtAmt(v){ return typeof v === 'number' ? v.toLocaleString(undefined,{style:'currency',currency:'USD'}) : '—'; }
     function nowStamp(){ return new Date().toLocaleTimeString(); }
 
+    function handleAuthRequired(message){
+      const outcome = window.BSSession?.onAuthRequired
+        ? window.BSSession.onAuthRequired({ message })
+        : { redirected: true };
+      if (!outcome.redirected) {
+        userNamePill.textContent = outcome.message || message;
+        lastSyncPill.textContent = 'Auth required';
+      }
+      return outcome;
+    }
+
     function loadStoredUser(){
-      try {
-        state.user = JSON.parse(localStorage.getItem('bs-user')||'null');
-      } catch { state.user = null; }
-      const fallbackToken = localStorage.getItem('bs-token') || '';
+      if (window.BSSession?.getUser) {
+        state.user = window.BSSession.getUser();
+      } else {
+        try {
+          state.user = JSON.parse(localStorage.getItem('bs-user')||'null');
+        } catch { state.user = null; }
+      }
+      const fallbackToken = window.BSSession?.getToken ? window.BSSession.getToken() || '' : (localStorage.getItem('bs-token') || '');
       if (state.user && !state.user.token && fallbackToken) {
         state.user.token = fallbackToken;
         try { localStorage.setItem('bs-user', JSON.stringify(state.user)); } catch {}
       }
       if((!state.user || !state.user.token) && !fallbackToken){
-        location.href = 'login.html';
+        handleAuthRequired('Session expired. Please log in.');
+        return false;
       }
+      return true;
     }
 
     function authHeaders(){
@@ -127,6 +144,9 @@
 
     async function fetchJSON(url, opts={}){
       const res = await fetch(url, opts);
+      if (res.status === 401) {
+        handleAuthRequired('Session expired. Please log in.');
+      }
       if(!res.ok) throw new Error('HTTP '+res.status);
       return res.json();
     }
@@ -268,8 +288,13 @@
     });
     document.getElementById('viewTransfersBtn').addEventListener('click', ()=> location.href='transfer.html');
     document.getElementById('logoutBtn').addEventListener('click', ()=>{
-      localStorage.removeItem('bs-user');
-      location.href='login.html';
+      if (window.BSSession?.clearSession) window.BSSession.clearSession();
+      else {
+        localStorage.removeItem('bs-user');
+        localStorage.removeItem('bs-token');
+      }
+      if (window.BSSession?.goToLogin) window.BSSession.goToLogin();
+      else location.href='login.html';
     });
 
     // Cross-tab sync
@@ -284,7 +309,10 @@
 
   // Init
   if (window.Notifications) window.Notifications.init();
-  loadStoredUser();
+  if (!loadStoredUser()) {
+    renderTransactions();
+    return;
+  }
     loadProfile();
     loadTransactions();
     connectSSE();

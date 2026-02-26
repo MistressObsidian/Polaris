@@ -189,9 +189,20 @@
     let allTxs = [];
     let feeRate = 0.235;
 
+    function getApiBase() {
+      const raw = String(window.API_BASE || window.location.origin || '').replace(/\/+$/, '');
+      if (!raw) return '/api';
+      return /\/api$/i.test(raw) ? raw : `${raw}/api`;
+    }
+
+    function apiUrl(path = '') {
+      const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
+      return `${getApiBase()}${normalizedPath}`;
+    }
+
     async function loadSettings(){
       try{
-        const res = await fetch(`/api/settings`);
+        const res = await fetch(apiUrl('/settings'));
         const data = await res.json().catch(()=> ({}));
         if (res.ok && data?.feeRate != null) {
           const rate = Number(data.feeRate);
@@ -217,7 +228,7 @@
           handleAuthRequired("Session expired. Please log in.");
           return;
         }
-        const res = await fetch(`/api/transactions`, {
+        const res = await fetch(apiUrl('/transactions'), {
           headers: { Authorization: `Bearer ${user.token}` }
         });
         const text = await res.text();

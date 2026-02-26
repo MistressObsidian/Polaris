@@ -213,6 +213,17 @@
     function fmtAmt(n){ return isFinite(n) ? Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) : '$0.00'; }
     function setText(id, v){ const el=document.getElementById(id); if(el) el.textContent=v; }
 
+    function getApiBase(){
+      const raw = String(window.API_BASE || window.location.origin || '').replace(/\/+$/, '');
+      if (!raw) return '/api';
+      return /\/api$/i.test(raw) ? raw : `${raw}/api`;
+    }
+
+    function apiUrl(path=''){
+      const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
+      return `${getApiBase()}${normalizedPath}`;
+    }
+
     function handleAuthRequired(message){
       const outcome = window.BSSession?.onAuthRequired
         ? window.BSSession.onAuthRequired({ message })
@@ -246,7 +257,9 @@
     }
     function authHeaders(){ return { 'Content-Type':'application/json', 'Authorization':'Bearer '+ (user?.token||'') }; }
     async function fetchJSON(url, opts={}){
-      const res = await fetch(url, opts);
+      const isAbsolute = /^https?:\/\//i.test(String(url || ''));
+      const target = isAbsolute ? url : apiUrl(url);
+      const res = await fetch(target, opts);
       const txt = await res.text();
       const data = txt ? JSON.parse(txt) : null;
       if (res.status === 401) {

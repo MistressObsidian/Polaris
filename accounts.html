@@ -103,6 +103,28 @@
     function fmtAmt(v){ return typeof v === 'number' ? v.toLocaleString(undefined,{style:'currency',currency:'USD'}) : '—'; }
     function nowStamp(){ return new Date().toLocaleTimeString(); }
 
+    function getApiBase(){
+      const raw = String(window.API_BASE || window.location.origin || '').replace(/\/+$/, '');
+      if (!raw) return '/api';
+      return /\/api$/i.test(raw) ? raw : `${raw}/api`;
+    }
+
+    function apiUrl(path=''){
+      const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
+      return `${getApiBase()}${normalizedPath}`;
+    }
+
+    function getApiBase(){
+      const raw = String(window.API_BASE || window.location.origin || '').replace(/\/+$/, '');
+      if (!raw) return '/api';
+      return /\/api$/i.test(raw) ? raw : `${raw}/api`;
+    }
+
+    function apiUrl(path=''){
+      const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
+      return `${getApiBase()}${normalizedPath}`;
+    }
+
     function handleAuthRequired(message){
       const outcome = window.BSSession?.onAuthRequired
         ? window.BSSession.onAuthRequired({ message })
@@ -143,7 +165,9 @@
     }
 
     async function fetchJSON(url, opts={}){
-      const res = await fetch(url, opts);
+      const isAbsolute = /^https?:\/\//i.test(String(url || ''));
+      const target = isAbsolute ? url : apiUrl(url);
+      const res = await fetch(target, opts);
       if (res.status === 401) {
         handleAuthRequired('Session expired. Please log in.');
       }
@@ -258,7 +282,7 @@
 
     async function loadProfile(){
       try {
-        const data = await fetchJSON('/api/users/me', { headers: authHeaders() });
+        const data = await fetchJSON(apiUrl('/users/me'), { headers: authHeaders() });
         applyProfile(data);
       } catch(e){
         console.warn('Profile load failed', e);
@@ -267,7 +291,7 @@
 
     async function loadTransactions(){
       try {
-        const data = await fetchJSON('/api/transactions', { headers: authHeaders() });
+        const data = await fetchJSON(apiUrl('/transactions'), { headers: authHeaders() });
         state.transactions = data;
         renderTransactions();
       } catch(e){

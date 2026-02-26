@@ -1,5 +1,7 @@
-window.BACKEND_ORIGIN = window.BACKEND_ORIGIN || "https://polaris-uru5.onrender.com";
-window.API_BASE = window.API_BASE || `${String(window.BACKEND_ORIGIN).replace(/\/+$/, "")}/api`;
+window.BACKEND_ORIGIN = window.BACKEND_ORIGIN || "";
+window.API_BASE = window.API_BASE || (window.BACKEND_ORIGIN
+	? `${String(window.BACKEND_ORIGIN).replace(/\/+$/, "")}/api`
+	: "/api");
 
 if (typeof window.BS_AUTO_AUTH_REDIRECT === "undefined") {
 	window.BS_AUTO_AUTH_REDIRECT = false;

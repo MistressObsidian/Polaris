@@ -3,7 +3,12 @@
 
 // === Backend origin & API base ===
 window.BACKEND_ORIGIN = "https://polaris-uru5.onrender.com";
-window.API_BASE = window.API_BASE || `${String(window.BACKEND_ORIGIN).replace(/\/+$/, "")}/api`;
+
+// Always normalize API_BASE to end with /api
+(function () {
+  const origin = String(window.BACKEND_ORIGIN).replace(/\/+$/, "");
+  window.API_BASE = `${origin}/api`;
+})();
 
 // Optional auto-redirect on auth failure
 if (typeof window.BS_AUTO_AUTH_REDIRECT === "undefined") {
@@ -125,6 +130,7 @@ if (typeof window.BS_AUTO_AUTH_REDIRECT === "undefined") {
   try {
     const token = getToken();
     if (token) setSession(readUser(), token);
+    // Clean up any legacy key
     if (localStorage.getItem("token") != null) localStorage.removeItem("token");
   } catch {}
 })();

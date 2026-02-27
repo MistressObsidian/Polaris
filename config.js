@@ -2,7 +2,7 @@
 // -----------------------------
 
 // === Backend origin & API base ===
-window.BACKEND_ORIGIN = "https://api.shenzhenswift.online";
+window.BACKEND_ORIGIN = "https://polaris-uru5.onrender.com";
 
 // Always normalize API_BASE to end with /api
 (function () {

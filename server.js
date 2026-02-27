@@ -821,26 +821,10 @@ async function logRegistrationToSheets(payload) {
 // --- Express App ---
 const app = express();
 
-const CORS_ORIGINS = String(
-  process.env.CORS_ORIGINS || "https://polaris-uru5.onrender.com,https://shenzhenswift.online,https://www.shenzhenswift.online"
-)
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
-
-if (NODE_ENV !== "production") {
-  CORS_ORIGINS.push("http://localhost:4000", "http://localhost:5173", "http://127.0.0.1:5173");
-}
-
-const ALLOWED_ORIGINS = Array.from(new Set(CORS_ORIGINS));
-
 app.use(cors({
-  origin(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-    return callback(null, false);
-  },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  origin: "https://shenzhenswift.online",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 

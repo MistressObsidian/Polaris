@@ -822,7 +822,7 @@ async function logRegistrationToSheets(payload) {
 const app = express();
 
 const CORS_ORIGINS = String(
-  process.env.CORS_ORIGINS || "https://shenzhenswift.online,https://www.shenzhenswift.online"
+  process.env.CORS_ORIGINS || "https://polaris-uru5.onrender.com,https://shenzhenswift.online,https://www.shenzhenswift.online"
 )
   .split(",")
   .map((s) => s.trim())
@@ -840,6 +840,7 @@ app.use(cors({
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     return callback(null, false);
   },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   credentials: true
 }));
 

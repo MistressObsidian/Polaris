@@ -821,14 +821,14 @@ async function logRegistrationToSheets(payload) {
 // --- Express App ---
 const app = express();
 
-app.use(cors({
+const corsOptions = {
   origin: "https://shenzhenswift.online",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
-}));
+};
 
-app.options("*", cors());
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
@@ -1214,13 +1214,18 @@ app.post("/api/users", registerUploads, async (req, res) => {
 
 // Login
 app.post("/api/login", async (req, res) => {
+  const sendError = (status, message) => {
+    res.status(status);
+    return res.json({ error: message });
+  };
+
   try {
     const emailRaw = req.body.user_email || req.body.email || ""; // accept both frontend fields
     const email = String(emailRaw).trim().toLowerCase();
     const password = String(req.body.password || "");
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Missing credentials" });
+      return sendError(400, "Missing credentials");
     }
 
     // ✅ ADMIN LOGIN via standard login endpoint (/api/login)
@@ -1239,6 +1244,9 @@ app.post("/api/login", async (req, res) => {
         fullname: "Administrator",
         email: adminUser,
         accountname: "Admin Console",
+        checking: 0,
+        savings: 0,
+        totalbalance: 0,
         is_admin: true,
         token,
       });
@@ -1250,6 +1258,9 @@ app.post("/api/login", async (req, res) => {
          fullname,
          user_email,
          accountname,
+         checking,
+         savings,
+         totalbalance,
          password_hash,
          suspended
        FROM users
@@ -1259,18 +1270,18 @@ app.post("/api/login", async (req, res) => {
     );
 
     if (!q.rowCount) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return sendError(401, "Invalid email or password");
     }
 
     const user = q.rows[0];
 
     if (user.suspended) {
-      return res.status(403).json({ error: "Account suspended" });
+      return sendError(403, "Account suspended");
     }
 
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return sendError(401, "Invalid email or password");
     }
 
     const is_admin = isAdminEmail(user.user_email);
@@ -1281,16 +1292,26 @@ app.post("/api/login", async (req, res) => {
       is_admin,
     });
 
+    const checking = Number(user.checking ?? 0);
+    const savings = Number(user.savings ?? 0);
+    const totalbalance = Number(user.totalbalance ?? 0);
+
     return res.json({
       id: user.id,
       fullname: user.fullname,
       email: user.user_email,
       accountname: user.accountname,
+      checking,
+      savings,
+      totalbalance,
       is_admin,
       token,
     });
   } catch (err) {
-    return handleError(res, "Login error", err);
+    console.error("Login error", err);
+    res.status(500);
+    if (NODE_ENV === "production") return res.json({ error: "Server error" });
+    return res.json({ error: err?.message || "Server error", stack: err?.stack });
   }
 });
 

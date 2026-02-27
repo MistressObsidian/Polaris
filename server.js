@@ -821,27 +821,15 @@ async function logRegistrationToSheets(payload) {
 // --- Express App ---
 const app = express();
 
-const corsOptions = {
-  origin: "https://shenzhenswift.online",
-  methods: ["POST", "GET", "OPTIONS"],
-  allowedHeaders: "Content-Type, Authorization",
-  optionsSuccessStatus: 204,
-};
-
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-
-// Extra safety: ensure these headers are never missing
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "https://shenzhenswift.online");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-  if (req.method === "OPTIONS") {
-    res.status(204);
-    return res.end();
-  }
-  return next();
-});
+app.use(
+  cors({
+    origin: [
+      "https://shenzhenswift.online",
+      "https://polaris-uru5.onrender.com",
+    ],
+    credentials: true,
+  })
+);
 
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));

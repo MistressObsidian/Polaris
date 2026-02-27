@@ -823,8 +823,9 @@ const app = express();
 
 const corsOptions = {
   origin: "https://shenzhenswift.online",
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: ["POST", "GET", "OPTIONS"],
+  allowedHeaders: "Content-Type, Authorization",
+  optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));

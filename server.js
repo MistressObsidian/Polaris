@@ -825,10 +825,8 @@ app.use(
   cors({
     origin: [
       "https://shenzhenswift.online",
-      "https://polaris-uru5.onrender.com",
+      "https://www.shenzhenswift.online",
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );

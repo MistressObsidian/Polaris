@@ -831,6 +831,18 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
+// Extra safety: ensure these headers are never missing
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "https://shenzhenswift.online");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  if (req.method === "OPTIONS") {
+    res.status(204);
+    return res.end();
+  }
+  return next();
+});
+
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 

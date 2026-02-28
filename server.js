@@ -821,9 +821,6 @@ async function logRegistrationToSheets(payload) {
 // --- Express App ---
 const app = express();
 
-// Render runs behind a proxy; trust X-Forwarded-* headers (1 hop).
-app.set("trust proxy", 1);
-
 app.use(
   cors({
     origin: [

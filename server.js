@@ -823,11 +823,9 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      "https://shenzhenswift.online",
-      "https://www.shenzhenswift.online",
-    ],
-    credentials: true,
+    origin: "*", // allow all origins
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 

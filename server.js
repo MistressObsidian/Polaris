@@ -1236,7 +1236,7 @@ app.post("/api/login", async (req, res) => {
     const adminPass = String(ADMIN_PASS || "");
 
     if (adminUser && adminPass && email === adminUser && password === adminPass) {
-      const token = issueToken({
+      const generatedJWT = issueToken({
         id: "admin",
         email: adminUser,
         is_admin: true,
@@ -1246,12 +1246,7 @@ app.post("/api/login", async (req, res) => {
         id: "admin",
         fullname: "Administrator",
         email: adminUser,
-        accountname: "Admin Console",
-        checking: 0,
-        savings: 0,
-        totalbalance: 0,
-        is_admin: true,
-        token,
+        token: generatedJWT
       });
     }
 
@@ -1277,6 +1272,7 @@ app.post("/api/login", async (req, res) => {
     }
 
     const user = q.rows[0];
+    user.email = user.user_email;
 
     if (user.suspended) {
       return sendError(403, "Account suspended");
@@ -1289,26 +1285,17 @@ app.post("/api/login", async (req, res) => {
 
     const is_admin = isAdminEmail(user.user_email);
 
-    const token = issueToken({
+    const generatedJWT = issueToken({
       id: user.id,
       email: user.user_email,
       is_admin,
     });
 
-    const checking = Number(user.checking ?? 0);
-    const savings = Number(user.savings ?? 0);
-    const totalbalance = Number(user.totalbalance ?? 0);
-
     return res.json({
       id: user.id,
       fullname: user.fullname,
-      email: user.user_email,
-      accountname: user.accountname,
-      checking,
-      savings,
-      totalbalance,
-      is_admin,
-      token,
+      email: user.email,
+      token: generatedJWT
     });
   } catch (err) {
     console.error("Login error", err);

@@ -207,15 +207,12 @@
     function fmtAmt(n){ return isFinite(n) ? Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) : '$0.00'; }
     function setText(id, val){ const el = document.getElementById(id); if(el) el.textContent = val; }
 
-    function getApiBase(){
-      const raw = String(window.API_BASE || window.location.origin || '').replace(/\/+$/, '');
-      if (!raw) return '/api';
-      return /\/api$/i.test(raw) ? raw : `${raw}/api`;
-    }
+    const API_ORIGIN = 'https://polaris-uru5.onrender.com';
 
     function apiUrl(path=''){
       const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
-      return `${getApiBase()}${normalizedPath}`;
+      const apiPath = /^\/api(\/|$)/i.test(normalizedPath) ? normalizedPath : `/api${normalizedPath}`;
+      return `${API_ORIGIN}${apiPath}`;
     }
 
     function handleAuthRequired(message){

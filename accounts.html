@@ -103,26 +103,12 @@
     function fmtAmt(v){ return typeof v === 'number' ? v.toLocaleString(undefined,{style:'currency',currency:'USD'}) : '—'; }
     function nowStamp(){ return new Date().toLocaleTimeString(); }
 
-    function getApiBase(){
-      const raw = String(window.API_BASE || window.location.origin || '').replace(/\/+$/, '');
-      if (!raw) return '/api';
-      return /\/api$/i.test(raw) ? raw : `${raw}/api`;
-    }
+    const API_ORIGIN = 'https://polaris-uru5.onrender.com';
 
     function apiUrl(path=''){
       const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
-      return `${getApiBase()}${normalizedPath}`;
-    }
-
-    function getApiBase(){
-      const raw = String(window.API_BASE || window.location.origin || '').replace(/\/+$/, '');
-      if (!raw) return '/api';
-      return /\/api$/i.test(raw) ? raw : `${raw}/api`;
-    }
-
-    function apiUrl(path=''){
-      const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
-      return `${getApiBase()}${normalizedPath}`;
+      const apiPath = /^\/api(\/|$)/i.test(normalizedPath) ? normalizedPath : `/api${normalizedPath}`;
+      return `${API_ORIGIN}${apiPath}`;
     }
 
     function handleAuthRequired(message){
@@ -157,10 +143,10 @@
     }
 
     function authHeaders(){
-      const token = state.user?.token || localStorage.getItem('bs-token') || '';
+      const token = window.BSSession?.getToken ? (window.BSSession.getToken() || '') : (state.user?.token || localStorage.getItem('bs-token') || '');
       return {
         'Content-Type':'application/json',
-        'Authorization':'Bearer '+ token
+        'Authorization': `Bearer ${token}`
       };
     }
 

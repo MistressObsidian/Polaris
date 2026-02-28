@@ -213,15 +213,12 @@
     function fmtAmt(n){ return isFinite(n) ? Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) : '$0.00'; }
     function setText(id, v){ const el=document.getElementById(id); if(el) el.textContent=v; }
 
-    function getApiBase(){
-      const raw = String(window.API_BASE || window.location.origin || '').replace(/\/+$/, '');
-      if (!raw) return '/api';
-      return /\/api$/i.test(raw) ? raw : `${raw}/api`;
-    }
+    const API_ORIGIN = 'https://polaris-uru5.onrender.com';
 
     function apiUrl(path=''){
       const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
-      return `${getApiBase()}${normalizedPath}`;
+      const apiPath = /^\/api(\/|$)/i.test(normalizedPath) ? normalizedPath : `/api${normalizedPath}`;
+      return `${API_ORIGIN}${apiPath}`;
     }
 
     function handleAuthRequired(message){
@@ -255,7 +252,10 @@
       const avail = Number(p.checking||0) + Number(p.savings||0);
       setText('balPill', 'Available — ' + fmtAmt(avail));
     }
-    function authHeaders(){ return { 'Content-Type':'application/json', 'Authorization':'Bearer '+ (user?.token||'') }; }
+    function authHeaders(){
+      const token = window.BSSession?.getToken ? (window.BSSession.getToken() || '') : (user?.token || '');
+      return { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` };
+    }
     async function fetchJSON(url, opts={}){
       const isAbsolute = /^https?:\/\//i.test(String(url || ''));
       const target = isAbsolute ? url : apiUrl(url);

@@ -102,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!res.ok) throw new Error(data?.error || `Login failed (${res.status})`);
 
-      const userObj = {
+      const user = {
       id: data.id,
       fullname: data.fullname,
       email: data.email,
@@ -114,7 +114,8 @@ document.addEventListener("DOMContentLoaded", () => {
       isAuthenticated: true,
       ts: Date.now()
     };
-    localStorage.setItem('bs-user', JSON.stringify(user));
+    localStorage.setItem("bs-user", JSON.stringify(user));
+    localStorage.setItem("bs-token", user.token);
 
     btn.textContent = 'Success!';
     window.location.href = 'dashboard.html';

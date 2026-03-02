@@ -3,6 +3,7 @@
 
 // === Backend origin & API base ===
 window.BACKEND_ORIGIN = "https://polaris-uru5.onrender.com";
+window.API_BASE = `${window.BACKEND_ORIGIN}/api`;
 
 // Always normalize API_BASE to end with /api
 (function () {

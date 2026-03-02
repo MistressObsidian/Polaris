@@ -102,37 +102,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!res.ok) throw new Error(data?.error || `Login failed (${res.status})`);
 
-      const user = {
-        id: data.id,
-        fullname: data.fullname,
-        email: data.email || data.user_email,
-        accountname: data.accountname,
-        checking: data.checking,
-        savings: data.savings,
-        totalbalance: data.totalbalance,
-        token: data.token
-      };
+      const userObj = {
+      id: data.id,
+      fullname: data.fullname,
+      email: data.email,
+      accountname: data.accountname,
+      checking: data.checking ?? 0,
+      savings: data.savings ?? 0,
+      totalbalance: data.totalbalance ?? 0,
+      token: data.token,
+      isAuthenticated: true,
+      ts: Date.now()
+    };
+    localStorage.setItem('bs-user', JSON.stringify(user));
 
-      if (!user.token) throw new Error("Login succeeded but no session token was returned");
+    btn.textContent = 'Success!';
+    window.location.href = 'dashboard.html';
 
-      // ✅ Store session via BSSession
-      if (window.BSSession?.setSession) {
-        window.BSSession.setSession(user, user.token);
-      } else {
-        localStorage.setItem("bs-user", JSON.stringify(user));
-        localStorage.setItem("bs-token", user.token);
-      }
-
-      // Redirect to dashboard
-      window.location.href = "dashboard.html";
-
-    } catch (err) {
-      console.error("Login error:", err);
-      showError(err.message || "Login failed");
-      btn.disabled = false;
-      btn.textContent = 'Sign In';
-    }
-  });
+  } catch (err) {
+    console.error("Login error:", err);
+    showError(err.message || "Login failed");
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+});
 });
 </script>
 </body>

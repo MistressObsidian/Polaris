@@ -823,7 +823,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "*", // allow all origins
+    origin: "https://shenzhenswift.online", // your frontend domain
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })

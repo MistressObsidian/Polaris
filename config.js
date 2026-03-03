@@ -1,9 +1,9 @@
 // config.js — production-ready for Render
-// -----------------------------
 
-// === Backend origin & API base ===
+// ==============================
+// Backend origin (NO /api here)
+// ==============================
 window.BACKEND_ORIGIN = "https://polaris-uru5.onrender.com";
-window.API_BASE = `${window.BACKEND_ORIGIN}/api`;
 
 // Always normalize API_BASE to end with /api
 (function () {
@@ -16,12 +16,13 @@ if (typeof window.BS_AUTO_AUTH_REDIRECT === "undefined") {
   window.BS_AUTO_AUTH_REDIRECT = false;
 }
 
-// === Session storage keys ===
+// ==============================
+// Session storage keys
+// ==============================
 (function () {
   const USER_KEY = "bs-user";
   const TOKEN_KEY = "bs-token";
 
-  // ---- Helpers ----
   function shouldAutoRedirect() {
     return window.BS_AUTO_AUTH_REDIRECT === true;
   }
@@ -70,7 +71,6 @@ if (typeof window.BS_AUTO_AUTH_REDIRECT === "undefined") {
     } catch {}
   }
 
-  // ---- Public API ----
   function getToken() {
     const user = readUser();
     const storedToken = readToken();
@@ -84,7 +84,8 @@ if (typeof window.BS_AUTO_AUTH_REDIRECT === "undefined") {
     if (!token) return null;
     if (!user) return { token };
     if (user.token === token) return user;
-    const merged = Object.assign({}, user, { token });
+
+    const merged = { ...user, token };
     writeUser(merged);
     return merged;
   }
@@ -94,8 +95,8 @@ if (typeof window.BS_AUTO_AUTH_REDIRECT === "undefined") {
     if (!token) return false;
 
     const nextUser = userLike
-      ? Object.assign({}, userLike, { token })
-      : Object.assign({}, readUser() || {}, { token });
+      ? { ...userLike, token }
+      : { ...(readUser() || {}), token };
 
     writeToken(token);
     writeUser(nextUser);
@@ -109,11 +110,14 @@ if (typeof window.BS_AUTO_AUTH_REDIRECT === "undefined") {
 
   function authHeaders(extraHeaders = {}) {
     const token = getToken();
-    if (!token) return Object.assign({}, extraHeaders);
-    return Object.assign({}, extraHeaders, { Authorization: `Bearer ${token}` });
+    if (!token) return { ...extraHeaders };
+
+    return {
+      ...extraHeaders,
+      Authorization: `Bearer ${token}`
+    };
   }
 
-  // ---- Expose globally ----
   window.BSSession = {
     USER_KEY,
     TOKEN_KEY,
@@ -127,11 +131,11 @@ if (typeof window.BS_AUTO_AUTH_REDIRECT === "undefined") {
     onAuthRequired
   };
 
-  // ---- Initialize session from storage ----
   try {
     const token = getToken();
     if (token) setSession(readUser(), token);
-    // Clean up any legacy key
-    if (localStorage.getItem("token") != null) localStorage.removeItem("token");
+
+    if (localStorage.getItem("token") != null)
+      localStorage.removeItem("token");
   } catch {}
 })();

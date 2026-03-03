@@ -15,12 +15,12 @@
   let sseTx = null;
 
   // ---- API Helpers ----
-  const API_ORIGIN = 'https://polaris-uru5.onrender.com';
+  const API_BASE = 'https://polaris-uru5.onrender.com';
 
   function apiUrl(path = '') {
     const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
     const apiPath = /^\/api(\/|$)/i.test(normalizedPath) ? normalizedPath : `/api${normalizedPath}`;
-    return `${API_ORIGIN}${apiPath}`;
+    return `${API_BASE}${apiPath}`;
   }
 
   // ------------------- Utilities -------------------

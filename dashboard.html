@@ -352,7 +352,7 @@ function syncProfileToUI(profile){
 }
 
 async function loadUserProfile(){
-  const res = await fetch(`${window.API_BASE}/api/users/me`, {
+  const res = await fetch(`${window.API_BASE}/users/me`, {
     headers: { Authorization: `Bearer ${user.token}` }
   });
 
@@ -367,7 +367,7 @@ async function loadUserProfile(){
 
 /* -------------------- Transactions -------------------- */
 async function loadTransactions(){
-  const res = await fetch(`${window.API_BASE}/api/transactions`, {
+  const res = await fetch(`${window.API_BASE}/transactions`, {
     headers: { Authorization: `Bearer ${user.token}` }
   });
 
@@ -450,7 +450,7 @@ function initLoanModal(){
       return;
     }
 
-    await fetch(`${window.API_BASE}/api/loans`,{
+    await fetch(`${window.API_BASE}/loans`,{
       method:'POST',
       headers:{
         "Content-Type":"application/json",
@@ -488,7 +488,7 @@ function wireSidebar(){
 function connectSSE(){
   if(!user?.id || !user?.token) return;
 
-  const url = `${window.API_BASE}/api/stream/user/${user.id}?token=${encodeURIComponent(user.token)}`;
+  const url = `${window.API_BASE}/stream/user/${user.id}?token=${encodeURIComponent(user.token)}`;
   const es = new EventSource(url);
 
   es.onmessage = e=>{

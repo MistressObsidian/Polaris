@@ -316,6 +316,213 @@
     </div>
   </div>
 
-<script src="dashboard.js"></script>
+<script>
+let user = null;
+let sseLoans = null;
+let sseTx = null;
+const SSE_RECONNECT_MS = 5000;
+
+/* -------------------- Utilities -------------------- */
+function fmt(n){ return `$${Number(n||0).toFixed(2)}`; }
+
+function getStoredUser(){
+  try { return JSON.parse(localStorage.getItem("bs-user") || "null"); }
+  catch { return null; }
+}
+
+function setStoredUser(data){
+  localStorage.setItem("bs-user", JSON.stringify(data));
+}
+
+/* -------------------- Profile -------------------- */
+function syncProfileToUI(profile){
+  if(!profile) return;
+  user = {...user, ...profile};
+  setStoredUser(user);
+
+  document.getElementById("heroName").textContent =
+    profile.fullname || profile.accountname || profile.email || "User";
+
+  document.getElementById("heroChecking").textContent = fmt(profile.checking);
+  document.getElementById("heroSavings").textContent = fmt(profile.savings);
+
+  const syncPill = document.getElementById("syncPill");
+  if(syncPill) syncPill.textContent =
+    "Sync — " + new Date().toLocaleTimeString();
+}
+
+async function loadUserProfile(){
+  const res = await fetch(`${window.API_BASE}/users/me`, {
+    headers: { Authorization: `Bearer ${user.token}` }
+  });
+
+  if(res.status === 401){
+    window.location.href = "login.html";
+    return;
+  }
+
+  const data = await res.json();
+  if(res.ok) syncProfileToUI(data);
+}
+
+/* -------------------- Transactions -------------------- */
+async function loadTransactions(){
+  const res = await fetch(`${window.API_BASE}/transactions`, {
+    headers: { Authorization: `Bearer ${user.token}` }
+  });
+
+  if(res.status === 401){
+    window.location.href = "login.html";
+    return;
+  }
+
+  const rows = await res.json();
+  const tbody = document.getElementById("transactionsTable");
+  tbody.innerHTML = "";
+
+  if(!Array.isArray(rows) || !rows.length){
+    tbody.innerHTML =
+      `<tr><td colspan="5" style="text-align:center;opacity:.6">
+        No transactions yet
+      </td></tr>`;
+    return;
+  }
+
+  rows.slice(0,10).forEach(tx=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${new Date(tx.created_at).toLocaleDateString()}</td>
+      <td>${tx.description || tx.type}</td>
+      <td>${tx.reference || tx.id}</td>
+      <td class="${tx.type==='credit'?'amount-positive':'amount-negative'}">
+        ${tx.type==='credit'?'+':'-'}${fmt(tx.amount)}
+      </td>
+      <td>${fmt(tx.total_balance_after)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* -------------------- Charts -------------------- */
+function renderCharts(){
+  new Chart(document.getElementById('spendingChart'),{
+    type:'line',
+    data:{
+      labels:['Apr','May','Jun','Jul','Aug','Sep'],
+      datasets:[{
+        data:[1200,950,1350,1100,1400,1250],
+        borderColor:'#ef4444',
+        fill:true
+      }]
+    },
+    options:{plugins:{legend:{display:false}}}
+  });
+
+  new Chart(document.getElementById('savingsChart'),{
+    type:'bar',
+    data:{
+      labels:['Apr','May','Jun','Jul','Aug','Sep'],
+      datasets:[{
+        data:[2000,2500,2800,3200,3500,4000],
+        backgroundColor:'#10b981'
+      }]
+    },
+    options:{plugins:{legend:{display:false}}}
+  });
+}
+
+/* -------------------- Loan Modal -------------------- */
+function initLoanModal(){
+  const modal = document.getElementById("loanModal");
+  const openBtn = document.getElementById("applyLoanBtn");
+  const closeBtn = document.getElementById("closeLoanModal");
+  const submitBtn = document.getElementById("submitLoan");
+
+  openBtn?.addEventListener("click", ()=> modal.classList.remove("hidden"));
+  closeBtn?.addEventListener("click", ()=> modal.classList.add("hidden"));
+
+  submitBtn?.addEventListener("click", async ()=>{
+    const amount = Number(document.getElementById("loanAmount").value);
+    const term = Number(document.getElementById("loanTerm").value);
+
+    if(!amount || !term){
+      alert("Enter amount and term");
+      return;
+    }
+
+    await fetch(`${window.API_BASE}/loans`,{
+      method:'POST',
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:`Bearer ${user.token}`
+      },
+      body:JSON.stringify({amount, term_months:term})
+    });
+
+    alert("Loan submitted");
+    modal.classList.add("hidden");
+  });
+}
+
+/* -------------------- Sidebar -------------------- */
+function wireSidebar(){
+  const sidebar = document.getElementById('sidebar');
+  const menuBtn = document.getElementById('menuBtn');
+  if(!sidebar || !menuBtn) return;
+
+  menuBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    sidebar.classList.toggle('active');
+  });
+
+  document.addEventListener('click', e=>{
+    if(sidebar.classList.contains('active') &&
+       !sidebar.contains(e.target) &&
+       e.target!==menuBtn){
+      sidebar.classList.remove('active');
+    }
+  });
+}
+
+/* -------------------- SSE -------------------- */
+function connectSSE(){
+  if(!user?.id || !user?.token) return;
+
+  const url = `${window.API_BASE}/stream/user/${user.id}?token=${encodeURIComponent(user.token)}`;
+  const es = new EventSource(url);
+
+  es.onmessage = e=>{
+    try{
+      const data = JSON.parse(e.data);
+      syncProfileToUI(data);
+      loadTransactions();
+    }catch{}
+  };
+
+  es.onerror = ()=>{
+    es.close();
+    setTimeout(connectSSE, SSE_RECONNECT_MS);
+  };
+}
+
+/* -------------------- Init -------------------- */
+async function init(){
+  user = getStoredUser();
+
+  if(!user?.token){
+    window.location.href = "login.html";
+    return;
+  }
+
+  wireSidebar();
+  initLoanModal();
+  await loadUserProfile();
+  await loadTransactions();
+  renderCharts();
+  connectSSE();
+}
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-// Notifications client and toast UI for Bank Swift
+// Notifications client and toast UI for Base
 // Usage: include config.js then common.js; call window.Notifications.init() once per page.
 
 (function(){

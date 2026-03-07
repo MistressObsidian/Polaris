@@ -320,7 +320,7 @@ async function initMailer() {
 // ---- Branded Email Helper (logo on every email) ----
 const APP_BASE_URL = (process.env.APP_BASE_URL || BASE_URL).replace(/\/+$/, "");
 const BRAND = {
-  name: process.env.BRAND_NAME || "Bank Swift",
+  name: process.env.BRAND_NAME || "Base",
   supportEmail: process.env.SUPPORT_EMAIL || process.env.MAIL_FROM || "",
   logoPath: process.env.BRAND_LOGO_PATH || path.join(process.cwd(), "assets", "logo.png"),
   logoCid: "logocid", // referenced in HTML as cid:logocid
@@ -987,10 +987,10 @@ app.post("/api/users", registerUploads, async (req, res) => {
       try {
         await sendBrandedEmail({
           to: user.email,
-          subject: "Welcome to Bank Swift",
+          subject: "Welcome to Base",
           title: "Your account is ready",
-          preheader: "Welcome to Bank Swift — your account has been created.",
-          text: `Hi ${user.fullname}, your Bank Swift account has been created successfully.`,
+          preheader: "Welcome to Base — your account has been created.",
+          text: `Hi ${user.fullname}, your Base account has been created successfully.`,
           bodyHtml: `
     <p>Hi ${escapeHtml(user.fullname)},</p>
     <p>Welcome to <b>${escapeHtml(BRAND.name)}</b>.</p>

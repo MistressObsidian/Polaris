@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Transactions · Bank Swift</title>
+  <title>Transactions · Base</title>
   <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
   <link rel="stylesheet" href="ui.css" />
-  <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
+  <link rel="icon" href="base.svg" type="image/svg+xml" />
   <style>
     :root { --bg:#0d0f14; --panel:#141a24; --border:#1f2530; --ink:#eef3f8; --muted:#8aa0b9; --muted2:#7a889a; --pill:#1f2733; --accent:#2663ff; --ok:#10b981; --warn:#f59e0b; }
     * { box-sizing: border-box; }
@@ -120,7 +120,7 @@
         </div>
         <div class="detail">
           <div class="label">Network</div>
-          <div class="value" id="networkValue">Bank Swift Transfer</div>
+          <div class="value" id="networkValue">Base Transfer</div>
         </div>
         <div class="detail">
           <div class="label">Fees</div>
@@ -432,8 +432,8 @@
       document.getElementById("referenceValue").textContent = displayReference;
       const txMethod = String(tx.method || '').toUpperCase();
       const networkText = txMethod
-        ? `Bank Swift ${txMethod}`
-        : (tx.btc_address ? "Bitcoin Network" : "Bank Swift Internal");
+        ? `Base ${txMethod}`
+        : (tx.btc_address ? "Bitcoin Network" : "Base Internal");
       document.getElementById("networkValue").textContent = networkText;
 
       let feeText = "—";

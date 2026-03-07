@@ -1,4 +1,4 @@
-# Bank Swift Banking Platform
+# Base Banking Platform
 
 > A modern digital banking platform with secure money transfers, real-time transaction tracking, and comprehensive financial management.
 

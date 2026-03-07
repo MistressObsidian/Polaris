@@ -333,21 +333,31 @@
       };
     }
 
-    // Event handlers
-    document.getElementById('refreshBtn').addEventListener('click', ()=>{
-      loadProfile();
-      loadTransactions();
-    });
-    document.getElementById('viewTransfersBtn').addEventListener('click', ()=> location.href='transfer.html');
-    document.getElementById('logoutBtn').addEventListener('click', ()=>{
-      if (window.BSSession?.clearSession) window.BSSession.clearSession();
-      else {
-        localStorage.removeItem('bs-user');
-        localStorage.removeItem('bs-token');
-      }
-      if (window.BSSession?.goToLogin) window.BSSession.goToLogin();
-      else location.href='login.html';
-    });
+    function wireActionButtons(){
+      const refreshBtn = document.getElementById('refreshBtn');
+      const viewTransfersBtn = document.getElementById('viewTransfersBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+
+      refreshBtn?.addEventListener('click', ()=>{
+        lastSyncPill.textContent = 'Sync — Refreshing…';
+        loadProfile();
+        loadTransactions();
+      });
+
+      viewTransfersBtn?.addEventListener('click', ()=>{
+        location.href='transfer.html';
+      });
+
+      logoutBtn?.addEventListener('click', ()=>{
+        if (window.BSSession?.clearSession) window.BSSession.clearSession();
+        else {
+          localStorage.removeItem('bs-user');
+          localStorage.removeItem('bs-token');
+        }
+        if (window.BSSession?.goToLogin) window.BSSession.goToLogin();
+        else location.href='login.html';
+      });
+    }
 
     // Cross-tab sync
     window.addEventListener('storage', (e)=>{
@@ -365,6 +375,7 @@
     renderTransactions();
     return;
   }
+    wireActionButtons();
     loadProfile();
     loadTransactions();
     startUserStream(state.user);

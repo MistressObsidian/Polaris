@@ -2,6 +2,48 @@
 // Usage: include config.js then common.js; call window.Notifications.init() once per page.
 
 (function(){
+	if (window.BSSession) return;
+
+	function getUser(){
+		try {
+			return JSON.parse(localStorage.getItem("bs-user") || "null");
+		} catch {
+			return null;
+		}
+	}
+
+	function getToken(){
+		const user = getUser();
+		return user?.token || localStorage.getItem("bs-token") || "";
+	}
+
+	function clearSession(){
+		localStorage.removeItem("bs-user");
+		localStorage.removeItem("bs-token");
+	}
+
+	function goToLogin(){
+		window.location.href = "login.html";
+	}
+
+	function onAuthRequired({ message } = {}){
+		if (message && window.Notifications?.toast) {
+			window.Notifications.toast({ title: "Session", body: message, type: "error" });
+		}
+		goToLogin();
+		return { redirected: true, message: message || "Session expired. Please log in." };
+	}
+
+	window.BSSession = {
+		getUser,
+		getToken,
+		clearSession,
+		goToLogin,
+		onAuthRequired,
+	};
+})();
+
+(function(){
 	if (window.Notifications) return; // singleton
 
 	function getStoredToken() {
@@ -47,40 +89,6 @@
 		return null;
 	}
 
-	function ensureAdminReturnButton(){
-		try{
-			const adminSessionRaw = localStorage.getItem('admin-session');
-			if (!adminSessionRaw) return;
-			const adminSession = JSON.parse(adminSessionRaw || 'null');
-			const user = JSON.parse(localStorage.getItem('bs-user')||'null');
-			if (!adminSession?.token || !user?.token) return;
-
-			// Don't show on admin or login pages
-			const path = String(window.location.pathname || '').toLowerCase();
-			if (path.endsWith('/admin.html') || path.endsWith('/login.html')) return;
-
-			if (document.getElementById('return-admin-btn')) return;
-			const btn = document.createElement('button');
-			btn.id = 'return-admin-btn';
-			btn.type = 'button';
-			btn.textContent = 'Return to Admin';
-			btn.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9999;background:#2663ff;color:#fff;border:none;border-radius:999px;padding:.55rem .9rem;font-size:.8rem;box-shadow:0 8px 20px rgba(0,0,0,.35);cursor:pointer;';
-			btn.addEventListener('click', ()=>{
-				try{
-						if (window.BSSession?.setSession) {
-							window.BSSession.setSession(adminSession, adminSession.token || '');
-						} else {
-							localStorage.setItem('bs-user', JSON.stringify(adminSession));
-							localStorage.setItem('bs-token', adminSession.token || '');
-						}
-					localStorage.removeItem('admin-session');
-					window.location.href = 'admin.html';
-				} catch {}
-			});
-			document.body.appendChild(btn);
-		} catch {}
-	}
-
 	async function markRead(id){
 		return;
 	}
@@ -91,11 +99,37 @@
 
 	window.Notifications = {
 		init(){
-			ensureAdminReturnButton();
+			return;
 		},
 		toast,
 		markRead,
 		markAllRead
 	};
+})();
+
+(function(){
+	function bindLogoutButtons(){
+		const buttons = document.querySelectorAll('#logoutBtn, [data-action="logout"]');
+		buttons.forEach((button) => {
+			if (button.dataset.logoutBound === "1") return;
+			button.dataset.logoutBound = "1";
+			button.addEventListener("click", () => {
+				if (window.BSSession?.clearSession) window.BSSession.clearSession();
+				else {
+					localStorage.removeItem("bs-user");
+					localStorage.removeItem("bs-token");
+				}
+				if (window.BSSession?.goToLogin) window.BSSession.goToLogin();
+				else window.location.href = "login.html";
+			});
+		});
+	}
+
+	window.bindLogoutButtons = bindLogoutButtons;
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", bindLogoutButtons);
+	} else {
+		bindLogoutButtons();
+	}
 })();
 

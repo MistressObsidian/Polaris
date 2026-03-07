@@ -5,7 +5,7 @@ import fs from 'fs';
 
 let mailer = null;
 
-// Path to your logo (optional)
+// Optional logo for emails
 const BRAND_LOGO_PATH = process.env.BRAND_LOGO_PATH || path.join(process.cwd(), 'assets', 'logo.png');
 const BRAND_LOGO_CID = 'bankswiftlogo';
 
@@ -13,8 +13,8 @@ const BRAND_LOGO_CID = 'bankswiftlogo';
  * Initialize SMTP mailer
  */
 export async function initMailer() {
-  const host = process.env.SMTP_HOST || 'mail.privateemail.com'; // ✅ Use official Private Email host
-  const port = Number(process.env.SMTP_PORT || 587); // 587 preferred on cloud hosts
+  const host = process.env.SMTP_HOST || 'mail.privateemail.com';
+  const port = Number(process.env.SMTP_PORT || 465); // 587 preferred on cloud hosts
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   const from = process.env.MAIL_FROM || user;
@@ -24,18 +24,18 @@ export async function initMailer() {
     return;
   }
 
-  try {
+    try {
     mailer = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465, // SSL only for 465, STARTTLS for 587
-      auth: { user, pass },
-      connectionTimeout: 15000, // 15 seconds timeout
-      greetingTimeout: 15000,
-      socketTimeout: 15000,
-    });
+      host: process.env.SMTP_HOST,
+       port: 587,
+      secure: false, // SSL only for 465, STARTTLS for 587
+      auth: {
+         user: process.env.SMTP_USER,
+         pass: process.env.SMTP_PASS
+  }
+});
 
-    await mailer.verify(); // Throws error if connection fails
+    await mailer.verify();
     mailer.from = from;
 
     console.log(`✉️  Mailer ready: ${user} via ${host}:${port}`);
@@ -110,7 +110,7 @@ export function renderEmail(title, bodyHtml) {
   </div>`;
 }
 
-function escapeHtml(s){ 
-  if(!s) return ''; 
-  return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]); 
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]);
 }

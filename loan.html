@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Loan · Home</title>
+  <link rel="icon" href="bank-swift.svg" type="image/svg+xml" />
+  <link rel="shortcut icon" href="bank-swift.svg" />
+  <link rel="stylesheet" href="ui.css" />
+  <style>
+    body { background:#0d0f14; color:#eef3f8; font-family: system-ui, Arial, sans-serif; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid #1e2530; }
+    header h1 { font-size:1.05rem; margin:0; letter-spacing:.5px; }
+    a.back-link { color:#7aa8ff; text-decoration:none; font-size:.85rem; }
+    a.back-link:hover { text-decoration:underline; }
+
+    main.layout { max-width:1000px; margin:1rem auto 2rem; padding:0 1rem; display:grid; gap:1rem; grid-template-columns: 1.1fr .9fr; }
+    .panel { background:#141a24; border:1px solid #1f2530; border-radius:14px; padding:1.1rem 1.1rem 1.25rem; }
+    .panel h2 { margin:0 0 .85rem; font-size:.9rem; letter-spacing:.5px; text-transform:uppercase; color:#7d8da3; }
+
+    .status-bar { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:.6rem; }
+    .pill { background:#1f2733; padding:.35rem .6rem; border-radius:999px; font-size:.7rem; color:#9fb1c9; }
+
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:.85rem; }
+    .field { display:flex; flex-direction:column; gap:.35rem; }
+    .field label { font-size:.75rem; color:#8aa0b9; }
+    .field input {
+      background:#0f141d;
+      border:1px solid #202a39;
+      color:#e8eef6;
+      border-radius:8px;
+      padding:.7rem .8rem;
+      font-size:.85rem;
+      outline:none;
+    }
+
+    .summary { background:#121a28; border:1px solid #202a39; border-radius:12px; padding:.85rem; display:grid; gap:.35rem; font-size:.82rem; }
+    .summary .line { display:flex; justify-content:space-between; gap:.75rem; }
+
+    .actions { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem; }
+    .btn { cursor:pointer; border:none; border-radius:10px; padding:.75rem 1rem; background:#1d2733; color:#e9eef5; font-size:.82rem; }
+    .btn:hover { background:#233040; }
+    .btn-primary { background:#2663ff; color:#fff; }
+    .btn-primary:hover { background:#1f55dc; }
+    .btn-outline { background:transparent; color:#e9eef5; border:1px solid rgba(255,255,255,.25); }
+    .btn-outline:hover { background:rgba(255,255,255,.06); }
+
+    .error { color:#ff8a8a; font-size:.78rem; min-height:1.1rem; margin-top:.45rem; }
+    .muted { font-size:.8rem; color:#92a4bc; }
+
+    .loan-list { display:grid; gap:.7rem; }
+    .loan-card {
+      background:#111927;
+      border:1px solid #23324a;
+      border-radius:12px;
+      padding:.85rem .9rem;
+      display:grid;
+      gap:.45rem;
+    }
+    .loan-head { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+    .loan-id { color:#8ea5c1; font-size:.72rem; }
+
+    .badge {
+      border-radius:999px;
+      font-size:.68rem;
+      padding:.25rem .55rem;
+      text-transform:capitalize;
+      letter-spacing:.2px;
+      font-weight:600;
+    }
+    .badge.pending { background:#facc15; color:#2c2400; }
+    .badge.approved { background:#22c55e; color:#fff; }
+    .badge.rejected { background:#ef4444; color:#fff; }
+    .badge.under_review { background:#38bdf8; color:#001018; }
+    .badge.processing_fee_required { background:#fb923c; color:#2b1100; }
+    .badge.unknown { background:#64748b; color:#fff; }
+
+    .loan-meta { display:grid; gap:.2rem; font-size:.82rem; color:#d8e1ec; }
+    .fee-box { margin-top:.3rem; background:#1c283b; border:1px solid #2a3c59; border-radius:10px; padding:.55rem .65rem; display:flex; justify-content:space-between; align-items:center; gap:.6rem; }
+
+    @media (max-width:900px){ main.layout { grid-template-columns:1fr; } }
+    @media (max-width:520px){
+      header { flex-direction:column; align-items:flex-start; }
+      .row { grid-template-columns:1fr; }
+      .btn { flex:1; justify-content:center; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Personal Loan</h1>
+    <nav>
+      <a class="back-link" href="dashboard.html">← Back to Home</a>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <h2>Apply for Loan</h2>
+
+      <div class="status-bar">
+        <span class="pill" id="userPill">Loading…</span>
+        <span class="pill" id="statusPill">Status — Ready</span>
+      </div>
+
+      <form id="loanForm" novalidate>
+        <div class="row">
+          <div class="field">
+            <label for="loanAmount">Loan amount (USD)</label>
+            <input id="loanAmount" type="number" min="100" step="0.01" placeholder="5000" required />
+          </div>
+          <div class="field">
+            <label for="loanTerm">Loan term (months)</label>
+            <input id="loanTerm" type="number" min="1" step="1" placeholder="12" required />
+          </div>
+        </div>
+
+        <div class="summary" aria-live="polite">
+          <div class="line"><span>Estimated APR</span><strong id="aprPreview">8.50%</strong></div>
+          <div class="line"><span>Estimated Monthly</span><strong id="monthlyPreview">$0.00</strong></div>
+        </div>
+
+        <div id="formError" class="error"></div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn">Submit Application</button>
+          <button type="button" class="btn btn-outline" id="resetBtn">Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="panel">
+      <h2>Loan Status</h2>
+      <p class="muted">Your most recent applications appear below.</p>
+      <div id="loanList" class="loan-list" style="margin-top:.7rem;">
+        <div class="muted">Loading loans…</div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script>
+    let user = null;
+
+    const qs = (selector) => document.querySelector(selector);
+
+    function fmtAmt(value){
+      const n = Number(value || 0);
+      return Number.isFinite(n)
+        ? n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
+        : '$0.00';
+    }
+
+    function escapeHtml(text){
+      return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function handleAuthRequired(message){
+      const outcome = window.BSSession?.onAuthRequired
+        ? window.BSSession.onAuthRequired({ message })
+        : { redirected: true };
+
+      if (!outcome.redirected) {
+        const errorEl = document.getElementById('formError');
+        if (errorEl) errorEl.textContent = outcome.message || message;
+      }
+    }
+
+    function loadStoredUser(){
+      if (window.BSSession?.getUser) user = window.BSSession.getUser();
+      else {
+        try { user = JSON.parse(localStorage.getItem('bs-user') || 'null'); }
+        catch { user = null; }
+      }
+
+      if (!user?.token) {
+        handleAuthRequired('Session expired. Please log in.');
+        return false;
+      }
+
+      const userLabel = user.fullname || user.accountname || user.email || 'User';
+      const userPill = document.getElementById('userPill');
+      if (userPill) userPill.textContent = userLabel;
+      return true;
+    }
+
+    function updatePreview(){
+      const amount = Number(qs('#loanAmount')?.value || 0);
+      const term = Number(qs('#loanTerm')?.value || 0);
+      const monthly = term > 0 ? amount / term : 0;
+
+      qs('#aprPreview').textContent = '8.50%';
+      qs('#monthlyPreview').textContent = fmtAmt(monthly);
+    }
+
+    function loanBadgeClass(status){
+      const normalized = String(status || 'pending').toLowerCase();
+      return ['pending', 'approved', 'rejected', 'under_review', 'processing_fee_required'].includes(normalized)
+        ? normalized
+        : 'unknown';
+    }
+
+    function loanStatusLabel(status){
+      return String(status || 'pending').replace(/_/g, ' ');
+    }
+
+    async function payProcessingFee(loanId){
+      const statusPill = document.getElementById('statusPill');
+      if (statusPill) statusPill.textContent = 'Status — Paying fee...';
+
+      try {
+        const res = await fetch(`${window.API_BASE}/loans/${encodeURIComponent(loanId)}/pay-fee`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          }
+        });
+
+        if (res.status === 401) {
+          handleAuthRequired('Session expired. Please log in.');
+          return;
+        }
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Unable to pay processing fee');
+        }
+
+        if (window.Notifications?.toast) {
+          window.Notifications.toast({ title: 'Processing Fee Paid', body: 'Your loan is now under review.' });
+        }
+
+        await loadLoans();
+      } catch (err) {
+        const formError = document.getElementById('formError');
+        if (formError) formError.textContent = err.message || 'Fee payment failed';
+      } finally {
+        if (statusPill) statusPill.textContent = 'Status — Ready';
+      }
+    }
+
+    function renderLoans(loans){
+      const list = document.getElementById('loanList');
+      if (!list) return;
+
+      if (!Array.isArray(loans) || loans.length === 0) {
+        list.innerHTML = '<div class="muted">No loan applications yet.</div>';
+        return;
+      }
+
+      list.innerHTML = loans.slice(0, 8).map((loan) => {
+        const status = loanBadgeClass(loan.status);
+        const statusText = escapeHtml(loanStatusLabel(loan.status || 'pending'));
+        const amount = fmtAmt(loan.amount);
+        const monthly = fmtAmt(loan.monthly_payment_estimate || (Number(loan.amount || 0) / Math.max(Number(loan.term_months || 1), 1)));
+        const apr = `${Number(loan.apr_estimate || 8.5).toFixed(2)}%`;
+        const loanId = escapeHtml(loan.id);
+        const createdAt = loan.created_at ? new Date(loan.created_at).toLocaleString() : '—';
+        const processingFee = loan.processing_fee != null ? fmtAmt(loan.processing_fee) : '—';
+        const feePaid = loan.fee_paid === true ? 'Yes' : 'No';
+        const locked = loan.locked === true ? 'Yes' : 'No';
+
+        const feeSection = status === 'processing_fee_required'
+          ? `<div class="fee-box">
+              <span>Fee Required: <strong>${fmtAmt(loan.processing_fee || 0)}</strong></span>
+              <button class="btn btn-primary" data-pay-fee="${loanId}" type="button">Pay Fee</button>
+            </div>`
+          : '';
+
+        return `<article class="loan-card">
+            <div class="loan-head">
+              <span class="loan-id">Loan #${loanId}</span>
+              <span class="badge ${status}">${statusText}</span>
+            </div>
+            <div class="loan-meta">
+              <div>Amount: <strong>${amount}</strong></div>
+              <div>Term: <strong>${Number(loan.term_months || 0)} months</strong></div>
+              <div>APR: <strong>${apr}</strong></div>
+              <div>Monthly: <strong>${monthly}</strong></div>
+              <div>Processing Fee: <strong>${processingFee}</strong></div>
+              <div>Fee Paid: <strong>${feePaid}</strong></div>
+              <div>Locked: <strong>${locked}</strong></div>
+              <div>Submitted: <strong>${escapeHtml(createdAt)}</strong></div>
+            </div>
+            ${feeSection}
+          </article>`;
+      }).join('');
+
+      list.querySelectorAll('[data-pay-fee]').forEach((button) => {
+        button.addEventListener('click', () => payProcessingFee(button.getAttribute('data-pay-fee')));
+      });
+    }
+
+    async function loadLoans(){
+      const statusPill = document.getElementById('statusPill');
+      if (statusPill) statusPill.textContent = 'Status — Loading loans...';
+
+      const currentUserId = window.resolveUserId?.(user?.id || user?.sub) || (user?.id || user?.sub || "");
+
+      const response = await fetch(`${window.API_BASE}/loans?userId=${encodeURIComponent(currentUserId)}`, {
+        headers: getAuthHeaders()
+      });
+
+      if (response.status === 401) {
+        handleAuthRequired('Session expired. Please log in.');
+        return;
+      }
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to load loans');
+      }
+
+      const loans = await response.json();
+      renderLoans(loans);
+
+      if (statusPill) statusPill.textContent = `Status — ${Array.isArray(loans) ? loans.length : 0} loan(s)`;
+    }
+
+    async function submitLoan(event){
+      event.preventDefault();
+
+      const formError = document.getElementById('formError');
+      if (formError) formError.textContent = '';
+
+      const amount = Number(qs('#loanAmount')?.value || 0);
+      const term = Number(qs('#loanTerm')?.value || 0);
+
+      if (!amount || !term || amount < 100 || term < 1) {
+        if (formError) formError.textContent = 'Enter a valid amount and term.';
+        return;
+      }
+
+      const submitBtn = document.getElementById('submitBtn');
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        const res = await fetch(`${window.API_BASE}/loans`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify({ amount, term_months: Math.trunc(term) })
+        });
+
+        if (res.status === 401) {
+          handleAuthRequired('Session expired. Please log in.');
+          return;
+        }
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Loan application failed');
+        }
+
+        if (window.Notifications?.toast) {
+          window.Notifications.toast({
+            title: 'Loan Application Submitted',
+            body: `${fmtAmt(amount)} for ${term} month(s) sent for review.`
+          });
+        }
+
+        qs('#loanForm')?.reset();
+        updatePreview();
+        await loadLoans();
+      } catch (err) {
+        if (formError) formError.textContent = err.message || 'Could not submit loan application.';
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    }
+
+    function wireForm(){
+      const form = document.getElementById('loanForm');
+      const resetBtn = document.getElementById('resetBtn');
+      const amountInput = document.getElementById('loanAmount');
+      const termInput = document.getElementById('loanTerm');
+
+      form?.addEventListener('submit', submitLoan);
+      amountInput?.addEventListener('input', updatePreview);
+      termInput?.addEventListener('input', updatePreview);
+      resetBtn?.addEventListener('click', () => {
+        form?.reset();
+        updatePreview();
+        const formError = document.getElementById('formError');
+        if (formError) formError.textContent = '';
+      });
+    }
+
+    async function init(){
+      if (!loadStoredUser()) return;
+      wireForm();
+      updatePreview();
+
+      try {
+        await loadLoans();
+      } catch (err) {
+        const formError = document.getElementById('formError');
+        if (formError) formError.textContent = err.message || 'Failed to load loan data.';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

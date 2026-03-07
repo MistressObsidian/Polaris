@@ -170,7 +170,7 @@
     }
 
     function authHeaders(){
-      return { 'Content-Type':'application/json', 'Authorization':'Bearer '+ state.user.token };
+      return { 'Content-Type':'application/json', ...getAuthHeaders() };
     }
 
     async function fetchJSON(url, opts={}){
@@ -192,7 +192,8 @@
     async function loadProfile(){
       qs('#profileStatus').textContent = 'Loading…';
       try {
-        const p = await fetchJSON('/api/users/me', { headers: authHeaders() });
+        const currentUserId = window.resolveUserId?.(state.user?.id || state.user?.sub) || (state.user?.id || state.user?.sub || "");
+        const p = await fetchJSON(`/api/users/me?userId=${encodeURIComponent(currentUserId)}`, { headers: authHeaders() });
         state.profile = p;
         fillProfileForm(p);
         // mirror
@@ -215,10 +216,11 @@
         fullname: qs('#fullname').value.trim(),
         phone: qs('#phone').value.trim()
       };
+      const currentUserId = window.resolveUserId?.(state.user?.id || state.user?.sub) || (state.user?.id || state.user?.sub || "");
       qs('#profileStatus').textContent = 'Saving…';
       // Try PUT /api/users/me; if not supported, inform user
       try {
-        const res = await fetch('/api/users/me', { method:'PUT', headers: authHeaders(), body: JSON.stringify(body) });
+        const res = await fetch(`/api/users/me?userId=${encodeURIComponent(currentUserId)}`, { method:'PUT', headers: authHeaders(), body: JSON.stringify(body) });
         if(res.ok){
           showToast('Profile updated');
           await loadProfile();

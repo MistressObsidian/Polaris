@@ -102,8 +102,7 @@
           <div class="field">
             <label for="fromAccount">From account</label>
             <select id="fromAccount" name="from_account_type">
-              <option value="checking">Checking</option>
-              <option value="savings">Savings</option>
+              <option value="available">Available Balance</option>
             </select>
           </div>
           <div class="field">
@@ -206,19 +205,19 @@
   <script src="common.js"></script>
   <script>
     let user = null;
+    let userStream = null;
     let currentMethod = 'billpay';
+    const SSE_RECONNECT_MS = 5000;
     const qs = (s)=>document.querySelector(s);
     const qsa = (s)=>Array.from(document.querySelectorAll(s));
 
     function fmtAmt(n){ return isFinite(n) ? Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) : '$0.00'; }
     function setText(id, v){ const el=document.getElementById(id); if(el) el.textContent=v; }
 
-    const API_ORIGIN = 'https://polaris-uru5.onrender.com';
-
     function apiUrl(path=''){
       const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
-      const apiPath = /^\/api(\/|$)/i.test(normalizedPath) ? normalizedPath : `/api${normalizedPath}`;
-      return `${API_ORIGIN}${apiPath}`;
+      if (/^\/api(\/|$)/i.test(normalizedPath)) return normalizedPath;
+      return `${window.API_BASE}${normalizedPath}`;
     }
 
     function handleAuthRequired(message){
@@ -249,12 +248,11 @@
       return true;
     }
     function updateBalancePill(p){
-      const avail = Number(p.checking||0) + Number(p.savings||0);
+      const avail = Number(p.available_balance ?? p.balances?.available ?? p.balances?.total ?? 0);
       setText('balPill', 'Available — ' + fmtAmt(avail));
     }
     function authHeaders(){
-      const token = window.BSSession?.getToken ? (window.BSSession.getToken() || '') : (user?.token || '');
-      return { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` };
+      return { 'Content-Type':'application/json', ...getAuthHeaders() };
     }
     async function fetchJSON(url, opts={}){
       const isAbsolute = /^https?:\/\//i.test(String(url || ''));
@@ -285,7 +283,7 @@
       const fd = new FormData(qs('#payForm'));
       const payload = {
         method: currentMethod, // 'billpay' | 'ach' | 'wire'
-        from_account_type: fd.get('from_account_type') || 'checking',
+        from_account_type: fd.get('from_account_type') || 'available',
         schedule_date: fd.get('schedule_date') || null,
         payee_name: (fd.get('payee_name')||'').trim(),
         payee_email: (fd.get('payee_email')||'').trim() || null,
@@ -308,7 +306,33 @@
       }
 
       try{
-        throw new Error('Payments are not enabled on this server. Please use the Transfers page.');
+        const data = await fetchJSON('/api/payments', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        if (typeof data?.available_balance !== 'undefined') {
+          user = { ...(user || {}), available_balance: Number(data.available_balance) };
+          try { localStorage.setItem('bs-user', JSON.stringify(user)); } catch {}
+          updateBalancePill(user);
+        }
+
+        const payment = data?.payment || {};
+        const details = document.getElementById('successDetails');
+        details.innerHTML = `
+          <div class="kv"><span>Payee</span><strong>${payment.payee_name || payload.payee_name}</strong></div>
+          <div class="kv"><span>Amount</span><strong>${fmtAmt(payment.amount || payload.amount)}</strong></div>
+          <div class="kv"><span>Method</span><strong>${String(payment.method || payload.method || '').toUpperCase()}</strong></div>
+          <div class="kv"><span>Reference</span><strong>${payment.reference || '—'}</strong></div>
+          <div class="kv"><span>Status</span><strong>${String(payment.status || 'scheduled').toUpperCase()}</strong></div>
+        `;
+
+        qs('#successModal').style.display = 'flex';
+        qs('#payForm').reset();
+        try { qs('#scheduleDate').value = new Date().toISOString().slice(0,10); } catch {}
+        updateSummary(0);
+        await loadPayments();
       } catch(err){
         qs('#formError').textContent = err.message || 'Payment failed';
       }
@@ -320,8 +344,44 @@
       const list = document.getElementById('payList');
       const empty = document.getElementById('payEmpty');
       list.innerHTML = '';
-      empty.style.display='block';
-      empty.textContent = 'Payments are not available on this server.';
+
+      try {
+        const rows = await fetchJSON('/api/payments', { headers: authHeaders() });
+        if (!Array.isArray(rows) || !rows.length) {
+          empty.style.display='block';
+          empty.textContent = 'No payments found.';
+          return;
+        }
+
+        empty.style.display='none';
+        rows.forEach((payment, idx) => {
+          const item = document.createElement('div');
+          item.className = `item${idx === 0 ? ' active' : ''}`;
+          item.innerHTML = `
+            <div class="item-left">
+              <div class="item-icon">$</div>
+              <div>
+                <div class="item-title">${payment.payee_name || 'Payee'}</div>
+                <div class="item-meta">${String(payment.method || '').toUpperCase()} • ${new Date(payment.created_at).toLocaleDateString()}</div>
+              </div>
+            </div>
+            <div class="amt neg">-${fmtAmt(payment.amount || 0)}</div>
+          `;
+
+          item.addEventListener('click', () => {
+            list.querySelectorAll('.item').forEach((el) => el.classList.remove('active'));
+            item.classList.add('active');
+            renderPaymentDetails(payment);
+          });
+
+          list.appendChild(item);
+        });
+
+        renderPaymentDetails(rows[0]);
+      } catch (err) {
+        empty.style.display='block';
+        empty.textContent = err.message || 'Could not load payments.';
+      }
     }
 
     function renderPaymentDetails(p){
@@ -335,6 +395,14 @@
       setText('dDate', p.schedule_date || (p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'));
     }
 
+    function updateDashboard(data){
+      if (!data || data.connected) return;
+      user = { ...(user || {}), ...data };
+      try { localStorage.setItem('bs-user', JSON.stringify(user)); } catch {}
+      updateBalancePill(user);
+      setText('userPill', user.fullname || user.accountname || '—');
+    }
+
     function bindUI(){
       qsa('.tab').forEach(btn => btn.addEventListener('click', ()=> selectMethod(btn.dataset.method)));
       qs('#payForm').addEventListener('submit', handleSubmit);
@@ -344,8 +412,33 @@
       document.getElementById('viewTxBtn').addEventListener('click', ()=> location.href='transactions.html');
     }
 
-    function connectSSE(){
-      return;
+    function startUserStream(currentUser){
+      if(!currentUser?.id || !currentUser?.token) return;
+
+      if(userStream){
+        userStream.close();
+        userStream = null;
+      }
+
+      const resolvedUserId = window.resolveUserId?.(currentUser.id || currentUser.sub) || (currentUser.id || currentUser.sub || "");
+      const streamURL = `${window.API_BASE}/stream/user/${encodeURIComponent(resolvedUserId)}?token=${encodeURIComponent(currentUser.token)}`;
+      const stream = new EventSource(streamURL);
+      userStream = stream;
+
+      stream.onmessage = (event)=>{
+        try {
+          const data = JSON.parse(event.data);
+          updateDashboard(data);
+        } catch {}
+      };
+
+      stream.onerror = ()=>{
+        console.warn('Stream lost. Reconnecting...');
+        stream.close();
+        if (user?.id && user?.token) {
+          setTimeout(()=> startUserStream(user), SSE_RECONNECT_MS);
+        }
+      };
     }
 
     (function init(){
@@ -353,7 +446,7 @@
       if (!loadStoredUser()) return;
       bindUI();
       selectMethod('billpay');
-      connectSSE();
+      startUserStream(user);
       loadPayments();
     })();
   </script>

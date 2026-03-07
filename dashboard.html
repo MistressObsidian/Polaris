@@ -87,93 +87,6 @@
     .pills { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.75rem; }
     .pill { background: var(--pill); padding:.35rem .65rem; border-radius:999px; font-size:.7rem; color:#9fb1c9; }
 
-    .glass-card { backdrop-filter: blur(12px); }
-    .loan-card {
-      background: rgba(255,255,255,0.05);
-      border-radius: 16px;
-      padding: 20px;
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    .loan-header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
-    .loan-header h2 { margin:0; }
-    .loan-body { margin-top:.8rem; display:grid; gap:.35rem; }
-    .loan-body p { margin:0; color:#d6dfeb; }
-    .badge.pending {
-      background: #facc15;
-      color: #000;
-      padding: 4px 10px;
-      border-radius: 50px;
-      font-size: 12px;
-    }
-    .badge.approved {
-      background: #22c55e;
-      color: white;
-      padding: 4px 10px;
-      border-radius: 50px;
-      font-size: 12px;
-    }
-    .badge.rejected {
-      background: #ef4444;
-      color: white;
-      padding: 4px 10px;
-      border-radius: 50px;
-      font-size: 12px;
-    }
-    .badge.under_review {
-      background: #38bdf8;
-      color: #001018;
-      padding: 4px 10px;
-      border-radius: 50px;
-      font-size: 12px;
-    }
-    .badge.processing_fee_required {
-      background: #fb923c;
-      color: #2b1100;
-      padding: 4px 10px;
-      border-radius: 50px;
-      font-size: 12px;
-    }
-    .badge.paid {
-      background: #22c55e;
-      color: white;
-      padding: 4px 10px;
-      border-radius: 50px;
-      font-size: 12px;
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.6);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 20;
-    }
-    .modal.hidden {
-      display: none;
-    }
-    .modal-card {
-      background: rgba(255,255,255,0.06);
-      backdrop-filter: blur(16px);
-      padding: 24px;
-      border-radius: 20px;
-      width: 400px;
-      border: 1px solid rgba(255,255,255,0.1);
-      display:grid;
-      gap:.7rem;
-    }
-    .modal-card input {
-      width:100%;
-      background:#101826;
-      color:#eef3f8;
-      border:1px solid #223048;
-      border-radius:10px;
-      padding:.65rem .75rem;
-    }
-    #loanPreview p { margin:.2rem 0; color:#d6dfeb; }
-
     /* Responsive sidebar */
     @media (max-width: 980px){
       .main { margin-left:0; padding:1rem; }
@@ -208,8 +121,9 @@
   <li><a href="#" class="nav-link active">Home</a></li>
       <li><a href="accounts.html" class="nav-link">Accounts</a></li>
       <li><a href="transfer.html" class="nav-link">Transfers</a></li>
+      <li><a href="loan.html" class="nav-link">Loans</a></li>
   <li><a href="payment.html" class="nav-link">Payments</a></li>
-      <li><a href="statements.html" class="nav-link">Statements</a></li>
+      <li><a href="transactions.html" class="nav-link">Transactions</a></li>
       <li><a href="support.html" class="nav-link">Support</a></li>
       <li><a href="settings.html" class="nav-link">⚙️ Settings</a></li>
     </ul>
@@ -227,23 +141,14 @@
       <p class="hero-subtitle">Here’s a quick glance at your finances today</p>
       <div class="hero-stats">
         <div class="stat-card">
-          <div class="stat-label">Checking</div>
-          <div class="stat-value" id="heroChecking">$0.00</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Savings</div>
-          <div class="stat-value" id="heroSavings">$0.00</div>
+          <div class="stat-label">Available Balance</div>
+          <div class="stat-value" id="heroAvailableBalance">$0.00</div>
         </div>
       </div>
       <div class="hero-actions">
-        <button id="makeTransferBtn" class="btn btn-primary" type="button">➝ Make a Transfer</button>
         <a class="btn" href="accounts.html">View Accounts</a>
         <a class="btn" href="transactions.html">View Transactions</a>
-      </div>
-      <div class="dashboard-actions" style="margin-top:.75rem;">
-        <button id="applyLoanBtn" class="btn-primary">
-          Apply for Personal Loan
-        </button>
+        <a class="btn" href="loan.html">Apply for Personal Loan</a>
       </div>
     </section>
 
@@ -254,8 +159,8 @@
         <canvas id="spendingChart"></canvas>
       </div>
       <div class="panel chart-card">
-        <h3>Savings Growth</h3>
-        <canvas id="savingsChart"></canvas>
+        <h3>Balance Growth</h3>
+        <canvas id="growthChart"></canvas>
       </div>
     </section>
 
@@ -272,54 +177,15 @@
       </table>
     </section>
 
-    <section id="loan-section" class="panel" style="margin-top:1rem;">
-      <section class="loan-card glass-card" style="margin-top:.9rem;">
-        <div class="loan-header">
-          <h2>Personal Loan</h2>
-          <span id="loanBadge" class="badge pending">Pending Review</span>
-        </div>
-
-        <div class="loan-body">
-          <p id="loanAmountText">Amount: $5,000</p>
-          <p id="loanAprText">APR: 8.5%</p>
-          <p id="loanMonthlyText">Monthly: $416.66</p>
-        </div>
-
-        <button id="payFeeBtn" class="btn-primary" type="button" style="margin-top:.9rem;padding:.65rem 1rem;border:none;border-radius:10px;cursor:pointer;display:none;">Pay Processing Fee</button>
-      </section>
-
-      <div id="loanStatusContainer" style="margin-top:.9rem;display:grid;gap:.6rem;"></div>
-    </section>
-
     <!-- Footer -->
     <footer style="margin-top:1rem; text-align:center; font-size:.8rem; color:#9ab0c9;">
       © 2025 Bank Swift • All rights reserved
     </footer>
   </main>
 
-  <div id="loanModal" class="modal hidden">
-    <div class="modal-card">
-      <h2>Personal Loan Application</h2>
-
-      <input type="number" id="loanAmount" placeholder="Loan Amount ($)" />
-      <input type="number" id="loanTerm" placeholder="Term (months)" />
-
-      <div id="loanPreview"></div>
-
-      <button id="submitLoan" class="btn-primary">
-        Submit Application
-      </button>
-
-      <button id="closeLoanModal" class="btn-outline">
-        Cancel
-      </button>
-    </div>
-  </div>
-
 <script>
 let user = null;
-let sseLoans = null;
-let sseTx = null;
+let userStream = null;
 const SSE_RECONNECT_MS = 5000;
 
 /* -------------------- Utilities -------------------- */
@@ -334,6 +200,24 @@ function setStoredUser(data){
   localStorage.setItem("bs-user", JSON.stringify(data));
 }
 
+async function fetchJSON(url, opts = {}) {
+  const res = await fetch(url, opts);
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+
+  if (res.status === 401) {
+    window.location.href = "login.html";
+    return { unauthorized: true, data: null };
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.error || (`HTTP ${res.status}`));
+  }
+
+  return { unauthorized: false, data };
+}
+
 /* -------------------- Profile -------------------- */
 function syncProfileToUI(profile){
   if(!profile) return;
@@ -343,8 +227,8 @@ function syncProfileToUI(profile){
   document.getElementById("heroName").textContent =
     profile.fullname || profile.accountname || profile.email || "User";
 
-  document.getElementById("heroChecking").textContent = fmt(profile.checking);
-  document.getElementById("heroSavings").textContent = fmt(profile.savings);
+  const availableBalance = Number(profile.available_balance ?? profile.balances?.available ?? profile.balances?.total ?? 0);
+  document.getElementById("heroAvailableBalance").textContent = fmt(availableBalance);
 
   const syncPill = document.getElementById("syncPill");
   if(syncPill) syncPill.textContent =
@@ -352,55 +236,73 @@ function syncProfileToUI(profile){
 }
 
 async function loadUserProfile(){
-  const res = await fetch(`${window.API_BASE}/users/me`, {
-    headers: { Authorization: `Bearer ${user.token}` }
-  });
+  try {
+    const syncPill = document.getElementById("syncPill");
+    if (syncPill) syncPill.textContent = "Sync — Loading profile…";
 
-  if(res.status === 401){
-    window.location.href = "login.html";
-    return;
+    const currentUserId = window.resolveUserId?.(user?.id || user?.sub) || (user?.id || user?.sub || "");
+    const { unauthorized, data } = await fetchJSON(`${window.API_BASE}/users/me?userId=${encodeURIComponent(currentUserId)}`, {
+      headers: getAuthHeaders()
+    });
+
+    if (unauthorized) {
+      return;
+    }
+
+    if (data) syncProfileToUI(data);
+  } catch (err) {
+    console.warn("Failed to load profile", err);
+    const syncPill = document.getElementById("syncPill");
+    if (syncPill) syncPill.textContent = "Sync — Profile unavailable";
   }
-
-  const data = await res.json();
-  if(res.ok) syncProfileToUI(data);
 }
 
 /* -------------------- Transactions -------------------- */
 async function loadTransactions(){
-  const res = await fetch(`${window.API_BASE}/transactions`, {
-    headers: { Authorization: `Bearer ${user.token}` }
-  });
+  try {
+    const currentUserId = window.resolveUserId?.(user?.id || user?.sub) || (user?.id || user?.sub || "");
+    const { unauthorized, data } = await fetchJSON(`${window.API_BASE}/transactions?userId=${encodeURIComponent(currentUserId)}`, {
+      headers: getAuthHeaders()
+    });
 
-  if(res.status === 401){
-    window.location.href = "login.html";
-    return;
+    if (unauthorized) {
+      return;
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+    const tbody = document.getElementById("transactionsTable");
+    tbody.innerHTML = "";
+
+    if(!Array.isArray(rows) || !rows.length){
+      tbody.innerHTML =
+        `<tr><td colspan="5" style="text-align:center;opacity:.6">
+          No transactions yet
+        </td></tr>`;
+      return;
+    }
+
+    rows.slice(0,10).forEach(tx=>{
+      const txType = String(tx.type || tx.direction || "").toLowerCase();
+      const isCredit = txType === 'credit';
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${new Date(tx.created_at).toLocaleDateString()}</td>
+        <td>${tx.description || txType || 'transaction'}</td>
+        <td>${tx.reference || tx.id}</td>
+        <td class="${isCredit?'amount-positive':'amount-negative'}">
+          ${isCredit?'+':'-'}${fmt(tx.amount)}
+        </td>
+        <td>${fmt(tx.total_balance_after ?? tx.balance_after ?? 0)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.warn("Failed to load transactions", err);
+    const tbody = document.getElementById("transactionsTable");
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;opacity:.6">${err?.message || 'Could not load transactions.'}</td></tr>`;
+    }
   }
-
-  const rows = await res.json();
-  const tbody = document.getElementById("transactionsTable");
-  tbody.innerHTML = "";
-
-  if(!Array.isArray(rows) || !rows.length){
-    tbody.innerHTML =
-      `<tr><td colspan="5" style="text-align:center;opacity:.6">
-        No transactions yet
-      </td></tr>`;
-    return;
-  }
-
-  rows.slice(0,10).forEach(tx=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${new Date(tx.created_at).toLocaleDateString()}</td>
-      <td>${tx.description || tx.type}</td>
-      <td>${tx.reference || tx.id}</td>
-      <td class="${tx.type==='credit'?'amount-positive':'amount-negative'}">
-        ${tx.type==='credit'?'+':'-'}${fmt(tx.amount)}
-      </td>
-      <td>${fmt(tx.total_balance_after)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
 }
 
 /* -------------------- Charts -------------------- */
@@ -418,7 +320,7 @@ function renderCharts(){
     options:{plugins:{legend:{display:false}}}
   });
 
-  new Chart(document.getElementById('savingsChart'),{
+  new Chart(document.getElementById('growthChart'),{
     type:'bar',
     data:{
       labels:['Apr','May','Jun','Jul','Aug','Sep'],
@@ -428,39 +330,6 @@ function renderCharts(){
       }]
     },
     options:{plugins:{legend:{display:false}}}
-  });
-}
-
-/* -------------------- Loan Modal -------------------- */
-function initLoanModal(){
-  const modal = document.getElementById("loanModal");
-  const openBtn = document.getElementById("applyLoanBtn");
-  const closeBtn = document.getElementById("closeLoanModal");
-  const submitBtn = document.getElementById("submitLoan");
-
-  openBtn?.addEventListener("click", ()=> modal.classList.remove("hidden"));
-  closeBtn?.addEventListener("click", ()=> modal.classList.add("hidden"));
-
-  submitBtn?.addEventListener("click", async ()=>{
-    const amount = Number(document.getElementById("loanAmount").value);
-    const term = Number(document.getElementById("loanTerm").value);
-
-    if(!amount || !term){
-      alert("Enter amount and term");
-      return;
-    }
-
-    await fetch(`${window.API_BASE}/loans`,{
-      method:'POST',
-      headers:{
-        "Content-Type":"application/json",
-        Authorization:`Bearer ${user.token}`
-      },
-      body:JSON.stringify({amount, term_months:term})
-    });
-
-    alert("Loan submitted");
-    modal.classList.add("hidden");
   });
 }
 
@@ -484,24 +353,47 @@ function wireSidebar(){
   });
 }
 
+function wireActions(){
+  const makeTransferBtn = document.getElementById("makeTransferBtn");
+  if (makeTransferBtn) {
+    makeTransferBtn.addEventListener("click", () => {
+      window.location.href = "transfer.html";
+    });
+  }
+}
+
 /* -------------------- SSE -------------------- */
-function connectSSE(){
-  if(!user?.id || !user?.token) return;
+function updateDashboard(data){
+  syncProfileToUI(data);
+  loadTransactions();
+}
 
-  const url = `${window.API_BASE}/stream/user/${user.id}?token=${encodeURIComponent(user.token)}`;
-  const es = new EventSource(url);
+function startUserStream(currentUser){
+  if(!currentUser?.id || !currentUser?.token) return;
 
-  es.onmessage = e=>{
+  if(userStream){
+    userStream.close();
+    userStream = null;
+  }
+
+  const resolvedUserId = window.resolveUserId?.(currentUser.id || currentUser.sub) || (currentUser.id || currentUser.sub || "");
+  const streamURL = `${window.API_BASE}/stream/user/${encodeURIComponent(resolvedUserId)}?token=${encodeURIComponent(currentUser.token)}`;
+  const stream = new EventSource(streamURL);
+  userStream = stream;
+
+  stream.onmessage = (event)=>{
     try{
-      const data = JSON.parse(e.data);
-      syncProfileToUI(data);
-      loadTransactions();
+      const data = JSON.parse(event.data);
+      updateDashboard(data);
     }catch{}
   };
 
-  es.onerror = ()=>{
-    es.close();
-    setTimeout(connectSSE, SSE_RECONNECT_MS);
+  stream.onerror = ()=>{
+    console.warn("Stream lost. Reconnecting...");
+    stream.close();
+    if (user?.id && user?.token) {
+      setTimeout(()=> startUserStream(user), SSE_RECONNECT_MS);
+    }
   };
 }
 
@@ -510,16 +402,23 @@ async function init(){
   user = getStoredUser();
 
   if(!user?.token){
+    const fallbackToken = localStorage.getItem("bs-token") || "";
+    if (fallbackToken) user = { token: fallbackToken };
+  }
+
+  if(!user?.token){
     window.location.href = "login.html";
     return;
   }
 
+  syncProfileToUI(user);
+
   wireSidebar();
-  initLoanModal();
+  wireActions();
   await loadUserProfile();
   await loadTransactions();
   renderCharts();
-  connectSSE();
+  startUserStream(user);
 }
 
 document.addEventListener("DOMContentLoaded", init);

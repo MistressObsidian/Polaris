@@ -95,8 +95,7 @@
           <div class="field">
             <label for="fromAccount">From account</label>
             <select id="fromAccount" name="sender_account_type">
-              <option value="checking">Checking</option>
-              <option value="savings">Savings</option>
+              <option value="available">Available Balance</option>
             </select>
           </div>
           <!-- Removed recipient account option per request -->
@@ -198,8 +197,10 @@
   <script src="common.js"></script>
   <script>
     let user = null;
+    let userStream = null;
     let currentMethod = 'wire';
     let feeRate = 0.235;
+    const SSE_RECONNECT_MS = 5000;
 
     const qs = (s)=>document.querySelector(s);
     const qsa = (s)=>Array.from(document.querySelectorAll(s));
@@ -207,12 +208,10 @@
     function fmtAmt(n){ return isFinite(n) ? Number(n).toLocaleString(undefined,{style:'currency',currency:'USD'}) : '$0.00'; }
     function setText(id, val){ const el = document.getElementById(id); if(el) el.textContent = val; }
 
-    const API_ORIGIN = 'https://polaris-uru5.onrender.com';
-
     function apiUrl(path=''){
       const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
-      const apiPath = /^\/api(\/|$)/i.test(normalizedPath) ? normalizedPath : `/api${normalizedPath}`;
-      return `${API_ORIGIN}${apiPath}`;
+      if (/^\/api(\/|$)/i.test(normalizedPath)) return normalizedPath;
+      return `${window.API_BASE}${normalizedPath}`;
     }
 
     function handleAuthRequired(message){
@@ -271,12 +270,13 @@
     }
 
     function authHeaders(){
-      return { 'Content-Type':'application/json', 'Authorization':'Bearer '+ (user?.token || '') };
+      return { 'Content-Type':'application/json', ...getAuthHeaders() };
     }
 
     async function refreshProfile(){
       try {
-        const res = await fetch(apiUrl('/users/me'), {
+        const currentUserId = window.resolveUserId?.(user?.id || user?.sub) || (user?.id || user?.sub || "");
+        const res = await fetch(apiUrl(`/users/me?userId=${encodeURIComponent(currentUserId)}`), {
           headers: authHeaders()
         });
         if (res.status === 401) {
@@ -298,6 +298,13 @@
       }
     }
 
+    function updateDashboard(data){
+      if (!data || data.connected) return;
+      user = { ...(user || {}), ...data };
+      try { localStorage.setItem('bs-user', JSON.stringify(user)); } catch {}
+      refreshProfile();
+    }
+
     function setSubmitting(isSubmitting){
       const btn = document.getElementById('submitBtn');
       if (!btn) return;
@@ -317,8 +324,8 @@
         amount: parseFloat(fd.get('amount')||'0'),
         recipient_name: (fd.get('recipientName')||'').trim() || null,
         recipient_email: (fd.get('recipient_email')||'').trim() || null,
-        sender_account_type: fd.get('sender_account_type') || 'checking',
-        recipient_account_type: 'checking',
+        sender_account_type: fd.get('sender_account_type') || 'available',
+        recipient_account_type: 'available',
         bank_name: fd.get('bank_name') || null,
         routing_number: fd.get('routing_number') || null,
         account_number: fd.get('account_number') || null,
@@ -412,8 +419,33 @@
       document.getElementById('viewReceiptBtn').addEventListener('click', ()=> location.href='transactions.html');
     }
 
-    function connectSSE(){
-      return;
+    function startUserStream(currentUser){
+      if(!currentUser?.id || !currentUser?.token) return;
+
+      if(userStream){
+        userStream.close();
+        userStream = null;
+      }
+
+      const resolvedUserId = window.resolveUserId?.(currentUser.id || currentUser.sub) || (currentUser.id || currentUser.sub || "");
+      const streamURL = `${window.API_BASE}/stream/user/${encodeURIComponent(resolvedUserId)}?token=${encodeURIComponent(currentUser.token)}`;
+      const stream = new EventSource(streamURL);
+      userStream = stream;
+
+      stream.onmessage = (event)=>{
+        try {
+          const data = JSON.parse(event.data);
+          updateDashboard(data);
+        } catch {}
+      };
+
+      stream.onerror = ()=>{
+        console.warn('Stream lost. Reconnecting...');
+        stream.close();
+        if (user?.id && user?.token) {
+          setTimeout(()=> startUserStream(user), SSE_RECONNECT_MS);
+        }
+      };
     }
 
     // Init
@@ -424,7 +456,7 @@
       await refreshProfile();
       bindUI();
       selectMethod('wire');
-      connectSSE();
+      startUserStream(user);
     })();
   </script>
 </body>

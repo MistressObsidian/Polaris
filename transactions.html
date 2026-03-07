@@ -189,12 +189,10 @@
     let allTxs = [];
     let feeRate = 0.235;
 
-    const API_ORIGIN = 'https://polaris-uru5.onrender.com';
-
     function apiUrl(path = '') {
       const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
-      const apiPath = /^\/api(\/|$)/i.test(normalizedPath) ? normalizedPath : `/api${normalizedPath}`;
-      return `${API_ORIGIN}${apiPath}`;
+      if (/^\/api(\/|$)/i.test(normalizedPath)) return normalizedPath;
+      return `${window.API_BASE}${normalizedPath}`;
     }
 
     async function loadSettings(){
@@ -225,8 +223,9 @@
           handleAuthRequired("Session expired. Please log in.");
           return;
         }
-        const res = await fetch(apiUrl('/transactions'), {
-          headers: { Authorization: `Bearer ${user.token}` }
+        const currentUserId = window.resolveUserId?.(user?.id || user?.sub) || (user?.id || user?.sub || "");
+        const res = await fetch(apiUrl(`/transactions?userId=${encodeURIComponent(currentUserId)}`), {
+          headers: getAuthHeaders()
         });
         const text = await res.text();
         const txRows = text ? JSON.parse(text) : [];
@@ -297,6 +296,41 @@
       const actionsDiv = document.querySelector(".actions");
       actionsDiv.innerHTML = ""; // reset actions per selection
 
+      const receiptBtn = document.createElement("button");
+      receiptBtn.className = "btn";
+      receiptBtn.textContent = "Download Receipt (PDF)";
+      receiptBtn.onclick = async () => {
+        if (!tx?.id) return;
+        try {
+          const res = await fetch(apiUrl(`/transactions/${encodeURIComponent(tx.id)}/receipt`), {
+            headers: getAuthHeaders()
+          });
+          if (res.status === 401) {
+            handleAuthRequired("Session expired. Please log in.");
+            return;
+          }
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data?.error || `Failed to download receipt (${res.status})`);
+          }
+          const blob = await res.blob();
+          const reference = String(tx.reference || tx.id || "transaction");
+          const fileName = `receipt-${reference.replace(/[^a-zA-Z0-9_-]/g, "")}.pdf`;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          console.error("Receipt download failed", err);
+          document.getElementById("txContainer").textContent = err.message || "Could not download receipt.";
+        }
+      };
+      actionsDiv.appendChild(receiptBtn);
+
       const amt = Number(tx.amount) || 0;
       const fees = amt * feeRate;
 
@@ -304,6 +338,10 @@
   const txType = (tx.type || '').toLowerCase();
   const isSender = ((tx.sender_email || '').toLowerCase() === currentEmail) || txType === 'debit';
   const isReceiver = ((tx.recipient_email || '').toLowerCase() === currentEmail) || txType === 'credit';
+        const txReference = String(tx.reference || tx.id || '').trim();
+        const fallbackReference = tx.id ? `TX-${String(tx.id).slice(0, 8).toUpperCase()}` : `TX-${Date.now()}`;
+        const displayReference = txReference || fallbackReference;
+        const displayDirection = txType === 'credit' ? 'Incoming' : 'Outgoing';
 
       const txStatus = String(tx.status || "completed").toLowerCase();
       const statusLabel = txStatus.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
@@ -380,21 +418,37 @@
       fromDisplay = fromDisplay || '—';
       toDisplay = toDisplay || '—';
 
-      document.getElementById("summaryText").textContent = `From ${fromDisplay} to ${toDisplay}`;
+      if (isSender && fromDisplay === '—') fromDisplay = user?.accountname || user?.fullname || 'You';
+      if (isReceiver && toDisplay === '—') toDisplay = user?.accountname || user?.fullname || 'You';
+
+      document.getElementById("summaryText").textContent = `${displayDirection} • Ref ${displayReference}`;
       document.getElementById("fromValue").textContent = fromDisplay;
       document.getElementById("toValue").textContent = toDisplay;
 
-      // Description with status context
-      const descStatus = statusPill.textContent || statusLabel;
-      document.getElementById("descriptionValue").textContent = tx.description ? `${tx.description} — ${descStatus}` : descStatus;
+      // Description
+      document.getElementById("descriptionValue").textContent = tx.description || statusLabel;
 
       // Details
-      document.getElementById("referenceValue").textContent = tx.id || tx.reference || ("TX-" + Date.now());
-      document.getElementById("networkValue").textContent = "Bank Swift Transfer";
-      document.getElementById("feesValue").textContent = `$${fees.toFixed(2)} (Fee Required)`;
+      document.getElementById("referenceValue").textContent = displayReference;
+      const txMethod = String(tx.method || '').toUpperCase();
+      const networkText = txMethod
+        ? `Bank Swift ${txMethod}`
+        : (tx.btc_address ? "Bitcoin Network" : "Bank Swift Internal");
+      document.getElementById("networkValue").textContent = networkText;
+
+      let feeText = "—";
+      if (txStatus === "processing_fee_required") {
+        feeText = `$${fees.toFixed(2)} required`;
+      } else if (Number(tx.fee_amount || 0) > 0) {
+        feeText = `$${Number(tx.fee_amount).toFixed(2)}`;
+      }
+      document.getElementById("feesValue").textContent = feeText;
 
       // Extra fields
       const extras = [];
+      if (tx.created_at) extras.push(`<strong>Date:</strong> ${new Date(tx.created_at).toLocaleString()}`);
+      extras.push(`<strong>Direction:</strong> ${displayDirection}`);
+      extras.push(`<strong>Status:</strong> ${statusLabel}`);
       if (tx.account_number) extras.push(`<strong>Account #:</strong> ${tx.account_number}`);
       if (tx.routing_number) extras.push(`<strong>Routing #:</strong> ${tx.routing_number}`);
       if (tx.btc_address) extras.push(`<strong>BTC Address:</strong> ${tx.btc_address}`);

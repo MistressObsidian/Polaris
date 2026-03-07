@@ -308,10 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fullname: data.fullname,
         email: data.user_email || data.email || email,
         accountname: data.accountname,
-        checking: data.checking,
-        savings: data.savings,
-        totalbalance: data.totalbalance,
-        is_admin: !!data.is_admin,
+        available_balance: data.available_balance ?? data.balances?.available ?? data.balances?.total ?? 0,
         token: data.token,
       };
 

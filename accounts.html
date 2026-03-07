@@ -102,13 +102,12 @@
 
     function fmtAmt(v){ return typeof v === 'number' ? v.toLocaleString(undefined,{style:'currency',currency:'USD'}) : '—'; }
     function nowStamp(){ return new Date().toLocaleTimeString(); }
-
-    const API_ORIGIN = 'https://polaris-uru5.onrender.com';
+    const SSE_RECONNECT_MS = 5000;
 
     function apiUrl(path=''){
       const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
-      const apiPath = /^\/api(\/|$)/i.test(normalizedPath) ? normalizedPath : `/api${normalizedPath}`;
-      return `${API_ORIGIN}${apiPath}`;
+      if (/^\/api(\/|$)/i.test(normalizedPath)) return normalizedPath;
+      return `${window.API_BASE}${normalizedPath}`;
     }
 
     function handleAuthRequired(message){
@@ -135,6 +134,9 @@
         state.user.token = fallbackToken;
         try { localStorage.setItem('bs-user', JSON.stringify(state.user)); } catch {}
       }
+      if (!state.user && fallbackToken) {
+        state.user = { token: fallbackToken };
+      }
       if((!state.user || !state.user.token) && !fallbackToken){
         handleAuthRequired('Session expired. Please log in.');
         return false;
@@ -143,10 +145,9 @@
     }
 
     function authHeaders(){
-      const token = window.BSSession?.getToken ? (window.BSSession.getToken() || '') : (state.user?.token || localStorage.getItem('bs-token') || '');
       return {
         'Content-Type':'application/json',
-        'Authorization': `Bearer ${token}`
+        ...getAuthHeaders()
       };
     }
 
@@ -157,18 +158,18 @@
       if (res.status === 401) {
         handleAuthRequired('Session expired. Please log in.');
       }
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      return res.json();
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+      if(!res.ok) throw new Error(data?.error || ('HTTP ' + res.status));
+      return data;
     }
 
     function renderAccounts(){
       if(!state.profile) return;
-      const { checking=0, savings=0, credit=0, investments=0 } = state.profile;
+      const availableBalance = Number(state.profile.available_balance ?? state.profile.balances?.available ?? state.profile.balances?.total ?? 0);
       const defs = [
-        { key:'checking', label:'Checking', value:checking },
-        { key:'savings', label:'Savings', value:savings },
-        { key:'credit', label:'Credit', value:credit },
-        { key:'investments', label:'Investments', value:investments }
+        { key:'available_balance', label:'Available Balance', value:availableBalance }
       ];
 
       const existing = grid.querySelectorAll('.acc-card');
@@ -206,15 +207,18 @@
       txList.innerHTML = '';
       if(!state.transactions.length){
         txEmpty.style.display = 'block';
+        txEmpty.textContent = 'No recent transactions.';
         return;
       }
       txEmpty.style.display = 'none';
       state.transactions.slice(0,50).forEach(tx=>{
         const li = document.createElement('li');
         li.className = 'tx-item';
-        const amtCls = tx.type === 'debit' ? 'debit' : 'credit';
+        const txType = String(tx.type || tx.direction || '').toLowerCase();
+        const amtCls = txType === 'debit' ? 'debit' : 'credit';
+        const ref = tx.reference || tx.id || '';
         li.innerHTML = `
-          <span>${tx.description || tx.type}</span>
+          <span>${tx.description || txType || 'transaction'}${ref ? ` • ${ref}` : ''}</span>
           <span class="tx-amt ${amtCls}">${fmtAmt(tx.amount)}</span>
         `;
         li.addEventListener('click', ()=>{
@@ -224,6 +228,7 @@
               amount: tx.amount,
               type: tx.type,
               description: tx.description,
+              reference: tx.reference,
               sender_email: tx.sender_email,
               recipient_email: tx.recipient_email,
               sender_fullname: tx.sender_fullname,
@@ -238,7 +243,7 @@
     }
 
     function balancesChanged(a,b){
-      const keys = ['checking','savings','credit','investments','totalbalance'];
+      const keys = ['available_balance'];
       return keys.some(k => Number(a?.[k] ?? 0) !== Number(b?.[k] ?? 0));
     }
 
@@ -251,10 +256,7 @@
       try {
         const stored = JSON.parse(localStorage.getItem('bs-user')||'{}');
         stored.fullname = p.fullname;
-        stored.checking = p.checking;
-        stored.savings = p.savings;
-        stored.credit = p.credit;
-        stored.investments = p.investments;
+        stored.available_balance = Number(p.available_balance ?? p.balances?.available ?? p.balances?.total ?? 0);
         localStorage.setItem('bs-user', JSON.stringify(stored));
       } catch {}
       if(!had || balancesChanged(had, p)){
@@ -268,27 +270,67 @@
 
     async function loadProfile(){
       try {
-        const data = await fetchJSON(apiUrl('/users/me'), { headers: authHeaders() });
+        userNamePill.textContent = 'Loading profile…';
+        const currentUserId = window.resolveUserId?.(state.user?.id || state.user?.sub) || (state.user?.id || state.user?.sub || "");
+        const data = await fetchJSON(apiUrl(`/users/me?userId=${encodeURIComponent(currentUserId)}`), { headers: authHeaders() });
         applyProfile(data);
       } catch(e){
         console.warn('Profile load failed', e);
+        userNamePill.textContent = 'Profile unavailable';
       }
     }
 
     async function loadTransactions(){
       try {
-        const data = await fetchJSON(apiUrl('/transactions'), { headers: authHeaders() });
+        const currentUserId = window.resolveUserId?.(state.user?.id || state.user?.sub) || (state.user?.id || state.user?.sub || "");
+        const data = await fetchJSON(apiUrl(`/transactions?userId=${encodeURIComponent(currentUserId)}`), { headers: authHeaders() });
         state.transactions = data;
         renderTransactions();
       } catch(e){
         console.warn('Transactions load failed', e);
+        state.transactions = [];
+        renderTransactions();
+        txEmpty.style.display = 'block';
+        txEmpty.textContent = e?.message || 'Could not load transactions.';
       }
     }
 
     const scheduleApplyProfile = debounce((p)=>applyProfile(p), 1200);
 
-    function connectSSE(){
-      return;
+    function updateDashboard(data){
+      const merged = { ...(state.profile || {}), ...(data || {}) };
+      scheduleApplyProfile(merged);
+      loadTransactions();
+    }
+
+    function startUserStream(currentUser){
+      if(!currentUser?.id || !currentUser?.token) return;
+
+      if(state.sse){
+        state.sse.close();
+        state.sse = null;
+      }
+
+      const resolvedUserId = window.resolveUserId?.(currentUser.id || currentUser.sub) || (currentUser.id || currentUser.sub || "");
+      const streamURL = `${window.API_BASE}/stream/user/${encodeURIComponent(resolvedUserId)}?token=${encodeURIComponent(currentUser.token)}`;
+      const stream = new EventSource(streamURL);
+      state.sse = stream;
+
+      stream.onmessage = (event)=>{
+        try {
+          const data = JSON.parse(event.data);
+          if (data?.connected) return;
+          updateDashboard(data);
+        } catch {}
+      };
+
+      stream.onerror = ()=>{
+        console.warn('Stream lost. Reconnecting...');
+        stream.close();
+        if (state.user?.id && state.user?.token) {
+          setTimeout(()=> startUserStream(state.user), SSE_RECONNECT_MS);
+        }
+      };
     }
 
     // Event handlers
@@ -312,7 +354,7 @@
       if(e.key === 'bs-user' && e.newValue){
         try {
           const u = JSON.parse(e.newValue);
-          if(u.checking !== state.profile?.checking) loadProfile();
+          if (Number(u?.available_balance ?? 0) !== Number(state.profile?.available_balance ?? state.profile?.balances?.available ?? state.profile?.balances?.total ?? 0)) loadProfile();
         } catch {}
       }
     });
@@ -325,7 +367,7 @@
   }
     loadProfile();
     loadTransactions();
-    connectSSE();
+    startUserStream(state.user);
     setInterval(loadTransactions, 60000); // Light polling for tx list
   </script>
 </body>

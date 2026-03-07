@@ -1,141 +1,23 @@
-// config.js — production-ready for Render
+// config.js
 
-// ==============================
-// Backend origin (NO /api here)
-// ==============================
-window.BACKEND_ORIGIN = "https://polaris-uru5.onrender.com";
-
-// Always normalize API_BASE to end with /api
 (function () {
-  const origin = String(window.BACKEND_ORIGIN).replace(/\/+$/, "");
-  window.API_BASE = `${origin}/api`;
-})();
+  const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
 
-// Optional auto-redirect on auth failure
-if (typeof window.BS_AUTO_AUTH_REDIRECT === "undefined") {
-  window.BS_AUTO_AUTH_REDIRECT = false;
-}
-
-// ==============================
-// Session storage keys
-// ==============================
-(function () {
-  const USER_KEY = "bs-user";
-  const TOKEN_KEY = "bs-token";
-
-  function shouldAutoRedirect() {
-    return window.BS_AUTO_AUTH_REDIRECT === true;
+  // Local development
+  if (isLocal) {
+    window.BACKEND_ORIGIN = "http://localhost:4000";
+  } 
+  // Production (Render)
+  else {
+    window.BACKEND_ORIGIN = "https://polaris-uru5.onrender.com";
   }
 
-  function goToLogin() {
-    window.location.href = "login.html";
-  }
+  // API base
+  window.API_BASE = "/api";
 
-  function onAuthRequired(options = {}) {
-    const message = String(options.message || "Session expired");
-    if (shouldAutoRedirect()) {
-      goToLogin();
-      return { redirected: true, message };
-    }
-    return { redirected: false, message };
-  }
-
-  function readUser() {
-    try {
-      const raw = localStorage.getItem(USER_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  function writeUser(user) {
-    try {
-      if (!user) localStorage.removeItem(USER_KEY);
-      else localStorage.setItem(USER_KEY, JSON.stringify(user));
-    } catch {}
-  }
-
-  function readToken() {
-    try {
-      return localStorage.getItem(TOKEN_KEY) || "";
-    } catch {
-      return "";
-    }
-  }
-
-  function writeToken(token) {
-    try {
-      if (!token) localStorage.removeItem(TOKEN_KEY);
-      else localStorage.setItem(TOKEN_KEY, token);
-    } catch {}
-  }
-
-  function getToken() {
-    const user = readUser();
-    const storedToken = readToken();
-    const userToken = user?.token || "";
-    return storedToken || userToken;
-  }
-
-  function getUser() {
-    const user = readUser();
-    const token = getToken();
-    if (!token) return null;
-    if (!user) return { token };
-    if (user.token === token) return user;
-
-    const merged = { ...user, token };
-    writeUser(merged);
-    return merged;
-  }
-
-  function setSession(userLike, tokenLike) {
-    const token = String(tokenLike || userLike?.token || "").trim();
-    if (!token) return false;
-
-    const nextUser = userLike
-      ? { ...userLike, token }
-      : { ...(readUser() || {}), token };
-
-    writeToken(token);
-    writeUser(nextUser);
-    return true;
-  }
-
-  function clearSession() {
-    writeUser(null);
-    writeToken("");
-  }
-
-  function authHeaders(extraHeaders = {}) {
-    const token = getToken();
-    if (!token) return { ...extraHeaders };
-
-    return {
-      ...extraHeaders,
-      Authorization: `Bearer ${token}`
-    };
-  }
-
-  window.BSSession = {
-    USER_KEY,
-    TOKEN_KEY,
-    getToken,
-    getUser,
-    setSession,
-    clearSession,
-    authHeaders,
-    shouldAutoRedirect,
-    goToLogin,
-    onAuthRequired
+  window.resolveUserId = function (userId) {
+    return String(userId || "").trim();
   };
-
-  try {
-    const token = getToken();
-    if (token) setSession(readUser(), token);
-
-    if (localStorage.getItem("token") != null)
-      localStorage.removeItem("token");
-  } catch {}
 })();

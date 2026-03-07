@@ -107,9 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
       fullname: data.fullname,
       email: data.email,
       accountname: data.accountname,
-      checking: data.checking ?? 0,
-      savings: data.savings ?? 0,
-      totalbalance: data.totalbalance ?? 0,
+      available_balance: data.available_balance ?? data.balances?.available ?? data.balances?.total ?? 0,
       token: data.token,
       isAuthenticated: true,
       ts: Date.now()

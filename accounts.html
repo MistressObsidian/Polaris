@@ -67,9 +67,9 @@
     </div>
 
     <div class="actions">
-      <button id="refreshBtn" class="btn-accent">Refresh</button>
-      <button id="viewTransfersBtn">Go To Transfers</button>
-      <button id="logoutBtn">Logout</button>
+      <button id="refreshBtn" type="button" class="btn-accent">Refresh</button>
+      <a id="viewTransfersBtn" class="btn" href="transfer.html">Go To Transfers</a>
+      <button id="logoutBtn" type="button">Logout</button>
     </div>
 
     <section class="accounts-grid" id="accountsGrid">
@@ -99,10 +99,50 @@
     const txEmpty = document.getElementById('txEmpty');
     const userNamePill = document.getElementById('userNamePill');
     const lastSyncPill = document.getElementById('lastSyncPill');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const viewTransfersBtn = document.getElementById('viewTransfersBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
 
-    function fmtAmt(v){ return typeof v === 'number' ? v.toLocaleString(undefined,{style:'currency',currency:'USD'}) : '—'; }
+    function fmtAmt(v){
+      const amount = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(amount)
+        ? amount.toLocaleString(undefined,{style:'currency',currency:'USD'})
+        : '—';
+    }
     function nowStamp(){ return new Date().toLocaleTimeString(); }
     const SSE_RECONNECT_MS = 5000;
+
+    function normalizeTransactions(payload){
+      if (Array.isArray(payload)) return payload;
+      if (Array.isArray(payload?.transactions)) return payload.transactions;
+      if (Array.isArray(payload?.data)) return payload.data;
+      return [];
+    }
+
+    function getTransactionsCacheKey(){
+      const currentUserId = window.resolveUserId?.(state.user?.id || state.user?.sub) || (state.user?.id || state.user?.sub || 'guest');
+      return `bs-recent-transactions:${currentUserId}`;
+    }
+
+    function readCachedTransactions(){
+      try {
+        return sortRecentTransactions(JSON.parse(localStorage.getItem(getTransactionsCacheKey()) || '[]'));
+      } catch {
+        return [];
+      }
+    }
+
+    function writeCachedTransactions(rows){
+      try {
+        localStorage.setItem(getTransactionsCacheKey(), JSON.stringify(sortRecentTransactions(rows)));
+      } catch {}
+    }
+
+    function sortRecentTransactions(rows){
+      return normalizeTransactions(rows)
+        .filter(Boolean)
+        .sort((a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime());
+    }
 
     function apiUrl(path=''){
       const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
@@ -205,21 +245,33 @@
 
     function renderTransactions(){
       txList.innerHTML = '';
-      if(!state.transactions.length){
+      const recentTransactions = sortRecentTransactions(state.transactions);
+
+      if(!recentTransactions.length){
+        txList.style.display = 'none';
         txEmpty.style.display = 'block';
-        txEmpty.textContent = 'No recent transactions.';
+        txEmpty.textContent = 'No recent transactions yet.';
         return;
       }
+      txList.style.display = 'block';
       txEmpty.style.display = 'none';
-      state.transactions.slice(0,50).forEach(tx=>{
+      recentTransactions.forEach(tx=>{
         const li = document.createElement('li');
         li.className = 'tx-item';
-        const txType = String(tx.type || tx.direction || '').toLowerCase();
-        const amtCls = txType === 'debit' ? 'debit' : 'credit';
+        const txType = String(tx.type || tx.direction || tx.status || '').toLowerCase();
+        const amount = Number(tx.amount ?? 0);
+        const isDebit = txType === 'debit' || amount < 0;
+        const amtCls = isDebit ? 'debit' : 'credit';
         const ref = tx.reference || tx.id || '';
+        const createdAt = tx.created_at
+          ? new Date(tx.created_at).toLocaleString()
+          : 'Just now';
         li.innerHTML = `
-          <span>${tx.description || txType || 'transaction'}${ref ? ` • ${ref}` : ''}</span>
-          <span class="tx-amt ${amtCls}">${fmtAmt(tx.amount)}</span>
+          <span>
+            <strong>${tx.description || txType || 'transaction'}</strong><br>
+            <small>${createdAt}${ref ? ` • ${ref}` : ''}</small>
+          </span>
+          <span class="tx-amt ${amtCls}">${fmtAmt(Math.abs(amount))}</span>
         `;
         li.addEventListener('click', ()=>{
           // Store selection for transactions page receipt
@@ -268,6 +320,12 @@
       let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), wait); };
     }
 
+    function setRefreshState(isLoading){
+      if(!refreshBtn) return;
+      refreshBtn.disabled = !!isLoading;
+      refreshBtn.textContent = isLoading ? 'Refreshing…' : 'Refresh';
+    }
+
     async function loadProfile(){
       try {
         userNamePill.textContent = 'Loading profile…';
@@ -284,14 +342,18 @@
       try {
         const currentUserId = window.resolveUserId?.(state.user?.id || state.user?.sub) || (state.user?.id || state.user?.sub || "");
         const data = await fetchJSON(apiUrl(`/transactions?userId=${encodeURIComponent(currentUserId)}`), { headers: authHeaders() });
-        state.transactions = data;
+        state.transactions = sortRecentTransactions(data);
+        writeCachedTransactions(state.transactions);
         renderTransactions();
       } catch(e){
         console.warn('Transactions load failed', e);
-        state.transactions = [];
+        state.transactions = readCachedTransactions();
         renderTransactions();
-        txEmpty.style.display = 'block';
-        txEmpty.textContent = e?.message || 'Could not load transactions.';
+        if (!state.transactions.length) {
+          txList.style.display = 'none';
+          txEmpty.style.display = 'block';
+          txEmpty.textContent = e?.message || 'Could not load recent transactions.';
+        }
       }
     }
 
@@ -334,29 +396,35 @@
     }
 
     function wireActionButtons(){
-      const refreshBtn = document.getElementById('refreshBtn');
-      const viewTransfersBtn = document.getElementById('viewTransfersBtn');
-      const logoutBtn = document.getElementById('logoutBtn');
+      if (refreshBtn && refreshBtn.dataset.bound !== '1') {
+        refreshBtn.dataset.bound = '1';
+        refreshBtn.addEventListener('click', ()=>{
+          lastSyncPill.textContent = 'Sync — Refreshing…';
+          setRefreshState(true);
+          window.location.reload();
+        });
+      }
 
-      refreshBtn?.addEventListener('click', ()=>{
-        lastSyncPill.textContent = 'Sync — Refreshing…';
-        loadProfile();
-        loadTransactions();
-      });
+      if (viewTransfersBtn && viewTransfersBtn.dataset.bound !== '1') {
+        viewTransfersBtn.dataset.bound = '1';
+        viewTransfersBtn.addEventListener('click', (event)=>{
+          event.preventDefault();
+          window.location.assign('transfer.html');
+        });
+      }
 
-      viewTransfersBtn?.addEventListener('click', ()=>{
-        location.href='transfer.html';
-      });
-
-      logoutBtn?.addEventListener('click', ()=>{
-        if (window.BSSession?.clearSession) window.BSSession.clearSession();
-        else {
-          localStorage.removeItem('bs-user');
-          localStorage.removeItem('bs-token');
-        }
-        if (window.BSSession?.goToLogin) window.BSSession.goToLogin();
-        else location.href='login.html';
-      });
+      if (logoutBtn && logoutBtn.dataset.bound !== '1') {
+        logoutBtn.dataset.bound = '1';
+        logoutBtn.addEventListener('click', ()=>{
+          if (window.BSSession?.clearSession) window.BSSession.clearSession();
+          else {
+            localStorage.removeItem('bs-user');
+            localStorage.removeItem('bs-token');
+          }
+          if (window.BSSession?.goToLogin) window.BSSession.goToLogin();
+          else location.href='login.html';
+        });
+      }
     }
 
     // Cross-tab sync
@@ -369,17 +437,28 @@
       }
     });
 
-  // Init
-  if (window.Notifications) window.Notifications.init();
-  if (!loadStoredUser()) {
-    renderTransactions();
-    return;
-  }
-    wireActionButtons();
-    loadProfile();
-    loadTransactions();
-    startUserStream(state.user);
-    setInterval(loadTransactions, 60000); // Light polling for tx list
+    async function init(){
+      if (window.Notifications) window.Notifications.init();
+
+      state.transactions = readCachedTransactions();
+      renderTransactions();
+
+      if (!loadStoredUser()) {
+        return;
+      }
+
+      wireActionButtons();
+
+      await Promise.all([
+        loadProfile(),
+        loadTransactions()
+      ]);
+
+      startUserStream(state.user);
+      setInterval(loadTransactions, 60000); // Light polling for tx list
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>

@@ -984,76 +984,78 @@ app.post("/api/users", registerUploads, async (req, res) => {
       );
       const token = issueToken({ id: user.id, email: user.email });
 
-      try {
-        await sendBrandedEmail({
-          to: user.email,
-          subject: "Welcome to Base",
-          title: "Your account is ready",
-          preheader: "Welcome to Base — your account has been created.",
-          text: `Hi ${user.fullname}, your Base account has been created successfully.`,
-          bodyHtml: `
-    <p>Hi ${escapeHtml(user.fullname)},</p>
-    <p>Welcome to <b>${escapeHtml(BRAND.name)}</b>.</p>
-    <p>Your account has been created successfully and is now pending verification.</p>
-    <p>If you did not initiate this registration, please contact support immediately.</p>
-  `
-        });
-      } catch (e) {
-        console.warn("Welcome email failed:", e.message);
-      }
-
-      try {
-        if (mailer && BANKSWIFT_NOTIFY_EMAIL) {
-          const registrationAttachments = [];
-          if (govFront) registrationAttachments.push({ filename: `gov_id_front${path.extname(govFront.originalname || "") || ".jpg"}`, path: govFront.path });
-          if (govBack) registrationAttachments.push({ filename: `gov_id_back${path.extname(govBack.originalname || "") || ".jpg"}`, path: govBack.path });
-          if (proofAddr) registrationAttachments.push({ filename: `proof_of_address${path.extname(proofAddr.originalname || "") || ".pdf"}`, path: proofAddr.path });
-
+      void (async () => {
+        try {
           await sendBrandedEmail({
-            to: BANKSWIFT_NOTIFY_EMAIL,
-            subject: "New registration received (documents attached)",
-            title: "New registration + documents",
-            preheader: `New user: ${user.fullname} (${normEmail})`,
-            text: `New registration. Documents attached: ${registrationAttachments.map(a => a.filename).join(", ")}`,
+            to: user.email,
+            subject: "Welcome to Base",
+            title: "Your account is ready",
+            preheader: "Welcome to Base — your account has been created.",
+            text: `Hi ${user.fullname}, your Base account has been created successfully.`,
             bodyHtml: `
-        <p><b>New registration received</b></p>
-        <p>Documents are attached to this email:</p>
-        <ul>
-          <li>Government ID (front): ${govFront ? "✅" : "❌"}</li>
-          <li>Government ID (back): ${govBack ? "✅" : "—"}</li>
-          <li>Proof of address: ${proofAddr ? "✅" : "—"}</li>
-        </ul>
-      `,
-            attachments: registrationAttachments,
+      <p>Hi ${escapeHtml(user.fullname)},</p>
+      <p>Welcome to <b>${escapeHtml(BRAND.name)}</b>.</p>
+      <p>Your account has been created successfully and is now pending verification.</p>
+      <p>If you did not initiate this registration, please contact support immediately.</p>
+    `
           });
+        } catch (e) {
+          console.warn("Welcome email failed:", e.message);
         }
-      } catch (e) {
-        console.warn("BankSwift registration notify email failed:", e.message);
-      }
 
-      try {
-        if (mailer) {
-          const templates = loadEmailTemplates();
-          const regTpl = templates.registrationReceived || {};
-          const regDataPlain = {
-            fullname: user.fullname || "there",
-          };
-          const regDataHtml = {
-            fullname: escapeHtml(regDataPlain.fullname),
-          };
+        try {
+          if (mailer && BANKSWIFT_NOTIFY_EMAIL) {
+            const registrationAttachments = [];
+            if (govFront) registrationAttachments.push({ filename: `gov_id_front${path.extname(govFront.originalname || "") || ".jpg"}`, path: govFront.path });
+            if (govBack) registrationAttachments.push({ filename: `gov_id_back${path.extname(govBack.originalname || "") || ".jpg"}`, path: govBack.path });
+            if (proofAddr) registrationAttachments.push({ filename: `proof_of_address${path.extname(proofAddr.originalname || "") || ".pdf"}`, path: proofAddr.path });
 
-          await sendBrandedEmail({
-            to: normEmail,
-            subject: renderTemplate(regTpl.subject || "Registration received", regDataPlain),
-            title: renderTemplate(regTpl.title || "We received your registration", regDataPlain),
-            preheader: renderTemplate(regTpl.preheader, regDataPlain),
-            text: renderTemplate(regTpl.text, regDataPlain),
-            bodyHtml: renderTemplate(regTpl.bodyHtml, regDataHtml),
-          });
+            await sendBrandedEmail({
+              to: BANKSWIFT_NOTIFY_EMAIL,
+              subject: "New registration received (documents attached)",
+              title: "New registration + documents",
+              preheader: `New user: ${user.fullname} (${normEmail})`,
+              text: `New registration. Documents attached: ${registrationAttachments.map(a => a.filename).join(", ")}`,
+              bodyHtml: `
+          <p><b>New registration received</b></p>
+          <p>Documents are attached to this email:</p>
+          <ul>
+            <li>Government ID (front): ${govFront ? "✅" : "❌"}</li>
+            <li>Government ID (back): ${govBack ? "✅" : "—"}</li>
+            <li>Proof of address: ${proofAddr ? "✅" : "—"}</li>
+          </ul>
+        `,
+              attachments: registrationAttachments,
+            });
+          }
+        } catch (e) {
+          console.warn("BankSwift registration notify email failed:", e.message);
         }
-      } catch (e) {
-        console.warn("Registration received email failed:", e.message);
-      }
+
+        try {
+          if (mailer) {
+            const templates = loadEmailTemplates();
+            const regTpl = templates.registrationReceived || {};
+            const regDataPlain = {
+              fullname: user.fullname || "there",
+            };
+            const regDataHtml = {
+              fullname: escapeHtml(regDataPlain.fullname),
+            };
+
+            await sendBrandedEmail({
+              to: normEmail,
+              subject: renderTemplate(regTpl.subject || "Registration received", regDataPlain),
+              title: renderTemplate(regTpl.title || "We received your registration", regDataPlain),
+              preheader: renderTemplate(regTpl.preheader, regDataPlain),
+              text: renderTemplate(regTpl.text, regDataPlain),
+              bodyHtml: renderTemplate(regTpl.bodyHtml, regDataHtml),
+            });
+          }
+        } catch (e) {
+          console.warn("Registration received email failed:", e.message);
+        }
+      })();
 
       void logRegistrationToSheets({
         fullname: user.fullname,

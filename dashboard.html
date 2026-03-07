@@ -119,7 +119,6 @@
     <h2>Navigation</h2>
     <ul class="nav-menu">
   <li><a href="#" class="nav-link active">Home</a></li>
-      <li><a href="accounts.html" class="nav-link">Accounts</a></li>
       <li><a href="transfer.html" class="nav-link">Transfers</a></li>
       <li><a href="loan.html" class="nav-link">Loans</a></li>
       <li><a href="transactions.html" class="nav-link">Transactions</a></li>
@@ -145,7 +144,7 @@
         </div>
       </div>
       <div class="hero-actions">
-        <a class="btn" href="accounts.html">View Accounts</a>
+        <a class="btn" id="viewAccountsBtn" href="accounts.html">View Accounts</a>
         <a class="btn" href="transactions.html">View Transactions</a>
         <a class="btn" href="loan.html">Apply for Personal Loan</a>
       </div>
@@ -189,6 +188,38 @@ const SSE_RECONNECT_MS = 5000;
 
 /* -------------------- Utilities -------------------- */
 function fmt(n){ return `$${Number(n||0).toFixed(2)}`; }
+
+function normalizeTransactions(payload){
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.transactions)) return payload.transactions;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+}
+
+function sortRecentTransactions(rows){
+  return normalizeTransactions(rows)
+    .filter(Boolean)
+    .sort((a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime());
+}
+
+function getTransactionsCacheKey(){
+  const currentUserId = window.resolveUserId?.(user?.id || user?.sub) || (user?.id || user?.sub || 'guest');
+  return `bs-recent-transactions:${currentUserId}`;
+}
+
+function readCachedTransactions(){
+  try {
+    return sortRecentTransactions(JSON.parse(localStorage.getItem(getTransactionsCacheKey()) || '[]'));
+  } catch {
+    return [];
+  }
+}
+
+function writeCachedTransactions(rows){
+  try {
+    localStorage.setItem(getTransactionsCacheKey(), JSON.stringify(sortRecentTransactions(rows)));
+  } catch {}
+}
 
 function getStoredUser(){
   try { return JSON.parse(localStorage.getItem("bs-user") || "null"); }
@@ -268,11 +299,12 @@ async function loadTransactions(){
       return;
     }
 
-    const rows = Array.isArray(data) ? data : [];
+    const rows = sortRecentTransactions(data);
+    writeCachedTransactions(rows);
     const tbody = document.getElementById("transactionsTable");
     tbody.innerHTML = "";
 
-    if(!Array.isArray(rows) || !rows.length){
+    if(!rows.length){
       tbody.innerHTML =
         `<tr><td colspan="5" style="text-align:center;opacity:.6">
           No transactions yet
@@ -280,16 +312,17 @@ async function loadTransactions(){
       return;
     }
 
-    rows.slice(0,10).forEach(tx=>{
+    rows.forEach(tx=>{
       const txType = String(tx.type || tx.direction || "").toLowerCase();
-      const isCredit = txType === 'credit';
+      const amount = Number(tx.amount ?? 0);
+      const isCredit = txType === 'credit' || amount > 0;
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${new Date(tx.created_at).toLocaleDateString()}</td>
         <td>${tx.description || txType || 'transaction'}</td>
         <td>${tx.reference || tx.id}</td>
         <td class="${isCredit?'amount-positive':'amount-negative'}">
-          ${isCredit?'+':'-'}${fmt(tx.amount)}
+          ${isCredit?'+':'-'}${fmt(Math.abs(amount))}
         </td>
         <td>${fmt(tx.total_balance_after ?? tx.balance_after ?? 0)}</td>
       `;
@@ -298,8 +331,29 @@ async function loadTransactions(){
   } catch (err) {
     console.warn("Failed to load transactions", err);
     const tbody = document.getElementById("transactionsTable");
+    const rows = readCachedTransactions();
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;opacity:.6">${err?.message || 'Could not load transactions.'}</td></tr>`;
+      if (rows.length) {
+        tbody.innerHTML = "";
+        rows.forEach(tx=>{
+          const txType = String(tx.type || tx.direction || "").toLowerCase();
+          const amount = Number(tx.amount ?? 0);
+          const isCredit = txType === 'credit' || amount > 0;
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${new Date(tx.created_at).toLocaleDateString()}</td>
+            <td>${tx.description || txType || 'transaction'}</td>
+            <td>${tx.reference || tx.id}</td>
+            <td class="${isCredit?'amount-positive':'amount-negative'}">
+              ${isCredit?'+':'-'}${fmt(Math.abs(amount))}
+            </td>
+            <td>${fmt(tx.total_balance_after ?? tx.balance_after ?? 0)}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;opacity:.6">${err?.message || 'Could not load transactions.'}</td></tr>`;
+      }
     }
   }
 }
@@ -353,8 +407,18 @@ function wireSidebar(){
 }
 
 function wireActions(){
+  const viewAccountsBtn = document.getElementById("viewAccountsBtn");
+  if (viewAccountsBtn && viewAccountsBtn.dataset.bound !== '1') {
+    viewAccountsBtn.dataset.bound = '1';
+    viewAccountsBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      window.location.assign("accounts.html");
+    });
+  }
+
   const makeTransferBtn = document.getElementById("makeTransferBtn");
-  if (makeTransferBtn) {
+  if (makeTransferBtn && makeTransferBtn.dataset.bound !== '1') {
+    makeTransferBtn.dataset.bound = '1';
     makeTransferBtn.addEventListener("click", () => {
       window.location.href = "transfer.html";
     });
@@ -418,6 +482,7 @@ async function init(){
   await loadTransactions();
   renderCharts();
   startUserStream(user);
+  setInterval(loadTransactions, 60000);
 }
 
 document.addEventListener("DOMContentLoaded", init);

@@ -1,4 +1,4 @@
-# Base Banking Platform
+# Base Credit Banking Platform
 
 > A modern digital banking platform with secure money transfers, real-time transaction tracking, and comprehensive financial management.
 

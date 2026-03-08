@@ -88,7 +88,7 @@ export async function sendEmail(to, subject, html, opts = {}) {
  * Render a simple HTML email template
  */
 export function renderEmail(title, bodyHtml) {
-  const BRAND_NAME = process.env.BRAND_NAME || 'Base';
+  const BRAND_NAME = process.env.BRAND_NAME || 'Base Credit';
   const BRAND_LOGO_SRC = `cid:${BRAND_LOGO_CID}`;
 
   return `

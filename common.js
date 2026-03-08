@@ -1,4 +1,4 @@
-// Notifications client and toast UI for Base
+// Notifications client and toast UI for Base Credit
 // Usage: include config.js then common.js; call window.Notifications.init() once per page.
 
 (function(){

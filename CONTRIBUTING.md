@@ -1,4 +1,4 @@
-# Contributing to Base Banking Platform
+# Contributing to Base Credit Banking Platform
 
 Thank you for your interest in contributing to our digital banking platform! This guide will help you get started with making meaningful contributions.
 
@@ -311,7 +311,7 @@ Contributors will be recognized in:
 - Release notes for significant contributions
 - Project documentation credits
 
-Thank you for helping make Base Banking Platform better! 🚀
+Thank you for helping make Base Credit Banking Platform better! 🚀
 
 ---
 

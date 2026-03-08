@@ -34,6 +34,7 @@ import { fileURLToPath } from "url";
 import { initMailer as initMailerUtils, sendEmail, renderEmail } from "./utils/mailer.js";
 import multer from "multer";
 import PDFDocument from "pdfkit";
+import { initBank, createUser, getUser, getUserBalance, updateUserBalance, getOrCreateAccount, getAccount, addTransaction, getTransactions, getTransactionWithDetails, makeInternalTransfer, makeExternalTransfer, getTransfers, applyLoan, approveLoan, getUserLoans, getLoan, payLoanFee } from "./bank.js";
 
 
 dotenv.config();
@@ -43,11 +44,40 @@ const BASE_URL =
   process.env.NODE_ENV === "production"
     ? "https://polaris-uru5.onrender.com"
     : "http://localhost:4000";
-const DEFAULT_USER_UUID = process.env.DEFAULT_USER_UUID || "550e8400-e29b-41d4-a716-446655440000";
+const DEFAULT_USER_UUID = process.env.DEFAULT_USER_EMAIL || process.env.DEFAULT_USER_UUID || "guest@example.com";
 
 function normalizeDbUserId(userId) {
-  const raw = String(userId || "").trim();
+  const raw = String(userId || "").trim().toLowerCase();
   return raw || DEFAULT_USER_UUID;
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "").trim());
+}
+
+async function resolveUserIdFromIdentity(identity = {}) {
+  const email = String(identity?.email || "").trim().toLowerCase();
+  const rawId = String(identity?.id || identity?.userId || identity?.user_id || identity?.sub || "").trim();
+
+  if (validateEmail(email)) {
+    const byEmail = await pool.query(
+      "SELECT user_email FROM users WHERE LOWER(user_email)=LOWER($1) LIMIT 1",
+      [email]
+    );
+    if (byEmail.rowCount) {
+      return normalizeDbUserId(byEmail.rows[0].user_email);
+    }
+  }
+
+  if (validateEmail(rawId)) {
+    return normalizeDbUserId(rawId);
+  }
+
+  if (isUuid(rawId)) {
+    return DEFAULT_USER_UUID;
+  }
+
+  return DEFAULT_USER_UUID;
 }
 
 console.log("ENV CHECK", {
@@ -90,10 +120,11 @@ function validateEmail(email) {
 function issueToken(user) {
   const options = { algorithm: "HS256" };
   if (JWT_EXPIRES_IN) options.expiresIn = JWT_EXPIRES_IN;
+  const email = String(user.email || user.user_email || user.id || "").trim().toLowerCase();
   return jwt.sign(
     {
-      sub: user.id,
-      email: user.email,
+      sub: email,
+      email,
     },
     JWT_SECRET,
     options
@@ -140,7 +171,7 @@ function requireAuth(req, res, next) {
   try {
     const payload = verifyJwtToken(token);
     req.user = payload; // ← REQUIRED
-    req.userId = normalizeDbUserId(payload?.sub || payload?.id || payload?.userId || payload?.user_id);
+    req.userId = normalizeDbUserId(payload?.email || payload?.sub || payload?.id || payload?.userId || payload?.user_id);
     next();
   } catch {
     return res.status(401).json({ error: "Invalid token" });
@@ -190,24 +221,11 @@ async function authMiddleware(req, res, next) {
 
   try {
     req.user = payload;
-    const tokenUserId = payload?.sub || payload?.id || payload?.userId || payload?.user_id;
-    if (tokenUserId) {
-      req.userId = normalizeDbUserId(tokenUserId);
-    } else if (payload?.email) {
-      const userByEmailQ = await pool.query(
-        "SELECT id FROM users WHERE LOWER(user_email)=LOWER($1) LIMIT 1",
-        [String(payload.email)]
-      );
-      req.userId = userByEmailQ.rowCount
-        ? normalizeDbUserId(userByEmailQ.rows[0].id)
-        : DEFAULT_USER_UUID;
-    } else {
-      req.userId = DEFAULT_USER_UUID;
-    }
+    req.userId = await resolveUserIdFromIdentity(payload);
 
     try {
       const loanLock = await pool.query(
-        "SELECT locked FROM loans WHERE user_id::text=$1 AND locked=true LIMIT 1",
+        "SELECT locked FROM loans WHERE user_email=$1 AND locked=true LIMIT 1",
         [req.userId]
       );
 
@@ -271,12 +289,16 @@ const pool = new Pool({
   ssl: getSSLFromDatabaseUrl(DATABASE_URL),
 });
 
-// Fail-fast DB check
+// Initialize bank module and verify DB
 (async function verifyDB() {
   try {
     await pool.query("SELECT 1");
+    
+    // Initialize bank module with pool
+    initBank(pool);
 
     console.log("✅ Postgres connected");
+    console.log("✅ Bank module initialized");
   } catch (e) {
     console.error("❌ Postgres connection failed at startup:", e);
     process.exit(1);
@@ -564,10 +586,10 @@ async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text,
   });
 
   const logQ = await pool.query(
-    `INSERT INTO email_logs (user_id, to_email, subject, html_body, text_body, status)
+    `INSERT INTO email_logs (user_email, to_email, subject, html_body, text_body, status)
      VALUES ($1,$2,$3,$4,$5,'pending')
      RETURNING id`,
-    [userId || null, to, subject, htmlTemplate, text || null]
+    [userId ? String(userId).toLowerCase() : null, to, subject, htmlTemplate, text || null]
   );
 
   const emailId = logQ.rows[0].id;
@@ -895,7 +917,7 @@ app.post("/api/users", registerUploads, async (req, res) => {
 
     const normEmail = String(emailIn).toLowerCase();
 
-    const existing = await pool.query("SELECT id FROM users WHERE user_email = $1", [normEmail]);
+    const existing = await pool.query("SELECT user_email FROM users WHERE user_email = $1", [normEmail]);
     if (existing.rowCount) return res.status(409).json({ error: "Email already registered" });
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -907,7 +929,7 @@ app.post("/api/users", registerUploads, async (req, res) => {
       const insertUser = await client.query(
         `INSERT INTO users (fullname, user_email, password_hash, phone, accountname, ssn_last4, ssn_hash)
          VALUES ($1,$2,$3,$4,$5,$6,$7)
-         RETURNING id, fullname, user_email AS email, accountname, ssn_last4`,
+         RETURNING fullname, user_email AS email, accountname, ssn_last4`,
         [
           String(fullname).trim(),
           normEmail,
@@ -923,7 +945,7 @@ app.post("/api/users", registerUploads, async (req, res) => {
 
       await client.query(
         `INSERT INTO user_profiles (
-           user_id, dob, citizenship_status,
+           user_email, dob, citizenship_status,
            address_line1, address_line2, city, state, postal_code, country,
            mailing_same_as_residential,
            mailing_address_line1, mailing_address_line2, mailing_city, mailing_state, mailing_postal_code, mailing_country,
@@ -938,7 +960,7 @@ app.post("/api/users", registerUploads, async (req, res) => {
            $19,$20
          )`,
         [
-          user.id,
+          user.email,
           dob, citizenship_status,
           address_line1, address_line2, city, state, postal_code, country,
           Boolean(mailing_same_as_residential),
@@ -951,10 +973,10 @@ app.post("/api/users", registerUploads, async (req, res) => {
       // store gov ID metadata as a "pending" document record (no files yet)
       await client.query(
         `INSERT INTO user_documents (
-           user_id, doc_category, doc_type, doc_number_last4, issuer, expires_on, status
+           user_email, doc_category, doc_type, doc_number_last4, issuer, expires_on, status
          ) VALUES ($1,'government_id',$2,$3,$4,$5,'received')`,
         [
-          user.id,
+          user.email,
           gov_id_type,
           gov_id_last4 ? String(gov_id_last4) : null,
           gov_id_issuer ? String(gov_id_issuer) : null,
@@ -963,17 +985,17 @@ app.post("/api/users", registerUploads, async (req, res) => {
       );
 
       await client.query(
-        `INSERT INTO accounts (user_id, type, currency, balance, available)
+        `INSERT INTO accounts (user_email, type, currency, balance, available)
          VALUES
            ($1, 'available', 'USD', 0, 0)
-         ON CONFLICT (user_id, type) DO NOTHING
+         ON CONFLICT (user_email, type) DO NOTHING
          RETURNING id, type, balance, available, currency`,
-        [user.id]
+        [user.email]
       );
 
       const allAccQ = await client.query(
-        "SELECT id, type, balance, available, currency FROM accounts WHERE user_id=$1 ORDER BY created_at ASC NULLS LAST",
-        [user.id]
+        "SELECT id, type, balance, available, currency FROM accounts WHERE user_email=$1 ORDER BY created_at ASC NULLS LAST",
+        [user.email]
       );
 
       await client.query("COMMIT");
@@ -982,7 +1004,7 @@ app.post("/api/users", registerUploads, async (req, res) => {
       const availableBalance = Number(
         accounts.reduce((sum, account) => sum + Number(account.available ?? account.balance ?? 0), 0).toFixed(2)
       );
-      const token = issueToken({ id: user.id, email: user.email });
+      const token = issueToken({ email: user.email });
 
       void (async () => {
         try {
@@ -1076,7 +1098,7 @@ app.post("/api/users", registerUploads, async (req, res) => {
       return res.status(201).json({
         message: "User created successfully",
         token,
-        id: user.id,
+        id: user.email,
         fullname: user.fullname,
         email: user.email,
         accountname: user.accountname,
@@ -1113,7 +1135,6 @@ app.post("/api/login", async (req, res) => {
 
     const q = await pool.query(
       `SELECT
-         id,
          fullname,
          user_email,
          accountname,
@@ -1143,19 +1164,18 @@ app.post("/api/login", async (req, res) => {
     }
 
     const generatedJWT = issueToken({
-      id: user.id,
       email: user.user_email,
     });
 
     const accQ = await pool.query(
-      "SELECT COALESCE(SUM(available), 0) AS available_balance FROM accounts WHERE user_id=$1",
-      [user.id]
+      "SELECT COALESCE(SUM(available), 0) AS available_balance FROM accounts WHERE user_email=$1",
+      [user.user_email]
     );
     const accountsAvailable = Number(accQ.rows?.[0]?.available_balance ?? 0);
     const availableBalance = accountsAvailable || Number(user.available_balance ?? 0);
 
     return res.json({
-      id: user.id,
+      id: user.email,
       fullname: user.fullname,
       email: user.email,
       accountname: user.accountname,
@@ -1175,18 +1195,15 @@ app.get("/api/users/me", authMiddleware, async (req, res) => {
   try {
     const userId = req.userId || DEFAULT_USER_UUID;
 
-    const userQ = await pool.query(
-      "SELECT id, fullname, phone, user_email AS email, accountname, COALESCE(available_balance, 0) AS available_balance FROM users WHERE id=$1",
-      [userId]
-    );
-    if (!userQ.rowCount) {
+    // Use bank.js to fetch user
+    const user = await getUser(userId);
+    if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const user = userQ.rows[0];
-
+    // Fetch accounts
     const accQ = await pool.query(
-      "SELECT id, type, balance, available, currency FROM accounts WHERE user_id=$1",
+      "SELECT id, type, balance, available, currency FROM accounts WHERE user_email=$1",
       [userId]
     );
     const accounts = accQ.rows || [];
@@ -1198,10 +1215,10 @@ app.get("/api/users/me", authMiddleware, async (req, res) => {
       : Number(user.available_balance ?? 0);
 
     return res.json({
-      id: user.id,
+      id: user.user_email,
       fullname: user.fullname,
       phone: user.phone || "",
-      email: user.email,
+      email: user.user_email,
       accountname: user.accountname,
       available_balance: availableBalance,
       balances: { available: availableBalance, total: availableBalance, accounts },
@@ -1225,8 +1242,8 @@ app.put("/api/users/me", authMiddleware, async (req, res) => {
       `UPDATE users
        SET fullname = $1,
            phone = $2
-       WHERE id = $3
-       RETURNING id, fullname, phone, user_email AS email, accountname`,
+       WHERE user_email = $3
+       RETURNING user_email AS id, fullname, phone, user_email AS email, accountname`,
       [fullname, phone, userId]
     );
 
@@ -1286,7 +1303,7 @@ app.get("/api/stream/user/:id", authMiddleware, async (req, res) => {
     if (closed) return;
     try {
       const userQ = await pool.query(
-        "SELECT id, fullname, user_email AS email, accountname, COALESCE(available_balance, 0) AS available_balance FROM users WHERE id=$1",
+        "SELECT user_email AS id, fullname, user_email AS email, accountname, COALESCE(available_balance, 0) AS available_balance FROM users WHERE user_email=$1",
         [userId]
       );
 
@@ -1297,7 +1314,7 @@ app.get("/api/stream/user/:id", authMiddleware, async (req, res) => {
 
       const profile = userQ.rows[0];
       const accQ = await pool.query(
-        "SELECT id, type, balance, available, currency FROM accounts WHERE user_id=$1",
+        "SELECT id, type, balance, available, currency FROM accounts WHERE user_email=$1",
         [userId]
       );
       const accounts = accQ.rows || [];
@@ -1354,7 +1371,7 @@ app.post("/api/users/password", authMiddleware, async (req, res) => {
       `UPDATE users
        SET password_hash = $1,
            updated_at = now()
-       WHERE id = $2
+       WHERE user_email = $2
        RETURNING fullname, user_email AS email`,
       [newHash, userId]
     );
@@ -1412,7 +1429,7 @@ app.post("/api/password/forgot", async (req, res) => {
     }
 
     const uQ = await pool.query(
-      `SELECT id, user_email
+      `SELECT user_email
        FROM users
        WHERE user_email = $1
        LIMIT 1`,
@@ -1433,14 +1450,14 @@ app.post("/api/password/forgot", async (req, res) => {
     // Optional: clean old tokens for this user (keeps table tidy)
     await pool.query(
       `DELETE FROM password_reset_tokens
-       WHERE user_id = $1 OR expires_at < now() OR used_at IS NOT NULL`,
-      [user.id]
+       WHERE user_email = $1 OR expires_at < now() OR used_at IS NOT NULL`,
+      [user.user_email]
     );
 
     await pool.query(
-      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+      `INSERT INTO password_reset_tokens (user_email, token_hash, expires_at)
        VALUES ($1, $2, $3)`,
-      [user.id, tokenHash, expires]
+      [user.user_email, tokenHash, expires]
     );
 
     const base = getAppBaseUrl(req);
@@ -1492,12 +1509,11 @@ app.post("/api/password/reset", async (req, res) => {
     const q = await client.query(
       `SELECT
          t.id AS token_id,
-         t.user_id,
+         t.user_email,
          t.expires_at,
          t.used_at
        FROM password_reset_tokens t
-       JOIN users u ON u.id = t.user_id
-       WHERE u.user_email = $1
+       WHERE t.user_email = $1
          AND t.token_hash = $2
        LIMIT 1
        FOR UPDATE`,
@@ -1527,8 +1543,8 @@ app.post("/api/password/reset", async (req, res) => {
       `UPDATE users
        SET password_hash = $1,
            updated_at = now()
-       WHERE id = $2`,
-      [newHash, row.user_id]
+       WHERE user_email = $2`,
+      [newHash, row.user_email]
     );
 
     await client.query(
@@ -1574,37 +1590,22 @@ app.get("/api/transactions", authMiddleware, async (req, res) => {
   try {
     const userId = req.userId || DEFAULT_USER_UUID;
 
-    const accQ = await pool.query("SELECT id FROM accounts WHERE user_id=$1", [userId]);
-    const accIds = accQ.rows.map((r) => r.id);
-    if (!accIds.length) return res.json([]);
+    // Get the default account for the user
+    const account = await getOrCreateAccount(userId, "available");
+    if (!account) return res.json([]);
 
-    // If your table doesn't store balance_after fields,
-    // we still return them as null to keep the UI stable.
-    const q = await pool.query(
-      `SELECT
-          t.id,
-          t.user_id,
-          t.account_id,
-          COALESCE(NULLIF(t.type, ''), t.direction) AS type,
-          t.direction,
-          COALESCE(NULLIF(t.status, ''), 'completed') AS status,
-          t.amount,
-          t.description,
-          t.reference,
-          t.created_at,
-          a.type AS account_type,
-          a.currency,
-          t.balance_after,
-          t.balance_after AS total_balance_after
-       FROM transactions t
-       JOIN accounts a ON a.id = t.account_id
-       WHERE t.account_id = ANY($1::uuid[])
-       ORDER BY t.created_at DESC
-       LIMIT 100`,
-      [accIds]
-    );
+    // Fetch transactions for this user using bank.js
+    const transactions = await getTransactions(userId, 100);
 
-    return res.json(q.rows);
+    // Enrich with account type and currency
+    const enriched = transactions.map(t => ({
+      ...t,
+      account_type: account.type,
+      currency: account.currency || "USD",
+      total_balance_after: t.balance_after
+    }));
+
+    return res.json(enriched);
   } catch (err) {
     return handleError(res, "Transactions error", err);
   }
@@ -1622,7 +1623,7 @@ app.get("/api/transactions/:id/receipt", authMiddleware, async (req, res) => {
     const q = await pool.query(
       `SELECT
           t.id,
-          t.user_id,
+          t.user_email,
           t.account_id,
           COALESCE(NULLIF(t.type, ''), t.direction) AS type,
           t.direction,
@@ -1637,9 +1638,9 @@ app.get("/api/transactions/:id/receipt", authMiddleware, async (req, res) => {
           u.fullname
        FROM transactions t
        JOIN accounts a ON a.id = t.account_id
-       JOIN users u ON u.id = a.user_id
+       JOIN users u ON u.user_email = a.user_email
        WHERE t.id = $1
-         AND a.user_id = $2
+         AND a.user_email = $2
        LIMIT 1`,
       [txId, userId]
     );
@@ -1681,7 +1682,7 @@ app.get("/api/payments", authMiddleware, async (req, res) => {
           routing_number,
           account_number
        FROM transfers
-       WHERE user_id=$1
+       WHERE user_email=$1
          AND description LIKE '[PAYMENT%'
        ORDER BY created_at DESC
        LIMIT 100`,
@@ -1755,9 +1756,9 @@ app.post("/api/payments", authMiddleware, async (req, res) => {
     await client.query("BEGIN");
 
     const senderQ = await client.query(
-      `SELECT id, user_id, balance, available, type
+      `SELECT id, user_email, balance, available, type
        FROM accounts
-       WHERE user_id=$1
+       WHERE user_email=$1
        ORDER BY available DESC
        LIMIT 1
        FOR UPDATE`,
@@ -1789,7 +1790,7 @@ app.post("/api/payments", authMiddleware, async (req, res) => {
     const txDescription = cleanedDescription || `Payment to ${cleanedPayeeName}`;
     await client.query(
       `INSERT INTO transactions
-        (user_id, account_id, direction, amount, description, reference, status, balance_after, created_at)
+        (user_email, account_id, direction, amount, description, reference, status, balance_after, created_at)
        VALUES ($1,$2,'debit',$3,$4,$5,$6,$7,NOW())`,
       [userId, senderAcc.id, amt, txDescription, paymentReference, paymentStatus, senderNewBalance]
     );
@@ -1799,7 +1800,7 @@ app.post("/api/payments", authMiddleware, async (req, res) => {
     const paymentQ = await client.query(
       `INSERT INTO transfers
         (
-          user_id,
+          user_email,
           sender_account_type,
           recipient_name,
           recipient_email,
@@ -1838,7 +1839,7 @@ app.post("/api/payments", authMiddleware, async (req, res) => {
     try {
       if (mailer) {
         const userQ = await pool.query(
-          "SELECT fullname, user_email AS email FROM users WHERE id=$1 LIMIT 1",
+          "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
           [userId]
         );
         const payer = userQ.rows?.[0] || {};
@@ -1969,9 +1970,9 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
     /* ---------- LOCK SENDER ACCOUNT ---------- */
 
     const senderQ = await client.query(
-      `SELECT id, user_id, balance, available, type
+      `SELECT id, user_email, balance, available, type
        FROM accounts
-       WHERE user_id = $1
+       WHERE user_email = $1
        ORDER BY available DESC
        LIMIT 1
        FOR UPDATE`,
@@ -1999,20 +2000,20 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
 
     if (recipient_email) {
       const uQ = await client.query(
-        `SELECT id FROM users WHERE user_email = $1 LIMIT 1`,
+        `SELECT user_email FROM users WHERE user_email = $1 LIMIT 1`,
         [String(recipient_email).toLowerCase()]
       );
 
       if (uQ.rowCount) {
-        const recUserId = uQ.rows[0].id;
+        const recUserEmail = uQ.rows[0].user_email;
         const accQ = await client.query(
-          `SELECT id, user_id, balance, available, type
+          `SELECT id, user_email, balance, available, type
            FROM accounts
-           WHERE user_id = $1
+           WHERE user_email = $1
            ORDER BY available DESC
            LIMIT 1
            FOR UPDATE`,
-          [recUserId]
+          [recUserEmail]
         );
 
         if (accQ.rowCount) {
@@ -2047,7 +2048,7 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
 
     await client.query(
       `INSERT INTO transactions
-        (user_id, account_id, direction, amount, description, balance_after, created_at)
+        (user_email, account_id, direction, amount, description, balance_after, created_at)
        VALUES ($1,$2,'debit',$3,$4,$5,NOW())`,
       [userId, senderAcc.id, amt, senderDesc, senderNewBalance]
     );
@@ -2070,9 +2071,9 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
 
       await client.query(
         `INSERT INTO transactions
-          (user_id, account_id, direction, amount, description, balance_after, created_at)
+          (user_email, account_id, direction, amount, description, balance_after, created_at)
          VALUES ($1,$2,'credit',$3,$4,$5,NOW())`,
-        [recipientAcc.user_id, recipientAcc.id, amt, recDesc, recNewBalance]
+        [recipientAcc.user_email, recipientAcc.id, amt, recDesc, recNewBalance]
       );
     }
 
@@ -2081,7 +2082,7 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
     const transferQ = await client.query(
       `INSERT INTO transfers
         (
-          user_id,
+          user_email,
           sender_account_type,
           recipient_name,
           recipient_email,
@@ -2254,7 +2255,7 @@ app.post("/api/loans", authMiddleware, async (req, res) => {
 
     const q = await client.query(
       `INSERT INTO loans
-       (user_id, amount, term_months, apr_estimate, monthly_payment_estimate, status)
+       (user_email, amount, term_months, apr_estimate, monthly_payment_estimate, status)
        VALUES ($1,$2,$3,$4,$5,'pending')
        RETURNING *`,
       [userId, loanAmount, termMonths, apr, monthly]
@@ -2263,7 +2264,7 @@ app.post("/api/loans", authMiddleware, async (req, res) => {
     const accountQ = await client.query(
       `SELECT id, balance
        FROM accounts
-       WHERE user_id=$1
+       WHERE user_email=$1
        ORDER BY available DESC
        LIMIT 1`,
       [userId]
@@ -2273,7 +2274,7 @@ app.post("/api/loans", authMiddleware, async (req, res) => {
       const loanReference = `LOAN-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
       await client.query(
         `INSERT INTO transactions
-          (user_id, account_id, direction, amount, description, reference, status, balance_after, created_at)
+          (user_email, account_id, direction, amount, description, reference, status, balance_after, created_at)
          VALUES ($1,$2,'credit',$3,$4,$5,$6,$7,NOW())`,
         [
           userId,
@@ -2292,7 +2293,7 @@ app.post("/api/loans", authMiddleware, async (req, res) => {
     try {
       if (mailer) {
         const userQ = await pool.query(
-          "SELECT fullname, user_email AS email FROM users WHERE id=$1 LIMIT 1",
+          "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
           [userId]
         );
         const accountUser = userQ.rows?.[0] || {};
@@ -2353,12 +2354,11 @@ app.post("/api/loans", authMiddleware, async (req, res) => {
 app.get("/api/loans", authMiddleware, async (req, res) => {
   try {
     const userId = req.userId || DEFAULT_USER_UUID;
-    const q = await pool.query(
-      `SELECT * FROM loans WHERE user_id=$1 ORDER BY created_at DESC`,
-      [userId]
-    );
-
-    res.json(q.rows);
+    
+    // Use bank.js to fetch user loans
+    const loans = await getUserLoans(userId);
+    
+    res.json(loans);
   } catch (err) {
     handleError(res, "Loan fetch error", err);
   }
@@ -2397,14 +2397,14 @@ app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
       ? await client.query(
           `SELECT id, amount, term_months, status, COALESCE(fee_paid, false) AS fee_paid
            FROM loans
-           WHERE id=$1 AND user_id=$2
+           WHERE id=$1 AND user_email=$2
            FOR UPDATE`,
           [req.params.id, userId]
         )
       : await client.query(
           `SELECT id, amount, term_months, status, false AS fee_paid
            FROM loans
-           WHERE id=$1 AND user_id=$2
+           WHERE id=$1 AND user_email=$2
            FOR UPDATE`,
           [req.params.id, userId]
         );
@@ -2426,7 +2426,7 @@ app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
     const senderQ = await client.query(
       `SELECT id, balance, available
        FROM accounts
-       WHERE user_id=$1
+       WHERE user_email=$1
        ORDER BY available DESC
        LIMIT 1
        FOR UPDATE`,
@@ -2462,7 +2462,7 @@ app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
     const loanQ = await client.query(
       `UPDATE loans
        SET ${updateSetClauses.join(", ")}
-       WHERE id=$1 AND user_id=$2
+       WHERE id=$1 AND user_email=$2
        RETURNING id, amount, term_months, status`,
       [req.params.id, userId]
     );
@@ -2472,7 +2472,7 @@ app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
 
     await client.query(
       `INSERT INTO transactions
-        (user_id, account_id, direction, amount, description, reference, status, balance_after, created_at)
+        (user_email, account_id, direction, amount, description, reference, status, balance_after, created_at)
        VALUES ($1,$2,'debit',$3,$4,$5,$6,$7,NOW())`,
       [
         userId,
@@ -2490,7 +2490,7 @@ app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
     try {
       if (mailer) {
         const userQ = await pool.query(
-          "SELECT fullname, user_email AS email FROM users WHERE id=$1 LIMIT 1",
+          "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
           [userId]
         );
         const accountUser = userQ.rows?.[0] || {};

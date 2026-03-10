@@ -57,10 +57,21 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+  const ADMIN_TOKEN_KEY = "bs-admin-token";
+  const ADMIN_META_KEY = "bs-admin-meta";
   const form = document.getElementById('loginForm');
   const pwField = document.getElementById('password');
   const alertBox = document.getElementById('loginAlert');
   const pwToggleLogin = document.getElementById('pwToggleLogin');
+  const loginBtn = document.getElementById('loginBtn');
+
+  try {
+    const existingAdminToken = localStorage.getItem(ADMIN_TOKEN_KEY) || '';
+    if (existingAdminToken) {
+      window.location.href = 'admin.html';
+      return;
+    }
+  } catch {}
 
   if (pwToggleLogin) {
     pwToggleLogin.addEventListener('click', () => {
@@ -76,8 +87,27 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(()=>alertBox.classList.remove('show'),1500);
   }
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  function setBusy(isBusy, label){
+    loginBtn.disabled = isBusy;
+    loginBtn.textContent = label || 'Sign In';
+  }
+
+  async function loginRequest(url, payload){
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const text = await res.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch {}
+
+    if (!res.ok) throw new Error(data?.error || `Login failed (${res.status})`);
+    return data;
+  }
+
+  async function signIn() {
     alertBox.textContent = '';
 
     const email = document.getElementById('email').value.trim().toLowerCase();
@@ -85,46 +115,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!email || !password) return showError('Email and password required');
 
-    const btn = document.getElementById('loginBtn');
-    btn.disabled = true;
-    btn.textContent = 'Signing in...';
+    setBusy(true, 'Signing in...');
 
     try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
+      try {
+        const data = await loginRequest('/api/login', { email, password });
 
-      const text = await res.text();
-      let data = {};
-      try { data = text ? JSON.parse(text) : {}; } catch {}
+        const user = {
+          id: data.id,
+          fullname: data.fullname,
+          email: data.email,
+          accountname: data.accountname,
+          available_balance: data.available_balance ?? data.balances?.available ?? data.balances?.total ?? 0,
+          token: data.token,
+          isAuthenticated: true,
+          ts: Date.now()
+        };
+        localStorage.setItem('bs-user', JSON.stringify(user));
+        localStorage.setItem('bs-token', user.token);
+        localStorage.removeItem(ADMIN_TOKEN_KEY);
+        localStorage.removeItem(ADMIN_META_KEY);
 
-      if (!res.ok) throw new Error(data?.error || `Login failed (${res.status})`);
-
-      const user = {
-      id: data.id,
-      fullname: data.fullname,
-      email: data.email,
-      accountname: data.accountname,
-      available_balance: data.available_balance ?? data.balances?.available ?? data.balances?.total ?? 0,
-      token: data.token,
-      isAuthenticated: true,
-      ts: Date.now()
-    };
-    localStorage.setItem("bs-user", JSON.stringify(user));
-    localStorage.setItem("bs-token", user.token);
-
-    btn.textContent = 'Success!';
-    window.location.href = 'dashboard.html';
-
-  } catch (err) {
-    console.error("Login error:", err);
-    showError(err.message || "Login failed");
-    btn.disabled = false;
-    btn.textContent = 'Sign In';
+        loginBtn.textContent = 'Success!';
+        window.location.href = 'dashboard.html';
+        return;
+      } catch (userErr) {
+        const data = await loginRequest('/api/admin/login', { email, password });
+        localStorage.setItem(ADMIN_TOKEN_KEY, data.token || '');
+        localStorage.setItem(ADMIN_META_KEY, JSON.stringify(data.admin || { email, role: 'admin' }));
+        localStorage.removeItem('bs-user');
+        localStorage.removeItem('bs-token');
+        loginBtn.textContent = 'Success!';
+        window.location.href = 'admin.html';
+        return;
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      showError(err.message || 'Login failed');
+      setBusy(false, 'Sign In');
+    }
   }
-});
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await signIn();
+  });
 });
 </script>
 </body>

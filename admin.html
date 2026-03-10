@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Admin Dashboard • Base Credit</title>
+  <link rel="stylesheet" href="ui.css" />
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <link rel="icon" href="base.svg" type="image/svg+xml" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0d0f14;
+      --panel:#141a24;
+      --panel-2:#101826;
+      --border:#1f2530;
+      --ink:#eef3f8;
+      --muted:#8aa0b9;
+      --muted2:#7a889a;
+      --pill:#1f2733;
+      --accent:#2663ff;
+      --good:#10b981;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0;
+      min-height:100vh;
+      font-family:'Inter',system-ui,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    a { color:inherit; }
+    .hidden { display:none !important; }
+    .appbar {
+      position:sticky;
+      top:0;
+      z-index:6;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:.75rem;
+      padding:1rem 1.25rem;
+      background:rgba(13,15,20,.92);
+      border-bottom:1px solid var(--border);
+      backdrop-filter:blur(10px);
+    }
+    .brand { display:flex; align-items:center; gap:.7rem; font-weight:700; }
+    .brand img { width:24px; height:24px; }
+    .appbar-actions { display:flex; gap:.6rem; flex-wrap:wrap; }
+    .menu-btn,.btn,.btn-outline,.btn-danger,.btn-success,.btn-warn,select,input,textarea {
+      font:inherit;
+    }
+    .menu-btn,.btn,.btn-outline,.btn-danger,.btn-success,.btn-warn {
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+      padding:.72rem .95rem;
+      color:#fff;
+      transition:.18s ease;
+    }
+    .menu-btn,.btn { background:#1d2733; }
+    .btn:hover,.menu-btn:hover { background:#233040; }
+    .btn-outline {
+      background:transparent;
+      border:1px solid rgba(255,255,255,.18);
+      color:#e9eef5;
+    }
+    .btn-outline:hover { background:rgba(255,255,255,.06); }
+    .btn-primary { background:var(--accent); }
+    .btn-primary:hover { background:#1f55dc; }
+    .btn-danger { background:#7f1d1d; }
+    .btn-danger:hover { background:#991b1b; }
+    .btn-success { background:#065f46; }
+    .btn-success:hover { background:#047857; }
+    .btn-warn { background:#92400e; }
+    .btn-warn:hover { background:#b45309; }
+
+    .sidebar {
+      position:fixed;
+      inset:0 auto 0 0;
+      width:260px;
+      padding:1.2rem .95rem;
+      background:rgba(15,23,42,.95);
+      border-right:1px solid rgba(255,255,255,.08);
+      backdrop-filter:blur(15px);
+      z-index:5;
+      overflow:auto;
+    }
+    .sidebar h2 { margin:.2rem 0 1rem; font-size:1.05rem; }
+    .nav-menu { list-style:none; margin:0; padding:0; display:grid; gap:.35rem; }
+    .nav-link {
+      display:block;
+      text-decoration:none;
+      color:rgba(255,255,255,.78);
+      padding:.7rem .8rem;
+      border-radius:10px;
+      font-size:.92rem;
+    }
+    .nav-link:hover,.nav-link.active { background:rgba(99,102,241,.15); color:#fff; }
+
+    .main {
+      margin-left:260px;
+      padding:1.25rem;
+      max-width:calc(100vw - 260px);
+    }
+    .hero, .panel {
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+    }
+    .hero {
+      padding:1.2rem 1.25rem;
+      margin-bottom:1rem;
+      background:#121a28;
+    }
+    .hero h1 { margin:.1rem 0 .5rem; font-size:1.35rem; }
+    .hero-subtitle { margin:0 0 1rem; color:var(--muted2); }
+    .pills { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.85rem; }
+    .pill {
+      background:var(--pill);
+      color:#9fb1c9;
+      border-radius:999px;
+      padding:.35rem .65rem;
+      font-size:.74rem;
+    }
+    .stats-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+      gap:.75rem;
+    }
+    .stat-card {
+      background:var(--panel-2);
+      border:1px solid #223048;
+      border-radius:12px;
+      padding:.85rem .95rem;
+    }
+    .stat-label { color:#9fb1c9; font-size:.8rem; }
+    .stat-value { font-size:1.25rem; font-weight:700; margin-top:.2rem; }
+
+    .section-grid {
+      display:grid;
+      gap:1rem;
+    }
+    .panel {
+      padding:1.05rem 1.05rem 1.15rem;
+      overflow:hidden;
+    }
+    .panel-head {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:1rem;
+      margin-bottom:.9rem;
+      flex-wrap:wrap;
+    }
+    .panel h2, .panel h3 { margin:0; }
+    .panel-sub { color:var(--muted2); font-size:.9rem; margin-top:.2rem; }
+    .toolbar { display:flex; gap:.6rem; flex-wrap:wrap; }
+
+    .cards-2 {
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:1rem;
+    }
+    .cards-3 {
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:1rem;
+    }
+
+    .form-grid {
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:.85rem;
+    }
+    .form-grid-3 {
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:.85rem;
+    }
+    .field {
+      display:flex;
+      flex-direction:column;
+      gap:.35rem;
+    }
+    .field label {
+      font-size:.74rem;
+      text-transform:uppercase;
+      letter-spacing:.7px;
+      color:rgba(255,255,255,.68);
+      font-weight:700;
+    }
+    .input-base, .field input, .field select, .field textarea, .search-input {
+      width:100%;
+      padding:.75rem .85rem;
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--border);
+      border-radius:8px;
+      color:#fff;
+      outline:none;
+    }
+    .field textarea { min-height:280px; resize:vertical; font-family:Consolas,monospace; font-size:.84rem; }
+    .field input:focus, .field select:focus, .field textarea:focus, .search-input:focus {
+      border-color:#365da8;
+      box-shadow:0 0 0 3px rgba(38,99,255,.15);
+    }
+
+    .table-wrap {
+      overflow:auto;
+      border:1px solid var(--border);
+      border-radius:12px;
+    }
+    table {
+      width:100%;
+      border-collapse:collapse;
+      min-width:860px;
+      font-size:.9rem;
+    }
+    th, td {
+      padding:.8rem .75rem;
+      border-bottom:1px solid var(--border);
+      text-align:left;
+      vertical-align:top;
+    }
+    th {
+      background:#0f1520;
+      color:#9fb1c9;
+      font-size:.76rem;
+      text-transform:uppercase;
+      letter-spacing:.7px;
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+    tbody tr:hover { background:rgba(255,255,255,.02); }
+    .amount-positive { color:var(--good); font-weight:700; }
+    .amount-negative { color:var(--bad); font-weight:700; }
+    .status-badge {
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+      border-radius:999px;
+      padding:.28rem .6rem;
+      font-size:.73rem;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+      background:#1f2733;
+      color:#d9e2ec;
+      white-space:nowrap;
+    }
+    .status-pending { background:rgba(245,158,11,.14); color:#fbbf24; }
+    .status-completed, .status-approved, .status-sent, .status-active { background:rgba(16,185,129,.14); color:#34d399; }
+    .status-failed, .status-rejected, .status-suspended, .status-cancelled { background:rgba(239,68,68,.14); color:#f87171; }
+    .status-locked { background:rgba(99,102,241,.14); color:#a5b4fc; }
+    .mono { font-family:Consolas,monospace; font-size:.84rem; }
+    .empty-state {
+      padding:1.2rem;
+      text-align:center;
+      color:var(--muted2);
+      border:1px dashed var(--border);
+      border-radius:12px;
+    }
+    .actions-inline {
+      display:flex;
+      gap:.45rem;
+      flex-wrap:wrap;
+    }
+    .mini-btn {
+      border:none;
+      background:#1d2733;
+      color:#fff;
+      padding:.45rem .65rem;
+      border-radius:8px;
+      cursor:pointer;
+      font-size:.76rem;
+    }
+    .mini-btn:hover { background:#233040; }
+    .mini-btn.bad { background:#7f1d1d; }
+    .mini-btn.good { background:#065f46; }
+    .mini-btn.warn { background:#92400e; }
+    .helper-text { color:var(--muted2); font-size:.82rem; }
+    .status-line {
+      margin-top:.8rem;
+      min-height:1.2rem;
+      font-size:.86rem;
+      color:#dbeafe;
+    }
+    .login-shell {
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:1rem;
+      background:radial-gradient(circle at top, rgba(38,99,255,.18), transparent 35%), var(--bg);
+    }
+    .login-card {
+      width:min(460px,100%);
+      background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:20px;
+      padding:1.4rem;
+      box-shadow:0 18px 50px rgba(0,0,0,.35);
+    }
+    .login-card h1 { margin:.15rem 0 .35rem; font-size:1.55rem; }
+    .login-card p { color:var(--muted2); }
+    .footer-note { margin-top:1.5rem; text-align:center; color:var(--muted2); font-size:.8rem; }
+
+    @media (max-width: 1080px) {
+      .cards-2, .cards-3, .form-grid, .form-grid-3 { grid-template-columns:1fr; }
+    }
+    @media (max-width: 980px) {
+      .main { margin-left:0; max-width:none; padding:1rem; }
+      .sidebar { transform:translateX(-100%); transition:transform .25s ease; }
+      .sidebar.active { transform:translateX(0); }
+    }
+  </style>
+</head>
+<body>
+  <section id="loginScreen" class="login-shell hidden">
+    <div class="login-card">
+      <div class="pills">
+        <span class="pill">Restricted Access</span>
+        <span class="pill">Admin Console</span>
+      </div>
+      <h1>Manual Project Control</h1>
+      <p>Sign in with the configured admin credentials to manage users, balances, transfers, loans, emails, and settings.</p>
+      <form id="loginForm">
+        <div class="field">
+          <label for="adminEmail">Admin Email</label>
+          <input id="adminEmail" class="input-base" type="email" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label for="adminPassword">Password</label>
+          <input id="adminPassword" class="input-base" type="password" autocomplete="current-password" required />
+        </div>
+        <div class="actions-inline" style="margin-top:.4rem;">
+          <button type="submit" class="btn btn-primary">Sign In</button>
+        </div>
+        <div id="loginStatus" class="status-line"></div>
+      </form>
+    </div>
+  </section>
+
+  <div id="adminShell" class="hidden">
+    <header class="appbar">
+      <button id="menuBtn" class="menu-btn">☰</button>
+      <div class="brand">
+        <img src="base.svg" alt="" />
+        <span>Base Credit Admin</span>
+      </div>
+      <div class="appbar-actions">
+        <button id="refreshBtn" class="btn btn-primary">Refresh</button>
+        <button id="logoutBtn" class="btn-outline">Logout</button>
+      </div>
+    </header>
+
+    <aside id="sidebar" class="sidebar">
+      <h2>Operations</h2>
+      <ul class="nav-menu">
+        <li><a class="nav-link active" href="#overview">Overview</a></li>
+        <li><a class="nav-link" href="#users">Users</a></li>
+        <li><a class="nav-link" href="#transactions">Transactions</a></li>
+        <li><a class="nav-link" href="#transfers">Transfers</a></li>
+        <li><a class="nav-link" href="#loans">Loans</a></li>
+        <li><a class="nav-link" href="#emails">Email Logs</a></li>
+        <li><a class="nav-link" href="#settings">Settings</a></li>
+      </ul>
+    </aside>
+
+    <main class="main">
+      <section id="overview" class="hero">
+        <div class="pills">
+          <span class="pill">Admin User: <span id="adminUserLabel">—</span></span>
+          <span class="pill">Mailer: <span id="mailerStatusLabel">—</span></span>
+          <span class="pill">Notify: <span id="notifyEmailLabel">—</span></span>
+        </div>
+        <h1>Manual control center</h1>
+        <p class="hero-subtitle">Monitor platform activity and manually operate the project from one place.</p>
+        <div id="statsGrid" class="stats-grid"></div>
+        <div id="globalStatus" class="status-line"></div>
+      </section>
+
+      <div class="section-grid">
+        <section id="users" class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Users</h2>
+              <div class="panel-sub">Edit core user data, suspend access, and manually adjust balances.</div>
+            </div>
+            <input id="userSearch" class="search-input" type="search" placeholder="Search users by name or email" style="max-width:320px;" />
+          </div>
+          <div class="cards-2">
+            <div class="panel" style="padding:0; background:transparent; border:none;">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Balances</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="usersTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="panel" style="background:var(--panel-2);">
+              <div class="panel-head">
+                <div>
+                  <h3>User editor</h3>
+                  <div class="panel-sub">Select a user from the table to edit details.</div>
+                </div>
+              </div>
+              <form id="userEditorForm">
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="editEmail">User Email</label>
+                    <input id="editEmail" class="input-base" type="email" readonly />
+                  </div>
+                  <div class="field">
+                    <label for="editAccountname">Account Name</label>
+                    <input id="editAccountname" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="editFullname">Full Name</label>
+                    <input id="editFullname" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="editPhone">Phone</label>
+                    <input id="editPhone" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="editSuspended">Access</label>
+                    <select id="editSuspended" class="input-base">
+                      <option value="false">Active</option>
+                      <option value="true">Suspended</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="actions-inline" style="margin-top:.9rem;">
+                  <button type="submit" class="btn btn-primary">Save User</button>
+                </div>
+              </form>
+              <hr style="border-color:var(--border); opacity:.4; margin:1rem 0;" />
+              <form id="balanceAdjustForm">
+                <div class="form-grid-3">
+                  <div class="field">
+                    <label for="adjustDirection">Adjustment Type</label>
+                    <select id="adjustDirection" class="input-base">
+                      <option value="credit">Credit</option>
+                      <option value="debit">Debit</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="adjustAmount">Amount</label>
+                    <input id="adjustAmount" class="input-base" type="number" min="0" step="0.01" placeholder="0.00" />
+                  </div>
+                  <div class="field">
+                    <label for="adjustDescription">Description</label>
+                    <input id="adjustDescription" class="input-base" type="text" placeholder="Admin manual balance adjustment" />
+                  </div>
+                </div>
+                <div class="actions-inline" style="margin-top:.9rem;">
+                  <button type="submit" class="btn-success">Apply Balance Change</button>
+                </div>
+                <div class="helper-text" style="margin-top:.5rem;">Balance updates create a completed transaction entry automatically.</div>
+              </form>
+              <div id="userEditorStatus" class="status-line"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="transactions" class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Recent Transactions</h2>
+              <div class="panel-sub">Audit recent balance activity across the platform.</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Description</th>
+                  <th>Reference</th>
+                  <th>Direction</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="transactionsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="transfers" class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Transfers</h2>
+              <div class="panel-sub">Manually change transfer states and inspect routing details.</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Sender</th>
+                  <th>Recipient</th>
+                  <th>Method</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Details</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="transfersTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="loans" class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Loans</h2>
+              <div class="panel-sub">Approve, reject, or reset loan records.</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Applicant</th>
+                  <th>Amount</th>
+                  <th>Term</th>
+                  <th>Status</th>
+                  <th>Flags</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="loansTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="emails" class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Email Logs</h2>
+              <div class="panel-sub">Track delivery history and inspect failures.</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>To</th>
+                  <th>Subject</th>
+                  <th>Status</th>
+                  <th>Error</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="emailsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="settings" class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Settings</h2>
+              <div class="panel-sub">Control operational settings and editable email template content.</div>
+            </div>
+          </div>
+          <div class="cards-2">
+            <div class="panel" style="background:var(--panel-2);">
+              <h3>Application Settings</h3>
+              <form id="settingsForm" style="margin-top:.85rem;">
+                <div class="field">
+                  <label for="feeRate">Loan Fee Rate</label>
+                  <input id="feeRate" class="input-base" type="number" step="0.001" min="0" />
+                </div>
+                <div class="helper-text" style="margin-top:.5rem;">Example: <span class="mono">0.235</span> = 23.5%.</div>
+                <div class="actions-inline" style="margin-top:.9rem;">
+                  <button type="submit" class="btn btn-primary">Save Settings</button>
+                </div>
+              </form>
+            </div>
+            <div class="panel" style="background:var(--panel-2);">
+              <h3>Email Templates JSON</h3>
+              <form id="templatesForm" style="margin-top:.85rem;">
+                <div class="field">
+                  <label for="templatesJson">Templates</label>
+                  <textarea id="templatesJson"></textarea>
+                </div>
+                <div class="actions-inline" style="margin-top:.9rem;">
+                  <button type="submit" class="btn btn-primary">Save Templates</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div id="settingsStatus" class="status-line"></div>
+        </section>
+      </div>
+
+      <div class="footer-note">© 2026 Base Credit Admin Console</div>
+    </main>
+  </div>
+
+  <script>
+    const ADMIN_TOKEN_KEY = "bs-admin-token";
+    const ADMIN_META_KEY = "bs-admin-meta";
+    const state = {
+      overview: null,
+      templates: null,
+      selectedUser: null,
+    };
+
+    const els = {
+      loginScreen: document.getElementById("loginScreen"),
+      adminShell: document.getElementById("adminShell"),
+      loginForm: document.getElementById("loginForm"),
+      adminEmail: document.getElementById("adminEmail"),
+      adminPassword: document.getElementById("adminPassword"),
+      loginStatus: document.getElementById("loginStatus"),
+      globalStatus: document.getElementById("globalStatus"),
+      statsGrid: document.getElementById("statsGrid"),
+      adminUserLabel: document.getElementById("adminUserLabel"),
+      mailerStatusLabel: document.getElementById("mailerStatusLabel"),
+      notifyEmailLabel: document.getElementById("notifyEmailLabel"),
+      usersTableBody: document.getElementById("usersTableBody"),
+      transactionsTableBody: document.getElementById("transactionsTableBody"),
+      transfersTableBody: document.getElementById("transfersTableBody"),
+      loansTableBody: document.getElementById("loansTableBody"),
+      emailsTableBody: document.getElementById("emailsTableBody"),
+      userSearch: document.getElementById("userSearch"),
+      userEditorForm: document.getElementById("userEditorForm"),
+      editEmail: document.getElementById("editEmail"),
+      editFullname: document.getElementById("editFullname"),
+      editPhone: document.getElementById("editPhone"),
+      editAccountname: document.getElementById("editAccountname"),
+      editSuspended: document.getElementById("editSuspended"),
+      balanceAdjustForm: document.getElementById("balanceAdjustForm"),
+      adjustDirection: document.getElementById("adjustDirection"),
+      adjustAmount: document.getElementById("adjustAmount"),
+      adjustDescription: document.getElementById("adjustDescription"),
+      userEditorStatus: document.getElementById("userEditorStatus"),
+      settingsForm: document.getElementById("settingsForm"),
+      feeRate: document.getElementById("feeRate"),
+      templatesForm: document.getElementById("templatesForm"),
+      templatesJson: document.getElementById("templatesJson"),
+      settingsStatus: document.getElementById("settingsStatus"),
+      refreshBtn: document.getElementById("refreshBtn"),
+      logoutBtn: document.getElementById("logoutBtn"),
+      menuBtn: document.getElementById("menuBtn"),
+      sidebar: document.getElementById("sidebar"),
+    };
+
+    function getAdminToken() {
+      return localStorage.getItem(ADMIN_TOKEN_KEY) || "";
+    }
+
+    function setAdminToken(token, meta = null) {
+      if (token) localStorage.setItem(ADMIN_TOKEN_KEY, token);
+      else localStorage.removeItem(ADMIN_TOKEN_KEY);
+
+      if (meta) localStorage.setItem(ADMIN_META_KEY, JSON.stringify(meta));
+      else if (!token) localStorage.removeItem(ADMIN_META_KEY);
+    }
+
+    function clearAdminSession() {
+      setAdminToken("");
+    }
+
+    function showStatus(el, message, type = "info") {
+      if (!el) return;
+      el.textContent = message || "";
+      el.style.color = type === "error" ? "#fca5a5" : type === "success" ? "#86efac" : "#dbeafe";
+    }
+
+    function fmtMoney(value) {
+      return `$${Number(value || 0).toFixed(2)}`;
+    }
+
+    function fmtDate(value) {
+      if (!value) return "—";
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return "—";
+      return d.toLocaleString();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function badgeClass(value) {
+      const raw = String(value || "").toLowerCase();
+      return `status-badge status-${raw}`;
+    }
+
+    async function api(path, options = {}) {
+      const headers = {
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(options.headers || {}),
+      };
+
+      const token = getAdminToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const res = await fetch(path, { ...options, headers });
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+
+      if (res.status === 401 || res.status === 403) {
+        clearAdminSession();
+        toggleShell(false);
+        throw new Error(data?.error || "Admin session expired");
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+
+      return data;
+    }
+
+    function toggleShell(isAuthenticated) {
+      els.loginScreen.classList.toggle("hidden", isAuthenticated);
+      els.adminShell.classList.toggle("hidden", !isAuthenticated);
+    }
+
+    function setSelectedUser(user) {
+      state.selectedUser = user || null;
+      els.editEmail.value = user?.user_email || "";
+      els.editFullname.value = user?.fullname || "";
+      els.editPhone.value = user?.phone || "";
+      els.editAccountname.value = user?.accountname || "";
+      els.editSuspended.value = String(Boolean(user?.suspended));
+      if (user?.user_email) {
+        els.adjustDescription.value = els.adjustDescription.value || `Admin manual balance adjustment for ${user.user_email}`;
+      }
+    }
+
+    function renderStats() {
+      const stats = state.overview?.stats || {};
+      const cards = [
+        ["Total Users", stats.total_users],
+        ["Active Users", stats.active_users],
+        ["Suspended Users", stats.suspended_users],
+        ["Accounts", stats.total_accounts],
+        ["Total Balance", fmtMoney(stats.total_balance)],
+        ["Available Total", fmtMoney(stats.total_available)],
+        ["Pending Transfers", stats.pending_transfers],
+        ["Transfer Volume", fmtMoney(stats.transfer_volume)],
+        ["Pending Loans", stats.pending_loans],
+        ["Approved Loans", stats.approved_loans],
+        ["Failed Emails", stats.failed_emails],
+        ["Sent Emails", stats.sent_emails],
+      ];
+      els.statsGrid.innerHTML = cards.map(([label, value]) => `
+        <div class="stat-card">
+          <div class="stat-label">${escapeHtml(label)}</div>
+          <div class="stat-value">${escapeHtml(String(value ?? 0))}</div>
+        </div>
+      `).join("");
+
+      const system = state.overview?.system || {};
+      els.adminUserLabel.textContent = system.admin_user || "—";
+      els.mailerStatusLabel.textContent = system.mailer_ready ? "Ready" : "Offline";
+      els.notifyEmailLabel.textContent = system.notify_email || "—";
+    }
+
+    function renderUsers() {
+      const query = els.userSearch.value.trim().toLowerCase();
+      const users = (state.overview?.users || []).filter((user) => {
+        if (!query) return true;
+        return [user.user_email, user.fullname, user.accountname].some((value) => String(value || "").toLowerCase().includes(query));
+      });
+
+      if (!users.length) {
+        els.usersTableBody.innerHTML = `<tr><td colspan="4"><div class="empty-state">No users matched the current filter.</div></td></tr>`;
+        return;
+      }
+
+      els.usersTableBody.innerHTML = users.map((user) => `
+        <tr>
+          <td>
+            <div><strong>${escapeHtml(user.fullname || "—")}</strong></div>
+            <div class="helper-text">${escapeHtml(user.user_email || "—")}</div>
+            <div class="helper-text">${escapeHtml(user.accountname || "No account name")}</div>
+          </td>
+          <td>
+            <div>Total: ${fmtMoney(user.balance_total)}</div>
+            <div>Available: ${fmtMoney(user.available_total)}</div>
+            <div class="helper-text">Accounts: ${escapeHtml(String(user.account_count || 0))}</div>
+          </td>
+          <td>
+            <span class="${badgeClass(user.suspended ? "suspended" : "active")}">${user.suspended ? "Suspended" : "Active"}</span>
+            <div class="helper-text" style="margin-top:.4rem;">Joined ${escapeHtml(fmtDate(user.created_at))}</div>
+          </td>
+          <td>
+            <div class="actions-inline">
+              <button class="mini-btn" data-action="edit-user" data-email="${escapeHtml(user.user_email)}">Edit</button>
+              <button class="mini-btn ${user.suspended ? "good" : "bad"}" data-action="toggle-suspend" data-email="${escapeHtml(user.user_email)}" data-next="${user.suspended ? "false" : "true"}">${user.suspended ? "Activate" : "Suspend"}</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function renderTransactions() {
+      const rows = state.overview?.transactions || [];
+      if (!rows.length) {
+        els.transactionsTableBody.innerHTML = `<tr><td colspan="7"><div class="empty-state">No transactions found.</div></td></tr>`;
+        return;
+      }
+
+      els.transactionsTableBody.innerHTML = rows.map((row) => {
+        const positive = String(row.direction || "").toLowerCase() === "credit";
+        return `
+          <tr>
+            <td>
+              <div>${escapeHtml(row.fullname || "—")}</div>
+              <div class="helper-text">${escapeHtml(row.user_email || "—")}</div>
+            </td>
+            <td>${escapeHtml(row.description || "—")}</td>
+            <td class="mono">${escapeHtml(row.reference || "—")}</td>
+            <td><span class="${badgeClass(row.direction)}">${escapeHtml(row.direction || "—")}</span></td>
+            <td class="${positive ? "amount-positive" : "amount-negative"}">${fmtMoney(row.amount)}</td>
+            <td><span class="${badgeClass(row.status)}">${escapeHtml(row.status || "—")}</span></td>
+            <td>${escapeHtml(fmtDate(row.created_at))}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderTransfers() {
+      const rows = state.overview?.transfers || [];
+      if (!rows.length) {
+        els.transfersTableBody.innerHTML = `<tr><td colspan="7"><div class="empty-state">No transfers found.</div></td></tr>`;
+        return;
+      }
+
+      els.transfersTableBody.innerHTML = rows.map((row) => `
+        <tr>
+          <td>
+            <div>${escapeHtml(row.fullname || "—")}</div>
+            <div class="helper-text">${escapeHtml(row.user_email || "—")}</div>
+          </td>
+          <td>
+            <div>${escapeHtml(row.recipient_name || "—")}</div>
+            <div class="helper-text">${escapeHtml(row.recipient_email || "—")}</div>
+          </td>
+          <td>${escapeHtml(String(row.method || "—").toUpperCase())}</td>
+          <td>${fmtMoney(row.amount)}</td>
+          <td><span class="${badgeClass(row.status)}">${escapeHtml(row.status || "—")}</span></td>
+          <td>
+            <div>${escapeHtml(row.bank_name || "No bank")}</div>
+            <div class="helper-text mono">${escapeHtml(row.routing_number || "")}</div>
+            <div class="helper-text mono">${escapeHtml(row.account_number || "")}</div>
+          </td>
+          <td>
+            <div class="actions-inline">
+              <button class="mini-btn warn" data-action="transfer-status" data-id="${escapeHtml(row.id)}" data-status="pending">Pending</button>
+              <button class="mini-btn good" data-action="transfer-status" data-id="${escapeHtml(row.id)}" data-status="completed">Complete</button>
+              <button class="mini-btn bad" data-action="transfer-status" data-id="${escapeHtml(row.id)}" data-status="failed">Fail</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function renderLoans() {
+      const rows = state.overview?.loans || [];
+      if (!rows.length) {
+        els.loansTableBody.innerHTML = `<tr><td colspan="7"><div class="empty-state">No loans found.</div></td></tr>`;
+        return;
+      }
+
+      els.loansTableBody.innerHTML = rows.map((row) => `
+        <tr>
+          <td>
+            <div>${escapeHtml(row.fullname || "—")}</div>
+            <div class="helper-text">${escapeHtml(row.user_email || "—")}</div>
+          </td>
+          <td>${fmtMoney(row.amount)}</td>
+          <td>${escapeHtml(String(row.term_months || 0))} months</td>
+          <td><span class="${badgeClass(row.status)}">${escapeHtml(row.status || "—")}</span></td>
+          <td>
+            <div><span class="${badgeClass(row.fee_paid ? "approved" : "pending")}">fee ${row.fee_paid ? "paid" : "open"}</span></div>
+            <div style="margin-top:.35rem;"><span class="${badgeClass(row.locked ? "locked" : "active")}">${row.locked ? "locked" : "open"}</span></div>
+          </td>
+          <td>${escapeHtml(fmtDate(row.created_at))}</td>
+          <td>
+            <div class="actions-inline">
+              <button class="mini-btn good" data-action="loan-status" data-id="${escapeHtml(row.id)}" data-status="approved">Approve</button>
+              <button class="mini-btn warn" data-action="loan-status" data-id="${escapeHtml(row.id)}" data-status="pending">Pending</button>
+              <button class="mini-btn bad" data-action="loan-status" data-id="${escapeHtml(row.id)}" data-status="rejected">Reject</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function renderEmails() {
+      const rows = state.overview?.email_logs || [];
+      if (!rows.length) {
+        els.emailsTableBody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No email logs found.</div></td></tr>`;
+        return;
+      }
+
+      els.emailsTableBody.innerHTML = rows.map((row) => `
+        <tr>
+          <td>
+            <div>${escapeHtml(row.to_email || "—")}</div>
+            <div class="helper-text">${escapeHtml(row.user_email || "system")}</div>
+          </td>
+          <td>${escapeHtml(row.subject || "—")}</td>
+          <td><span class="${badgeClass(row.status)}">${escapeHtml(row.status || "—")}</span></td>
+          <td class="helper-text">${escapeHtml(row.error || "—")}</td>
+          <td>${escapeHtml(fmtDate(row.created_at))}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderSettings() {
+      const settings = state.overview?.settings || {};
+      els.feeRate.value = Number(settings.feeRate ?? 0.235);
+      if (state.templates) {
+        els.templatesJson.value = JSON.stringify(state.templates, null, 2);
+      }
+    }
+
+    function renderAll() {
+      renderStats();
+      renderUsers();
+      renderTransactions();
+      renderTransfers();
+      renderLoans();
+      renderEmails();
+      renderSettings();
+
+      if (!state.selectedUser && state.overview?.users?.length) {
+        setSelectedUser(state.overview.users[0]);
+      }
+    }
+
+    async function loadDashboard() {
+      showStatus(els.globalStatus, "Refreshing dashboard…");
+      const [overview, templates] = await Promise.all([
+        api(`${window.API_BASE}/admin/overview?limit=100`),
+        api(`${window.API_BASE}/admin/email-templates`),
+      ]);
+      state.overview = overview;
+      state.templates = templates;
+      renderAll();
+      showStatus(els.globalStatus, `Dashboard refreshed at ${new Date().toLocaleTimeString()}`, "success");
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      showStatus(els.loginStatus, "Signing in…");
+      try {
+        const data = await api(`${window.API_BASE}/admin/login`, {
+          method: "POST",
+          body: JSON.stringify({
+            email: els.adminEmail.value.trim(),
+            password: els.adminPassword.value,
+          }),
+        });
+        setAdminToken(data.token, data.admin);
+        toggleShell(true);
+        await loadDashboard();
+        showStatus(els.loginStatus, "", "success");
+      } catch (err) {
+        showStatus(els.loginStatus, err.message || "Unable to sign in", "error");
+      }
+    }
+
+    async function updateUser(payload) {
+      if (!state.selectedUser?.user_email) throw new Error("Select a user first");
+      return api(`${window.API_BASE}/admin/users/${encodeURIComponent(state.selectedUser.user_email)}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+    }
+
+    async function handleUserSave(event) {
+      event.preventDefault();
+      if (!els.editEmail.value) {
+        showStatus(els.userEditorStatus, "Select a user first.", "error");
+        return;
+      }
+      showStatus(els.userEditorStatus, "Saving user…");
+      try {
+        await updateUser({
+          fullname: els.editFullname.value.trim(),
+          phone: els.editPhone.value.trim(),
+          accountname: els.editAccountname.value.trim(),
+          suspended: els.editSuspended.value === "true",
+        });
+        await loadDashboard();
+        const fresh = state.overview.users.find((user) => user.user_email === els.editEmail.value.trim().toLowerCase());
+        if (fresh) setSelectedUser(fresh);
+        showStatus(els.userEditorStatus, "User updated successfully.", "success");
+      } catch (err) {
+        showStatus(els.userEditorStatus, err.message || "Failed to update user", "error");
+      }
+    }
+
+    async function handleBalanceAdjust(event) {
+      event.preventDefault();
+      if (!state.selectedUser?.user_email) {
+        showStatus(els.userEditorStatus, "Select a user first.", "error");
+        return;
+      }
+      showStatus(els.userEditorStatus, "Applying balance adjustment…");
+      try {
+        await api(`${window.API_BASE}/admin/users/${encodeURIComponent(state.selectedUser.user_email)}/adjust-balance`, {
+          method: "POST",
+          body: JSON.stringify({
+            direction: els.adjustDirection.value,
+            amount: Number(els.adjustAmount.value),
+            description: els.adjustDescription.value.trim(),
+          }),
+        });
+        els.adjustAmount.value = "";
+        await loadDashboard();
+        const fresh = state.overview.users.find((user) => user.user_email === state.selectedUser.user_email);
+        if (fresh) setSelectedUser(fresh);
+        showStatus(els.userEditorStatus, "Balance updated successfully.", "success");
+      } catch (err) {
+        showStatus(els.userEditorStatus, err.message || "Failed to adjust balance", "error");
+      }
+    }
+
+    async function handleSettingsSave(event) {
+      event.preventDefault();
+      showStatus(els.settingsStatus, "Saving application settings…");
+      try {
+        const settings = await api(`${window.API_BASE}/admin/app-settings`, {
+          method: "PUT",
+          body: JSON.stringify({ feeRate: Number(els.feeRate.value) }),
+        });
+        if (state.overview) state.overview.settings = settings;
+        showStatus(els.settingsStatus, "Application settings saved.", "success");
+      } catch (err) {
+        showStatus(els.settingsStatus, err.message || "Failed to save settings", "error");
+      }
+    }
+
+    async function handleTemplatesSave(event) {
+      event.preventDefault();
+      showStatus(els.settingsStatus, "Saving templates…");
+      try {
+        const payload = JSON.parse(els.templatesJson.value || "{}");
+        const templates = await api(`${window.API_BASE}/admin/email-templates`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+        state.templates = templates;
+        els.templatesJson.value = JSON.stringify(templates, null, 2);
+        showStatus(els.settingsStatus, "Email templates saved.", "success");
+      } catch (err) {
+        showStatus(els.settingsStatus, err.message || "Failed to save templates", "error");
+      }
+    }
+
+    async function handleTableClick(event) {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+      const action = button.dataset.action;
+      try {
+        if (action === "edit-user") {
+          const user = state.overview?.users?.find((entry) => entry.user_email === button.dataset.email);
+          if (user) {
+            setSelectedUser(user);
+            showStatus(els.userEditorStatus, `Selected ${user.user_email}`, "success");
+          }
+          return;
+        }
+
+        if (action === "toggle-suspend") {
+          showStatus(els.userEditorStatus, "Updating account access…");
+          await api(`${window.API_BASE}/admin/users/${encodeURIComponent(button.dataset.email)}`, {
+            method: "PATCH",
+            body: JSON.stringify({ suspended: button.dataset.next === "true" }),
+          });
+          await loadDashboard();
+          const user = state.overview?.users?.find((entry) => entry.user_email === button.dataset.email);
+          if (user) setSelectedUser(user);
+          showStatus(els.userEditorStatus, "User access updated.", "success");
+          return;
+        }
+
+        if (action === "transfer-status") {
+          showStatus(els.globalStatus, `Updating transfer ${button.dataset.status}…`);
+          await api(`${window.API_BASE}/admin/transfers/${encodeURIComponent(button.dataset.id)}`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: button.dataset.status }),
+          });
+          await loadDashboard();
+          showStatus(els.globalStatus, "Transfer updated.", "success");
+          return;
+        }
+
+        if (action === "loan-status") {
+          showStatus(els.globalStatus, `Updating loan ${button.dataset.status}…`);
+          await api(`${window.API_BASE}/admin/loans/${encodeURIComponent(button.dataset.id)}`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: button.dataset.status }),
+          });
+          await loadDashboard();
+          showStatus(els.globalStatus, "Loan updated.", "success");
+        }
+      } catch (err) {
+        showStatus(els.globalStatus, err.message || "Action failed", "error");
+      }
+    }
+
+    function bindNavHighlight() {
+      const links = Array.from(document.querySelectorAll(".nav-link"));
+      links.forEach((link) => {
+        link.addEventListener("click", () => {
+          links.forEach((item) => item.classList.remove("active"));
+          link.classList.add("active");
+          els.sidebar.classList.remove("active");
+        });
+      });
+    }
+
+    async function boot() {
+      bindNavHighlight();
+      toggleShell(Boolean(getAdminToken()));
+      if (getAdminToken()) {
+        try {
+          await loadDashboard();
+        } catch (err) {
+          clearAdminSession();
+          toggleShell(false);
+          showStatus(els.loginStatus, err.message || "Admin session expired", "error");
+        }
+      }
+    }
+
+    els.loginForm.addEventListener("submit", handleLogin);
+    els.userEditorForm.addEventListener("submit", handleUserSave);
+    els.balanceAdjustForm.addEventListener("submit", handleBalanceAdjust);
+    els.settingsForm.addEventListener("submit", handleSettingsSave);
+    els.templatesForm.addEventListener("submit", handleTemplatesSave);
+    els.userSearch.addEventListener("input", renderUsers);
+    els.refreshBtn.addEventListener("click", () => loadDashboard().catch((err) => showStatus(els.globalStatus, err.message || "Refresh failed", "error")));
+    els.logoutBtn.addEventListener("click", () => {
+      clearAdminSession();
+      toggleShell(false);
+      showStatus(els.loginStatus, "Signed out.", "success");
+    });
+    els.menuBtn.addEventListener("click", () => els.sidebar.classList.toggle("active"));
+    document.body.addEventListener("click", handleTableClick);
+
+    boot();
+  </script>
+</body>
+</html>

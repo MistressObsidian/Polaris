@@ -66,6 +66,8 @@ export async function sendEmail(to, subject, html, opts = {}) {
   if (!mailer) throw new Error('sendEmail: mailer not initialized');
   if (!to) throw new Error('sendEmail: missing "to" address');
 
+  const defaultReplyTo = process.env.MAIL_REPLY_TO || process.env.SUPPORT_EMAIL || undefined;
+
   const attachments = Array.isArray(opts.attachments) ? [...opts.attachments] : [];
 
   if (fs.existsSync(BRAND_LOGO_PATH)) {
@@ -81,6 +83,7 @@ export async function sendEmail(to, subject, html, opts = {}) {
     to,
     subject,
     html,
+    replyTo: opts.replyTo || defaultReplyTo,
     attachments,
     ...opts,
   };

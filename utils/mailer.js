@@ -14,7 +14,7 @@ const BRAND_LOGO_CID = 'bankswiftlogo';
  */
 export async function initMailer() {
   const host = process.env.SMTP_HOST || 'smtp.sendgrid.net';
-  const port = Number(process.env.SMTP_PORT || 587); // 587 preferred on cloud hosts
+  const configuredPort = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   const from = process.env.MAIL_FROM || user;
@@ -24,24 +24,35 @@ export async function initMailer() {
     return;
   }
 
-  try {
-    mailer = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: {
-        user,
-        pass,
-      },
-    });
+  const candidatePorts = [configuredPort, 465, 587, 2525].filter((p, i, arr) => Number.isFinite(p) && arr.indexOf(p) === i);
 
-    mailer.from = from;
+  for (const port of candidatePorts) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: {
+          user,
+          pass,
+        },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 10000,
+      });
 
-    console.log(`✉️  Mailer ready: ${user} via ${host}:${port}`);
-  } catch (e) {
-    mailer = null;
-    console.warn("❌ Mailer init failed:", e.message);
+      await transporter.verify();
+      transporter.from = from;
+      mailer = transporter;
+      console.log(`✉️  Mailer ready: ${user} via ${host}:${port}`);
+      return;
+    } catch (e) {
+      console.warn(`⚠️ Mailer port ${port} failed:`, e.message);
+    }
   }
+
+  mailer = null;
+  console.warn("❌ Mailer init failed: all SMTP ports failed");
 }
 
 export function isMailerReady() {

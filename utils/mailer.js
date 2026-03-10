@@ -13,8 +13,8 @@ const BRAND_LOGO_CID = 'bankswiftlogo';
  * Initialize SMTP mailer
  */
 export async function initMailer() {
-  const host = process.env.SMTP_HOST || 'mail.privateemail.com';
-  const port = Number(process.env.SMTP_PORT || 465); // 587 preferred on cloud hosts
+  const host = process.env.SMTP_HOST || 'smtp.sendgrid.net';
+  const port = Number(process.env.SMTP_PORT || 587); // 587 preferred on cloud hosts
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   const from = process.env.MAIL_FROM || user;
@@ -24,18 +24,17 @@ export async function initMailer() {
     return;
   }
 
-    try {
+  try {
     mailer = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-       port: 587,
-      secure: false, // SSL only for 465, STARTTLS for 587
+      host,
+      port,
+      secure: port === 465,
       auth: {
-         user: process.env.SMTP_USER,
-         pass: process.env.SMTP_PASS
-  }
-});
+        user,
+        pass,
+      },
+    });
 
-    await mailer.verify();
     mailer.from = from;
 
     console.log(`✉️  Mailer ready: ${user} via ${host}:${port}`);
@@ -45,17 +44,18 @@ export async function initMailer() {
   }
 }
 
+export function isMailerReady() {
+  return !!mailer;
+}
+
 /**
  * Send an email
  */
 export async function sendEmail(to, subject, html, opts = {}) {
-  if (!mailer) {
-    console.warn('sendEmail: mailer not initialized; skipping send', { to, subject });
-    return false;
-  }
+  if (!mailer) throw new Error('sendEmail: mailer not initialized');
   if (!to) throw new Error('sendEmail: missing "to" address');
 
-  const attachments = Array.isArray(opts.attachments) ? opts.attachments : [];
+  const attachments = Array.isArray(opts.attachments) ? [...opts.attachments] : [];
 
   if (fs.existsSync(BRAND_LOGO_PATH)) {
     attachments.push({
@@ -77,10 +77,10 @@ export async function sendEmail(to, subject, html, opts = {}) {
   try {
     const info = await mailer.sendMail(mailOptions);
     console.log('sendEmail: mail queued', info.messageId || info.response || info);
-    return true;
+    return info;
   } catch (e) {
     console.warn('sendEmail failed:', e.message);
-    return false;
+    throw e;
   }
 }
 

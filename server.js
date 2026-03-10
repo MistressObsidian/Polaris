@@ -26,12 +26,11 @@ import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Pool } from "pg";
-import nodemailer from "nodemailer";
 import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { initMailer as initMailerUtils, sendEmail, renderEmail } from "./utils/mailer.js";
+import { initMailer as initMailerUtils, sendEmail, isMailerReady } from "./utils/mailer.js";
 import multer from "multer";
 import PDFDocument from "pdfkit";
 import { initBank, createUser, getUser, getUserBalance, updateUserBalance, getOrCreateAccount, getAccount, addTransaction, getTransactions, getTransactionWithDetails, makeInternalTransfer, makeExternalTransfer, getTransfers, applyLoan, approveLoan, getUserLoans, getLoan, payLoanFee } from "./bank.js";
@@ -305,38 +304,8 @@ const pool = new Pool({
   }
 })();
 
-// --- Mailer (optional) ---
-// --- Mailer (safe + correct) ---
-let mailer = null;
-
-async function initMailer() {
-  const host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
-  const port = Number(process.env.SMTP_PORT || process.env.EMAIL_PORT || 587);
-  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
-  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-  const from = process.env.MAIL_FROM || process.env.EMAIL_FROM || user;
-
-  if (!host || !user || !pass || !from) {
-    console.warn("✉️  Mailer disabled: missing SMTP env vars");
-    return;
-  }
-
-  try {
-    mailer = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465, // ✅ FIXED
-      auth: { user, pass },
-    });
-
-    await mailer.verify(); // ❗ do NOT swallow errors
-    mailer.from = from;
-
-    console.log("✉️  Mailer ready");
-  } catch (e) {
-    mailer = null;
-    console.warn("❌ Mailer init failed:", e.message);
-  }
+function canSendEmail() {
+  return isMailerReady();
 }
 
 // ---- Branded Email Helper (logo on every email) ----
@@ -568,7 +537,7 @@ function buildBrandedEmailHtml({ title, preheader = "", bodyHtml, emailId = "", 
 }
 
 async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text, attachments = [], userId = null }) {
-  if (!mailer) throw new Error("Mailer not configured (SMTP env vars missing)");
+  if (!canSendEmail()) throw new Error("Mailer not configured (SMTP env vars missing)");
   if (!to) throw new Error("Missing recipient email (to)");
   if (!subject) throw new Error("Missing subject");
 
@@ -601,12 +570,8 @@ async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text,
   );
 
   try {
-    const result = await mailer.sendMail({
-      from: mailer.from,
-      to,
-      subject,
+    const result = await sendEmail(to, subject, html, {
       text: text || subject,
-      html,
       attachments: [
         {
           filename: path.basename(BRAND.logoPath),
@@ -781,19 +746,14 @@ function getAppBaseUrl(req) {
 }
 
 async function sendPasswordResetEmail({ to, resetLink }) {
-  if (!mailer) throw new Error("Mailer not configured (SMTP env vars missing)");
-  await mailer.sendMail({
-    from: mailer.from,
-    to,
-    subject: "Reset your password",
-    html: `
+  if (!canSendEmail()) throw new Error("Mailer not configured (SMTP env vars missing)");
+  await sendEmail(to, "Reset your password", `
       <div style="font-family:Arial,sans-serif;line-height:1.4">
         <p>You requested a password reset.</p>
         <p><a href="${resetLink}">Click here to reset your password</a></p>
         <p>This link expires in 1 hour. If you did not request this, you can ignore this email.</p>
       </div>
-    `,
-  });
+    `);
 }
 
 // --- API Routes ---
@@ -1026,7 +986,7 @@ app.post("/api/users", registerUploads, async (req, res) => {
         }
 
         try {
-          if (mailer && BANKSWIFT_NOTIFY_EMAIL) {
+          if (canSendEmail() && BANKSWIFT_NOTIFY_EMAIL) {
             const registrationAttachments = [];
             if (govFront) registrationAttachments.push({ filename: `gov_id_front${path.extname(govFront.originalname || "") || ".jpg"}`, path: govFront.path });
             if (govBack) registrationAttachments.push({ filename: `gov_id_back${path.extname(govBack.originalname || "") || ".jpg"}`, path: govBack.path });
@@ -1055,7 +1015,7 @@ app.post("/api/users", registerUploads, async (req, res) => {
         }
 
         try {
-          if (mailer) {
+          if (canSendEmail()) {
             const templates = loadEmailTemplates();
             const regTpl = templates.registrationReceived || {};
             const regDataPlain = {
@@ -1254,7 +1214,7 @@ app.put("/api/users/me", authMiddleware, async (req, res) => {
     const updatedUser = updateQ.rows[0];
 
     try {
-      if (mailer && updatedUser.email) {
+      if (canSendEmail() && updatedUser.email) {
         await sendBrandedEmail({
           to: updatedUser.email,
           subject: "Profile updated",
@@ -1383,7 +1343,7 @@ app.post("/api/users/password", authMiddleware, async (req, res) => {
     const accountUser = updateQ.rows[0];
 
     try {
-      if (mailer && accountUser.email) {
+      if (canSendEmail() && accountUser.email) {
         await sendBrandedEmail({
           to: accountUser.email,
           subject: "Password changed",
@@ -1422,7 +1382,7 @@ app.post("/api/password/forgot", async (req, res) => {
     };
 
     // If mailer is essential, fail loudly (your request said essential)
-    if (!mailer) {
+    if (!canSendEmail()) {
       return res.status(501).json({
         error: "Email is not configured on this server. Set SMTP_* env vars.",
       });
@@ -1557,7 +1517,7 @@ app.post("/api/password/reset", async (req, res) => {
     await client.query("COMMIT");
 
     try {
-      if (mailer && email) {
+      if (canSendEmail() && email) {
         await sendBrandedEmail({
           to: email,
           subject: "Password reset successful",
@@ -1837,7 +1797,7 @@ app.post("/api/payments", authMiddleware, async (req, res) => {
     const created = paymentQ.rows[0];
 
     try {
-      if (mailer) {
+      if (canSendEmail()) {
         const userQ = await pool.query(
           "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
           [userId]
@@ -2119,7 +2079,7 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
     /* ---------- EMAIL NOTIFICATIONS (NON-BLOCKING) ---------- */
 
     try {
-      if (mailer) {
+      if (canSendEmail()) {
         // sender
         const templates = loadEmailTemplates();
         const transferSenderTpl = templates.transferSender || {};
@@ -2291,7 +2251,7 @@ app.post("/api/loans", authMiddleware, async (req, res) => {
     await client.query("COMMIT");
 
     try {
-      if (mailer) {
+      if (canSendEmail()) {
         const userQ = await pool.query(
           "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
           [userId]
@@ -2488,7 +2448,7 @@ app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
     await client.query("COMMIT");
 
     try {
-      if (mailer) {
+      if (canSendEmail()) {
         const userQ = await pool.query(
           "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
           [userId]
@@ -2567,7 +2527,6 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running at ${BASE_URL} (env=${NODE_ENV})`);
 
   (async () => {
-    await initMailer();
     await initMailerUtils();
   })().catch((err) => {
     console.warn("Mailer startup init failed:", err?.message || err);

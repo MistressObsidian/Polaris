@@ -103,7 +103,12 @@ document.addEventListener("DOMContentLoaded", () => {
     let data = {};
     try { data = text ? JSON.parse(text) : {}; } catch {}
 
-    if (!res.ok) throw new Error(data?.error || `Login failed (${res.status})`);
+    if (!res.ok) {
+      const err = new Error(data?.error || `Login failed (${res.status})`);
+      err.status = res.status;
+      err.payload = data;
+      throw err;
+    }
     return data;
   }
 
@@ -140,6 +145,11 @@ document.addEventListener("DOMContentLoaded", () => {
         window.location.href = 'dashboard.html';
         return;
       } catch (userErr) {
+        const userMessage = String(userErr?.message || '').trim().toLowerCase();
+        if (userErr?.status === 403 || userMessage === 'account restricted' || userMessage === 'account suspended') {
+          throw userErr;
+        }
+
         const data = await loginRequest('/api/admin/login', { email, password });
         localStorage.setItem(ADMIN_TOKEN_KEY, data.token || '');
         localStorage.setItem(ADMIN_META_KEY, JSON.stringify(data.admin || { email, role: 'admin' }));

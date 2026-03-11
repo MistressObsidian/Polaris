@@ -414,9 +414,46 @@
               <div class="panel-head">
                 <div>
                   <h3>User editor</h3>
-                  <div class="panel-sub">Select a user from the table to edit details.</div>
+                  <div class="panel-sub">Create users, edit full profile details, and send default emails manually.</div>
                 </div>
               </div>
+              <form id="createUserForm">
+                <div class="panel-sub" style="margin-bottom:.55rem;">Create New User</div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="createFullname">Full Name</label>
+                    <input id="createFullname" class="input-base" type="text" required />
+                  </div>
+                  <div class="field">
+                    <label for="createEmail">Email</label>
+                    <input id="createEmail" class="input-base" type="email" required />
+                  </div>
+                  <div class="field">
+                    <label for="createPassword">Temporary Password</label>
+                    <input id="createPassword" class="input-base" type="text" minlength="6" required />
+                  </div>
+                  <div class="field">
+                    <label for="createPhone">Phone</label>
+                    <input id="createPhone" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="createAccountname">Account Name</label>
+                    <input id="createAccountname" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="createInitialBalance">Opening Balance</label>
+                    <input id="createInitialBalance" class="input-base" type="number" min="0" step="0.01" value="0" />
+                  </div>
+                </div>
+                <div class="actions-inline" style="margin-top:.9rem;">
+                  <label class="helper-text" style="display:flex; align-items:center; gap:.4rem;">
+                    <input id="createSendWelcome" type="checkbox" checked /> Send default registration email
+                  </label>
+                  <button type="submit" class="btn-success">Create User</button>
+                </div>
+              </form>
+              <div id="createUserStatus" class="status-line"></div>
+              <hr style="border-color:var(--border); opacity:.4; margin:1rem 0;" />
               <form id="userEditorForm">
                 <div class="form-grid">
                   <div class="field">
@@ -441,6 +478,46 @@
                       <option value="false">Active</option>
                       <option value="true">Suspended</option>
                     </select>
+                  </div>
+                  <div class="field">
+                    <label for="editDob">Date of Birth</label>
+                    <input id="editDob" class="input-base" type="date" />
+                  </div>
+                  <div class="field">
+                    <label for="editCitizenship">Citizenship Status</label>
+                    <input id="editCitizenship" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="editAddress1">Address Line 1</label>
+                    <input id="editAddress1" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="editAddress2">Address Line 2</label>
+                    <input id="editAddress2" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="editCity">City</label>
+                    <input id="editCity" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="editState">State</label>
+                    <input id="editState" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="editPostalCode">Postal Code</label>
+                    <input id="editPostalCode" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="editCountry">Country</label>
+                    <input id="editCountry" class="input-base" type="text" placeholder="US" />
+                  </div>
+                  <div class="field">
+                    <label for="editOccupation">Occupation</label>
+                    <input id="editOccupation" class="input-base" type="text" />
+                  </div>
+                  <div class="field">
+                    <label for="editEmployer">Employer</label>
+                    <input id="editEmployer" class="input-base" type="text" />
                   </div>
                 </div>
                 <div class="actions-inline" style="margin-top:.9rem;">
@@ -470,6 +547,23 @@
                   <button type="submit" class="btn-success">Apply Balance Change</button>
                 </div>
                 <div class="helper-text" style="margin-top:.5rem;">Balance updates create a completed transaction entry automatically.</div>
+              </form>
+              <hr style="border-color:var(--border); opacity:.4; margin:1rem 0;" />
+              <form id="manualEmailForm">
+                <div class="panel-sub" style="margin-bottom:.55rem;">Send Default Email</div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="manualEmailTo">Recipient Email</label>
+                    <input id="manualEmailTo" class="input-base" type="email" placeholder="user@example.com" />
+                  </div>
+                  <div class="field">
+                    <label for="manualEmailTemplate">Template</label>
+                    <select id="manualEmailTemplate" class="input-base"></select>
+                  </div>
+                </div>
+                <div class="actions-inline" style="margin-top:.9rem;">
+                  <button type="submit" class="btn btn-primary">Send Default Email</button>
+                </div>
               </form>
               <div id="userEditorStatus" class="status-line"></div>
             </div>
@@ -643,16 +737,38 @@
       loansTableBody: document.getElementById("loansTableBody"),
       emailsTableBody: document.getElementById("emailsTableBody"),
       userSearch: document.getElementById("userSearch"),
+      createUserForm: document.getElementById("createUserForm"),
+      createFullname: document.getElementById("createFullname"),
+      createEmail: document.getElementById("createEmail"),
+      createPassword: document.getElementById("createPassword"),
+      createPhone: document.getElementById("createPhone"),
+      createAccountname: document.getElementById("createAccountname"),
+      createInitialBalance: document.getElementById("createInitialBalance"),
+      createSendWelcome: document.getElementById("createSendWelcome"),
+      createUserStatus: document.getElementById("createUserStatus"),
       userEditorForm: document.getElementById("userEditorForm"),
       editEmail: document.getElementById("editEmail"),
       editFullname: document.getElementById("editFullname"),
       editPhone: document.getElementById("editPhone"),
       editAccountname: document.getElementById("editAccountname"),
       editSuspended: document.getElementById("editSuspended"),
+      editDob: document.getElementById("editDob"),
+      editCitizenship: document.getElementById("editCitizenship"),
+      editAddress1: document.getElementById("editAddress1"),
+      editAddress2: document.getElementById("editAddress2"),
+      editCity: document.getElementById("editCity"),
+      editState: document.getElementById("editState"),
+      editPostalCode: document.getElementById("editPostalCode"),
+      editCountry: document.getElementById("editCountry"),
+      editOccupation: document.getElementById("editOccupation"),
+      editEmployer: document.getElementById("editEmployer"),
       balanceAdjustForm: document.getElementById("balanceAdjustForm"),
       adjustDirection: document.getElementById("adjustDirection"),
       adjustAmount: document.getElementById("adjustAmount"),
       adjustDescription: document.getElementById("adjustDescription"),
+      manualEmailForm: document.getElementById("manualEmailForm"),
+      manualEmailTo: document.getElementById("manualEmailTo"),
+      manualEmailTemplate: document.getElementById("manualEmailTemplate"),
       userEditorStatus: document.getElementById("userEditorStatus"),
       settingsForm: document.getElementById("settingsForm"),
       feeRate: document.getElementById("feeRate"),
@@ -751,8 +867,48 @@
       els.editPhone.value = user?.phone || "";
       els.editAccountname.value = user?.accountname || "";
       els.editSuspended.value = String(Boolean(user?.suspended));
+      els.editDob.value = user?.dob ? String(user.dob).slice(0, 10) : "";
+      els.editCitizenship.value = user?.citizenship_status || "";
+      els.editAddress1.value = user?.address_line1 || "";
+      els.editAddress2.value = user?.address_line2 || "";
+      els.editCity.value = user?.city || "";
+      els.editState.value = user?.state || "";
+      els.editPostalCode.value = user?.postal_code || "";
+      els.editCountry.value = user?.country || "";
+      els.editOccupation.value = user?.occupation || "";
+      els.editEmployer.value = user?.employer || "";
+      els.manualEmailTo.value = user?.user_email || "";
       if (user?.user_email) {
         els.adjustDescription.value = els.adjustDescription.value || `Admin manual balance adjustment for ${user.user_email}`;
+      }
+    }
+
+    function renderManualTemplateOptions() {
+      const templates = Object.keys(state.templates || {});
+      if (!templates.length) {
+        els.manualEmailTemplate.innerHTML = `<option value="registrationReceived">registrationReceived</option>`;
+        return;
+      }
+      const current = els.manualEmailTemplate.value;
+      els.manualEmailTemplate.innerHTML = templates
+        .map((key) => `<option value="${escapeHtml(key)}">${escapeHtml(key)}</option>`)
+        .join("");
+      if (templates.includes(current)) {
+        els.manualEmailTemplate.value = current;
+      }
+    }
+
+    async function loadUserProfile(email) {
+      if (!email) return;
+      try {
+        const profile = await api(`${window.API_BASE}/admin/users/${encodeURIComponent(email)}/profile`);
+        const merged = {
+          ...(state.overview?.users || []).find((entry) => entry.user_email === email),
+          ...profile,
+        };
+        setSelectedUser(merged);
+      } catch (err) {
+        showStatus(els.userEditorStatus, err.message || "Failed to load user profile", "error");
       }
     }
 
@@ -944,6 +1100,7 @@
       if (state.templates) {
         els.templatesJson.value = JSON.stringify(state.templates, null, 2);
       }
+      renderManualTemplateOptions();
     }
 
     function renderAll() {
@@ -956,7 +1113,10 @@
       renderSettings();
 
       if (!state.selectedUser && state.overview?.users?.length) {
-        setSelectedUser(state.overview.users[0]);
+        void loadUserProfile(state.overview.users[0].user_email);
+      } else if (state.selectedUser?.user_email) {
+        const fresh = state.overview?.users?.find((entry) => entry.user_email === state.selectedUser.user_email);
+        if (fresh) setSelectedUser({ ...state.selectedUser, ...fresh });
       }
     }
 
@@ -1008,18 +1168,58 @@
       }
       showStatus(els.userEditorStatus, "Saving user…");
       try {
-        await updateUser({
+        await api(`${window.API_BASE}/admin/users/${encodeURIComponent(els.editEmail.value.trim().toLowerCase())}/profile`, {
+          method: "PUT",
+          body: JSON.stringify({
           fullname: els.editFullname.value.trim(),
           phone: els.editPhone.value.trim(),
           accountname: els.editAccountname.value.trim(),
           suspended: els.editSuspended.value === "true",
+            dob: els.editDob.value || null,
+            citizenship_status: els.editCitizenship.value.trim(),
+            address_line1: els.editAddress1.value.trim(),
+            address_line2: els.editAddress2.value.trim(),
+            city: els.editCity.value.trim(),
+            state: els.editState.value.trim(),
+            postal_code: els.editPostalCode.value.trim(),
+            country: els.editCountry.value.trim() || "US",
+            occupation: els.editOccupation.value.trim(),
+            employer: els.editEmployer.value.trim(),
+          }),
         });
         await loadDashboard();
-        const fresh = state.overview.users.find((user) => user.user_email === els.editEmail.value.trim().toLowerCase());
-        if (fresh) setSelectedUser(fresh);
+        await loadUserProfile(els.editEmail.value.trim().toLowerCase());
         showStatus(els.userEditorStatus, "User updated successfully.", "success");
       } catch (err) {
         showStatus(els.userEditorStatus, err.message || "Failed to update user", "error");
+      }
+    }
+
+    async function handleCreateUser(event) {
+      event.preventDefault();
+      showStatus(els.createUserStatus, "Creating user…");
+      try {
+        const payload = {
+          fullname: els.createFullname.value.trim(),
+          email: els.createEmail.value.trim().toLowerCase(),
+          password: els.createPassword.value,
+          phone: els.createPhone.value.trim(),
+          accountname: els.createAccountname.value.trim(),
+          initialBalance: Number(els.createInitialBalance.value || 0),
+          sendDefaultEmail: els.createSendWelcome.checked,
+        };
+
+        await api(`${window.API_BASE}/admin/users`, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+
+        els.createPassword.value = "";
+        await loadDashboard();
+        await loadUserProfile(payload.email);
+        showStatus(els.createUserStatus, "User created successfully.", "success");
+      } catch (err) {
+        showStatus(els.createUserStatus, err.message || "Failed to create user", "error");
       }
     }
 
@@ -1075,9 +1275,33 @@
         });
         state.templates = templates;
         els.templatesJson.value = JSON.stringify(templates, null, 2);
+        renderManualTemplateOptions();
         showStatus(els.settingsStatus, "Email templates saved.", "success");
       } catch (err) {
         showStatus(els.settingsStatus, err.message || "Failed to save templates", "error");
+      }
+    }
+
+    async function handleManualEmailSend(event) {
+      event.preventDefault();
+      if (!state.selectedUser?.user_email) {
+        showStatus(els.userEditorStatus, "Select a user first.", "error");
+        return;
+      }
+
+      const to = els.manualEmailTo.value.trim().toLowerCase() || state.selectedUser.user_email;
+      const templateKey = els.manualEmailTemplate.value || "registrationReceived";
+
+      showStatus(els.userEditorStatus, "Sending default email…");
+      try {
+        await api(`${window.API_BASE}/admin/users/${encodeURIComponent(state.selectedUser.user_email)}/send-default-email`, {
+          method: "POST",
+          body: JSON.stringify({ to, templateKey }),
+        });
+        await loadDashboard();
+        showStatus(els.userEditorStatus, "Default email sent successfully.", "success");
+      } catch (err) {
+        showStatus(els.userEditorStatus, err.message || "Failed to send email", "error");
       }
     }
 
@@ -1090,6 +1314,7 @@
           const user = state.overview?.users?.find((entry) => entry.user_email === button.dataset.email);
           if (user) {
             setSelectedUser(user);
+            await loadUserProfile(user.user_email);
             showStatus(els.userEditorStatus, `Selected ${user.user_email}`, "success");
           }
           return;
@@ -1159,8 +1384,10 @@
     }
 
     els.loginForm.addEventListener("submit", handleLogin);
+    els.createUserForm.addEventListener("submit", handleCreateUser);
     els.userEditorForm.addEventListener("submit", handleUserSave);
     els.balanceAdjustForm.addEventListener("submit", handleBalanceAdjust);
+    els.manualEmailForm.addEventListener("submit", handleManualEmailSend);
     els.settingsForm.addEventListener("submit", handleSettingsSave);
     els.templatesForm.addEventListener("submit", handleTemplatesSave);
     els.userSearch.addEventListener("input", renderUsers);

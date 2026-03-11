@@ -280,6 +280,95 @@ function parseAdminLimit(value, fallback = 50, max = 200) {
   return Math.min(Math.floor(num), max);
 }
 
+function isMissingProfileTableError(err) {
+  return err?.code === "42P01" || err?.code === "42703";
+}
+
+function toTrimmedOrNull(value) {
+  const next = String(value ?? "").trim();
+  return next || null;
+}
+
+function toAdminTemplateData(user = {}, extraData = {}) {
+  const base = {
+    fullname: user.fullname || "there",
+    borrower_name: user.fullname || "there",
+    recipient_name: user.fullname || "there",
+    account_name: user.accountname || "",
+    email: user.user_email || "",
+    status: "pending",
+    amount: "0.00",
+    term: "N/A",
+    apr_estimate: "N/A",
+    monthly_payment_estimate: "N/A",
+    bank_name: "N/A",
+    routing_number: "N/A",
+    account_number: "N/A",
+    fee: "0.00",
+    expires_at: new Date(Date.now() + (48 * 60 * 60 * 1000)).toLocaleString(),
+  };
+
+  const normalizedExtra = Object.fromEntries(
+    Object.entries(extraData || {}).map(([key, value]) => [key, String(value ?? "")])
+  );
+
+  const plain = { ...base, ...normalizedExtra };
+  const html = Object.fromEntries(
+    Object.entries(plain).map(([key, value]) => [key, escapeHtml(value)])
+  );
+
+  return { plain, html };
+}
+
+async function getAdminUserProfileByEmail(email) {
+  try {
+    const q = await pool.query(
+      `SELECT
+         u.user_email,
+         u.fullname,
+         u.phone,
+         u.accountname,
+         u.suspended,
+         u.created_at,
+         u.updated_at,
+         p.dob,
+         p.citizenship_status,
+         p.address_line1,
+         p.address_line2,
+         p.city,
+         p.state,
+         p.postal_code,
+         p.country,
+         p.occupation,
+         p.employer,
+         p.mailing_same_as_residential,
+         p.mailing_address_line1,
+         p.mailing_address_line2,
+         p.mailing_city,
+         p.mailing_state,
+         p.mailing_postal_code,
+         p.mailing_country
+       FROM users u
+       LEFT JOIN user_profiles p ON p.user_email = u.user_email
+       WHERE LOWER(u.user_email)=LOWER($1)
+       LIMIT 1`,
+      [email]
+    );
+    return q.rows[0] || null;
+  } catch (err) {
+    if (!isMissingProfileTableError(err)) throw err;
+
+    const fallbackQ = await pool.query(
+      `SELECT user_email, fullname, phone, accountname, suspended, created_at, updated_at
+       FROM users
+       WHERE LOWER(user_email)=LOWER($1)
+       LIMIT 1`,
+      [email]
+    );
+    return fallbackQ.rows[0] || null;
+  }
+}
+
 function adminAuthMiddleware(req, res, next) {
   if (!hasAdminCredentials()) {
     return res.status(503).json({ error: "Admin access is not configured" });
@@ -946,7 +1035,7 @@ app.post("/api/admin/login", async (req, res) => {
     }
 
     if (email !== ADMIN_USER || password !== ADMIN_PASS) {
-      return res.status(401).json({ error: "Invalid admin credentials" });
+      return res.status(401).json({ error: "Invalid credentials" });
     }
 
     return res.json({
@@ -1144,6 +1233,190 @@ app.get("/api/admin/overview", adminAuthMiddleware, async (req, res) => {
   }
 });
 
+app.post("/api/admin/users", adminAuthMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const fullname = String(req.body?.fullname || "").trim();
+    const emailRaw = String(req.body?.email || req.body?.user_email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
+    const phone = String(req.body?.phone || "").trim();
+    const accountname = String(req.body?.accountname || "").trim();
+    const restricted = Boolean(req.body?.restricted);
+    const initialBalance = Number(req.body?.initialBalance ?? 0);
+
+    if (!fullname) return res.status(400).json({ error: "Full name is required" });
+    if (!validateEmail(emailRaw)) return res.status(400).json({ error: "Valid email is required" });
+    if (password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
+    if (!Number.isFinite(initialBalance) || initialBalance < 0) {
+      return res.status(400).json({ error: "initialBalance must be a valid non-negative number" });
+    }
+
+    await client.query("BEGIN");
+
+    const existingQ = await client.query(
+      "SELECT user_email FROM users WHERE LOWER(user_email)=LOWER($1) LIMIT 1",
+      [emailRaw]
+    );
+    if (existingQ.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ error: "Email already registered" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const createdQ = await client.query(
+      `INSERT INTO users (fullname, user_email, password_hash, phone, accountname, suspended, available_balance)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       RETURNING user_email, fullname, phone, accountname, suspended, created_at, updated_at`,
+      [fullname, emailRaw, passwordHash, phone, accountname, suspended, initialBalance]
+    );
+
+    try {
+      await client.query(
+        `INSERT INTO user_profiles (
+           user_email,
+           dob,
+           citizenship_status,
+           address_line1,
+           address_line2,
+           city,
+           state,
+           postal_code,
+           country,
+           occupation,
+           employer,
+           mailing_same_as_residential,
+           mailing_address_line1,
+           mailing_address_line2,
+           mailing_city,
+           mailing_state,
+           mailing_postal_code,
+           mailing_country
+         ) VALUES (
+           $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
+         )
+         ON CONFLICT (user_email) DO UPDATE SET
+           dob=COALESCE(EXCLUDED.dob, user_profiles.dob),
+           citizenship_status=COALESCE(EXCLUDED.citizenship_status, user_profiles.citizenship_status),
+           address_line1=COALESCE(EXCLUDED.address_line1, user_profiles.address_line1),
+           address_line2=COALESCE(EXCLUDED.address_line2, user_profiles.address_line2),
+           city=COALESCE(EXCLUDED.city, user_profiles.city),
+           state=COALESCE(EXCLUDED.state, user_profiles.state),
+           postal_code=COALESCE(EXCLUDED.postal_code, user_profiles.postal_code),
+           country=COALESCE(EXCLUDED.country, user_profiles.country),
+           occupation=COALESCE(EXCLUDED.occupation, user_profiles.occupation),
+           employer=COALESCE(EXCLUDED.employer, user_profiles.employer),
+           mailing_same_as_residential=COALESCE(EXCLUDED.mailing_same_as_residential, user_profiles.mailing_same_as_residential),
+           mailing_address_line1=COALESCE(EXCLUDED.mailing_address_line1, user_profiles.mailing_address_line1),
+           mailing_address_line2=COALESCE(EXCLUDED.mailing_address_line2, user_profiles.mailing_address_line2),
+           mailing_city=COALESCE(EXCLUDED.mailing_city, user_profiles.mailing_city),
+           mailing_state=COALESCE(EXCLUDED.mailing_state, user_profiles.mailing_state),
+           mailing_postal_code=COALESCE(EXCLUDED.mailing_postal_code, user_profiles.mailing_postal_code),
+           mailing_country=COALESCE(EXCLUDED.mailing_country, user_profiles.mailing_country),
+           updated_at=NOW()`,
+        [
+          emailRaw,
+          req.body?.dob || null,
+          toTrimmedOrNull(req.body?.citizenship_status),
+          toTrimmedOrNull(req.body?.address_line1),
+          toTrimmedOrNull(req.body?.address_line2),
+          toTrimmedOrNull(req.body?.city),
+          toTrimmedOrNull(req.body?.state),
+          toTrimmedOrNull(req.body?.postal_code),
+          toTrimmedOrNull(req.body?.country) || "US",
+          toTrimmedOrNull(req.body?.occupation),
+          toTrimmedOrNull(req.body?.employer),
+          Object.prototype.hasOwnProperty.call(req.body || {}, "mailing_same_as_residential")
+            ? Boolean(req.body?.mailing_same_as_residential)
+            : true,
+          toTrimmedOrNull(req.body?.mailing_address_line1),
+          toTrimmedOrNull(req.body?.mailing_address_line2),
+          toTrimmedOrNull(req.body?.mailing_city),
+          toTrimmedOrNull(req.body?.mailing_state),
+          toTrimmedOrNull(req.body?.mailing_postal_code),
+          toTrimmedOrNull(req.body?.mailing_country) || "US",
+        ]
+      );
+    } catch (profileErr) {
+      if (!isMissingProfileTableError(profileErr)) throw profileErr;
+    }
+
+    const account = await ensureAvailableAccount(client, emailRaw);
+    if (initialBalance > 0) {
+      await client.query(
+        `UPDATE accounts
+         SET balance=$1, available=$2, updated_at=NOW()
+         WHERE id=$3`,
+        [initialBalance, initialBalance, account.id]
+      );
+
+      const reference = `ADMCRT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      await client.query(
+        `INSERT INTO transactions
+          (user_email, account_id, direction, amount, description, reference, status, balance_after, created_at)
+         VALUES ($1,$2,'credit',$3,$4,$5,'completed',$6,NOW())`,
+        [
+          emailRaw,
+          account.id,
+          initialBalance,
+          "Admin new user opening balance",
+          reference,
+          initialBalance,
+        ]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    const sendWelcome = req.body?.sendDefaultEmail !== false;
+    let emailResult = null;
+    if (sendWelcome) {
+      try {
+        const templates = loadEmailTemplates();
+        const regTpl = templates.registrationReceived || {};
+        const data = toAdminTemplateData(createdQ.rows[0]);
+        await sendBrandedEmail({
+          to: emailRaw,
+          subject: renderTemplate(regTpl.subject || "Registration received", data.plain),
+          title: renderTemplate(regTpl.title || "We received your registration", data.plain),
+          preheader: renderTemplate(regTpl.preheader, data.plain),
+          text: renderTemplate(regTpl.text, data.plain),
+          bodyHtml: renderTemplate(regTpl.bodyHtml, data.html),
+          userId: emailRaw,
+        });
+        emailResult = { sent: true, template: "registrationReceived" };
+      } catch (emailErr) {
+        emailResult = { sent: false, error: emailErr.message || "Email send failed" };
+      }
+    }
+
+    const profile = await getAdminUserProfileByEmail(emailRaw);
+    return res.status(201).json({
+      user: profile || createdQ.rows[0],
+      opening_balance: Number(initialBalance.toFixed(2)),
+      default_email: emailResult,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    return handleError(res, "Admin user create error", err);
+  } finally {
+    client.release();
+  }
+});
+
+app.get("/api/admin/users/:email/profile", adminAuthMiddleware, async (req, res) => {
+  try {
+    const email = normalizeEmailParam(req.params.email);
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid user email" });
+
+    const user = await getAdminUserProfileByEmail(email);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    return res.json(user);
+  } catch (err) {
+    return handleError(res, "Admin profile fetch error", err);
+  }
+});
+
 app.patch("/api/admin/users/:email", adminAuthMiddleware, async (req, res) => {
   try {
     const email = normalizeEmailParam(req.params.email);
@@ -1303,6 +1576,194 @@ app.post("/api/admin/users/:email/adjust-balance", adminAuthMiddleware, async (r
     return handleError(res, "Admin balance adjustment error", err);
   } finally {
     client.release();
+  }
+});
+
+app.put("/api/admin/users/:email/profile", adminAuthMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const email = normalizeEmailParam(req.params.email);
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid user email" });
+
+    await client.query("BEGIN");
+
+    const userExistsQ = await client.query(
+      "SELECT user_email FROM users WHERE LOWER(user_email)=LOWER($1) LIMIT 1",
+      [email]
+    );
+    if (!userExistsQ.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const userAllowed = {
+      fullname: "fullname",
+      phone: "phone",
+      accountname: "accountname",
+      suspended: "suspended",
+    };
+
+    const userUpdates = [];
+    const userValues = [];
+    let userIndex = 1;
+
+    Object.entries(userAllowed).forEach(([key, column]) => {
+      if (!Object.prototype.hasOwnProperty.call(req.body || {}, key)) return;
+      const value = key === "suspended" ? Boolean(req.body[key]) : String(req.body[key] ?? "").trim();
+      userUpdates.push(`${column}=$${userIndex++}`);
+      userValues.push(value);
+    });
+
+    if (userUpdates.length) {
+      userValues.push(email);
+      await client.query(
+        `UPDATE users
+         SET ${userUpdates.join(", ")}, updated_at=NOW()
+         WHERE LOWER(user_email)=LOWER($${userIndex})`,
+        userValues
+      );
+    }
+
+    const profileAllowed = [
+      "dob",
+      "citizenship_status",
+      "address_line1",
+      "address_line2",
+      "city",
+      "state",
+      "postal_code",
+      "country",
+      "occupation",
+      "employer",
+      "mailing_same_as_residential",
+      "mailing_address_line1",
+      "mailing_address_line2",
+      "mailing_city",
+      "mailing_state",
+      "mailing_postal_code",
+      "mailing_country",
+    ];
+
+    const providedProfileFields = profileAllowed.filter((field) =>
+      Object.prototype.hasOwnProperty.call(req.body || {}, field)
+    );
+
+    if (providedProfileFields.length) {
+      const insertColumns = ["user_email", ...providedProfileFields];
+      const insertValues = [email, ...providedProfileFields.map((field) => {
+        if (field === "mailing_same_as_residential") {
+          return Boolean(req.body[field]);
+        }
+        if (field === "dob") {
+          return req.body[field] || null;
+        }
+        return toTrimmedOrNull(req.body[field]);
+      })];
+
+      const placeholders = insertColumns.map((_, i) => `$${i + 1}`);
+      const updateClause = providedProfileFields
+        .map((column) => `${column}=EXCLUDED.${column}`)
+        .concat("updated_at=NOW()")
+        .join(", ");
+
+      try {
+        await client.query(
+          `INSERT INTO user_profiles (${insertColumns.join(", ")})
+           VALUES (${placeholders.join(", ")})
+           ON CONFLICT (user_email) DO UPDATE SET ${updateClause}`,
+          insertValues
+        );
+      } catch (profileErr) {
+        if (!isMissingProfileTableError(profileErr)) throw profileErr;
+      }
+    }
+
+    await client.query("COMMIT");
+
+    const updated = await getAdminUserProfileByEmail(email);
+    return res.json(updated || { user_email: email });
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    return handleError(res, "Admin profile update error", err);
+  } finally {
+    client.release();
+  }
+});
+
+app.post("/api/admin/users/:email/send-default-email", adminAuthMiddleware, async (req, res) => {
+  try {
+    const email = normalizeEmailParam(req.params.email);
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid user email" });
+
+    if (!canSendEmail()) {
+      return res.status(503).json({ error: "Mailer is not configured" });
+    }
+
+    const userQ = await pool.query(
+      `SELECT user_email, fullname, accountname
+       FROM users
+       WHERE LOWER(user_email)=LOWER($1)
+       LIMIT 1`,
+      [email]
+    );
+    if (!userQ.rowCount) return res.status(404).json({ error: "User not found" });
+
+    const templateKey = String(req.body?.templateKey || "registrationReceived").trim();
+    const templates = loadEmailTemplates();
+    const template = templates[templateKey];
+
+    if (!template || typeof template !== "object") {
+      return res.status(400).json({
+        error: "Invalid templateKey",
+        availableTemplates: Object.keys(templates),
+      });
+    }
+
+    const toEmail = String(req.body?.to || email).trim().toLowerCase();
+    if (!validateEmail(toEmail)) return res.status(400).json({ error: "Invalid recipient email" });
+
+    const data = toAdminTemplateData(userQ.rows[0], req.body?.data || {});
+
+    const subject = renderTemplate(
+      req.body?.subjectOverride || template.subject || "Notification",
+      data.plain
+    );
+    const title = renderTemplate(
+      req.body?.titleOverride || template.title || subject,
+      data.plain
+    );
+    const preheader = renderTemplate(
+      req.body?.preheaderOverride || template.preheader || "",
+      data.plain
+    );
+    const text = renderTemplate(
+      req.body?.textOverride || template.text || subject,
+      data.plain
+    );
+    const bodyHtml = renderTemplate(
+      req.body?.bodyHtmlOverride || template.bodyHtml || `<p>${escapeHtml(subject)}</p>`,
+      data.html
+    );
+
+    await sendBrandedEmail({
+      to: toEmail,
+      subject,
+      title,
+      preheader,
+      text,
+      bodyHtml,
+      userId: userQ.rows[0].user_email,
+    });
+
+    return res.json({
+      success: true,
+      to: toEmail,
+      templateKey,
+      subject,
+      message: "Default email sent successfully",
+    });
+  } catch (err) {
+    return handleError(res, "Admin manual default email error", err);
   }
 });
 
@@ -1779,7 +2240,7 @@ app.post("/api/login", async (req, res) => {
     user.email = user.user_email;
 
     if (user.suspended) {
-      return sendError(403, "Account suspended");
+      return sendError(403, "Account restricted");
     }
 
     const ok = await bcrypt.compare(password, user.password_hash);

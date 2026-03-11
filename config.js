@@ -11,7 +11,7 @@
   } 
   // Production (Render)
   else {
-    window.BACKEND_ORIGIN = "https://polaris-uru5.onrender.com";
+    window.BACKEND_ORIGIN = "https://api.basecrypto.help";
   }
 
   // API base

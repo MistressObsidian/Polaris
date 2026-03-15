@@ -5,7 +5,7 @@
   <title>Payments · Home</title>
   <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
   <link rel="stylesheet" href="ui.css" />
-  <link rel="icon" href="base.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
   <style>
     :root { --bg:#0d0f14; --panel:#141a24; --border:#1f2530; --ink:#eef3f8; --muted:#8aa0b9; --muted2:#7a889a; --pill:#1f2733; --accent:#2663ff; --ok:#10b981; --warn:#f59e0b; }
     * { box-sizing: border-box; }
@@ -207,7 +207,8 @@
     let user = null;
     let userStream = null;
     let currentMethod = 'billpay';
-    const SSE_RECONNECT_MS = 5000;
+    let paymentsEnabled = true;
+    const SSE_RECONNECT_MS = 2000;
     const qs = (s)=>document.querySelector(s);
     const qsa = (s)=>Array.from(document.querySelectorAll(s));
 
@@ -254,6 +255,31 @@
     function authHeaders(){
       return { 'Content-Type':'application/json', ...getAuthHeaders() };
     }
+
+    function setPaymentsAvailability(enabled, reason = '') {
+      paymentsEnabled = Boolean(enabled);
+      const message = reason || 'Payments are currently disabled by admin.';
+
+      qsa('#payForm input, #payForm select, #payForm textarea, #payForm button, .tabs .tab').forEach((el) => {
+        el.disabled = !paymentsEnabled;
+      });
+
+      if (!paymentsEnabled) {
+        qs('#formError').textContent = message;
+      } else if (qs('#formError').textContent === message) {
+        qs('#formError').textContent = '';
+      }
+    }
+
+    async function loadSettings(){
+      try {
+        const data = await fetchJSON('/api/settings');
+        setPaymentsAvailability(data?.paymentsEnabled !== false);
+      } catch {
+        setPaymentsAvailability(true);
+      }
+    }
+
     async function fetchJSON(url, opts={}){
       const isAbsolute = /^https?:\/\//i.test(String(url || ''));
       const target = isAbsolute ? url : apiUrl(url);
@@ -279,6 +305,11 @@
     async function handleSubmit(e){
       e.preventDefault();
       qs('#formError').textContent = '';
+
+      if (!paymentsEnabled) {
+        qs('#formError').textContent = 'Payments are currently disabled by admin.';
+        return;
+      }
 
       const fd = new FormData(qs('#payForm'));
       const payload = {
@@ -444,6 +475,7 @@
     (function init(){
       if (window.Notifications) window.Notifications.init();
       if (!loadStoredUser()) return;
+      loadSettings();
       bindUI();
       selectMethod('billpay');
       startUserStream(user);

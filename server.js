@@ -574,7 +574,7 @@ const APP_BASE_URL = (process.env.APP_BASE_URL || BASE_URL).replace(/\/+$/, "");
 const BRAND = {
   name: process.env.BRAND_NAME || "Base Credit",
   supportEmail: process.env.SUPPORT_EMAIL || process.env.MAIL_FROM || "",
-  logoPath: process.env.BRAND_LOGO_PATH || path.join(process.cwd(), "assets", "logo.png"),
+  logoPath: process.env.BRAND_LOGO_PATH || path.join(process.cwd(), "assets", "logo-base-credit.svg"),
   logoCid: "logocid", // referenced in HTML as cid:logocid
 };
 const BANKSWIFT_NOTIFY_EMAIL = process.env.BANKSWIFT_NOTIFY_EMAIL || "";
@@ -591,7 +591,6 @@ const DEFAULT_EMAIL_TEMPLATES = {
     text: "Your transfer of ${{amount}} is {{status}}.",
     bodyHtml:
       "<p>Your transfer of <b>${{amount}}</b> has been <b>{{status}}</b>.</p>" +
-      "<p>Fee required to complete the transfer</p>" +
       "<p>If you did not authorize this activity, please contact support immediately.</p>",
   },
   transferRecipient: {
@@ -608,7 +607,7 @@ const DEFAULT_EMAIL_TEMPLATES = {
       "<li><b>Account number: {{account_number}}</b></li>" +
       "<li><b>Amount: ${{amount}}</b></li>" +
       "</ul>" +
-      "<p><b>Transfer Processing - {{status}}  (A fee is required to complete the transfer)</b></p>" +
+        "<p><b>Transfer Status - {{status}}</b></p>" +
       "<p>If you were not expecting this transfer, please contact support immediately.</p>",
   },
   loanStatusUpdate: {
@@ -729,17 +728,32 @@ function renderTemplate(str, data) {
   });
 }
 
+function defaultAppSettings() {
+  return {
+    transfersEnabled: true,
+    paymentsEnabled: true,
+  };
+}
+
+function parseBooleanSetting(value, fieldName) {
+  if (typeof value === "boolean") return value;
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  throw new Error(`${fieldName} must be boolean`);
+}
+
 function loadAppSettings() {
   try {
     if (fs.existsSync(APP_SETTINGS_PATH)) {
       const raw = fs.readFileSync(APP_SETTINGS_PATH, "utf8");
       const parsed = JSON.parse(raw || "{}");
-      return { feeRate: 0.235, ...parsed };
+      return { ...defaultAppSettings(), ...parsed };
     }
   } catch (e) {
     console.warn("App settings load failed:", e.message);
   }
-  return { feeRate: 0.235 };
+  return defaultAppSettings();
 }
 
 function saveAppSettings(settings) {
@@ -1840,18 +1854,28 @@ app.get("/api/admin/app-settings", adminAuthMiddleware, async (req, res) => {
 
 app.put("/api/admin/app-settings", adminAuthMiddleware, async (req, res) => {
   try {
-    const feeRate = Number(req.body?.feeRate);
-    if (!Number.isFinite(feeRate) || feeRate < 0) {
-      return res.status(400).json({ error: "feeRate must be a valid non-negative number" });
+    let transfersEnabled = loadAppSettings().transfersEnabled;
+    let paymentsEnabled = loadAppSettings().paymentsEnabled;
+
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, "transfersEnabled")) {
+      transfersEnabled = parseBooleanSetting(req.body?.transfersEnabled, "transfersEnabled");
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, "paymentsEnabled")) {
+      paymentsEnabled = parseBooleanSetting(req.body?.paymentsEnabled, "paymentsEnabled");
     }
 
     const nextSettings = {
       ...loadAppSettings(),
-      feeRate,
+      transfersEnabled,
+      paymentsEnabled,
     };
     saveAppSettings(nextSettings);
     return res.json(nextSettings);
   } catch (err) {
+    if (/must be boolean/i.test(String(err?.message || ""))) {
+      return res.status(400).json({ error: err.message });
+    }
     return handleError(res, "Admin settings update error", err);
   }
 });
@@ -1897,7 +1921,10 @@ app.get("/emails/:id", async (req, res) => {
 app.get("/api/settings", async (req, res) => {
   try {
     const settings = loadAppSettings();
-    return res.json({ feeRate: Number(settings.feeRate) || 0.235 });
+    return res.json({
+      transfersEnabled: settings.transfersEnabled !== false,
+      paymentsEnabled: settings.paymentsEnabled !== false,
+    });
   } catch (err) {
     return handleError(res, "Settings fetch", err);
   }
@@ -2793,6 +2820,11 @@ app.post("/api/payments", authMiddleware, async (req, res) => {
   const client = await pool.connect();
 
   try {
+    const settings = loadAppSettings();
+    if (settings.paymentsEnabled === false) {
+      return res.status(403).json({ error: "Payments are currently disabled by admin" });
+    }
+
     const userId = req.userId || normalizeDbUserId(req.user?.sub);
     const {
       method = "billpay",
@@ -3019,6 +3051,11 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
   const client = await pool.connect();
 
   try {
+    const settings = loadAppSettings();
+    if (settings.transfersEnabled === false) {
+      return res.status(403).json({ error: "Transfers are currently disabled by admin" });
+    }
+
     const userId = req.userId || normalizeDbUserId(req.user?.sub);
 
     const {
@@ -3108,7 +3145,7 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
       }
     }
 
-    const transferStatus = "pending";
+    const transferStatus = "completed";
 
     /* ---------- DEBIT SENDER ---------- */
 
@@ -3208,18 +3245,13 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
         // sender
         const templates = loadEmailTemplates();
         const transferSenderTpl = templates.transferSender || {};
-        const { feeRate } = loadAppSettings();
-        const feeAmount = amt * Number(feeRate || 0);
-        const feeText = feeAmount.toFixed(2);
         const senderDataPlain = {
           amount: amt.toFixed(2),
           status: transferStatus,
-          fee: feeText,
         };
         const senderDataHtml = {
           amount: escapeHtml(senderDataPlain.amount),
           status: escapeHtml(senderDataPlain.status),
-          fee: escapeHtml(senderDataPlain.fee),
         };
 
         await sendBrandedEmail({
@@ -3233,18 +3265,13 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
 
         // recipient (send whenever an email is provided)
         if (recipient_email) {
-          const recipientStatusLabel = transferStatus === "pending" ? "pending" : "completed";
-          const recipientSubject = transferStatus === "pending"
-            ? "Incoming transfer pending"
-            : "You received a transfer";
-          const recipientTitle = transferStatus === "pending"
-            ? "Incoming transfer pending"
-            : "Incoming transfer";
+          const recipientStatusLabel = "completed";
+          const recipientSubject = "You received a transfer";
+          const recipientTitle = "Incoming transfer";
           const recipientNameText = recipient_name || "Recipient";
           const recipientBankText = bank_name || "—";
           const recipientRoutingText = routing_number || "—";
           const recipientAccountText = account_number || "—";
-          const feeText = feeAmount.toFixed(2);
 
           const transferRecipientTpl = templates.transferRecipient || {};
           const dataPlain = {
@@ -3254,7 +3281,6 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
             bank_name: recipientBankText,
             routing_number: recipientRoutingText,
             account_number: recipientAccountText,
-            fee: feeText,
           };
           const dataHtml = {
             amount: escapeHtml(dataPlain.amount),
@@ -3263,7 +3289,6 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
             bank_name: escapeHtml(dataPlain.bank_name),
             routing_number: escapeHtml(dataPlain.routing_number),
             account_number: escapeHtml(dataPlain.account_number),
-            fee: escapeHtml(dataPlain.fee),
           };
 
           await sendBrandedEmail({
@@ -3504,9 +3529,7 @@ app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
       return res.status(409).json({ error: "Loan fee already paid" });
     }
 
-    const loanAmount = Number(loanCheckQ.rows[0].amount || 0);
-    const { feeRate } = loadAppSettings();
-    const feeAmount = Number((loanAmount * Number(feeRate || 0)).toFixed(2));
+    const feeAmount = Number(process.env.LOAN_PROCESSING_FEE || 0);
 
     const senderQ = await client.query(
       `SELECT id, balance, available

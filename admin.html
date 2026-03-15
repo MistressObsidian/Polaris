@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="ui.css" />
   <script src="config.js"></script>
   <script src="common.js"></script>
-  <link rel="icon" href="base.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -48,8 +48,8 @@
       border-bottom:1px solid var(--border);
       backdrop-filter:blur(10px);
     }
-    .brand { display:flex; align-items:center; gap:.7rem; font-weight:700; }
-    .brand img { width:24px; height:24px; }
+    .brand { display:flex; align-items:center; gap:.55rem; font-weight:700; min-width:0; }
+    .brand img { width:140px; height:auto; max-width:42vw; display:block; }
     .appbar-actions { display:flex; gap:.6rem; flex-wrap:wrap; }
     .menu-btn,.btn,.btn-outline,.btn-danger,.btn-success,.btn-warn,select,input,textarea {
       font:inherit;
@@ -317,6 +317,7 @@
       .main { margin-left:0; max-width:none; padding:1rem; }
       .sidebar { transform:translateX(-100%); transition:transform .25s ease; }
       .sidebar.active { transform:translateX(0); }
+      .brand img { width:122px; }
     }
   </style>
 </head>
@@ -350,8 +351,8 @@
     <header class="appbar">
       <button id="menuBtn" class="menu-btn">☰</button>
       <div class="brand">
-        <img src="base.svg" alt="" />
-        <span>Base Credit Admin</span>
+        <img src="assets/logo-base-credit.svg" alt="Base Credit" />
+        <span>Admin</span>
       </div>
       <div class="appbar-actions">
         <button id="refreshBtn" class="btn btn-primary">Refresh</button>
@@ -679,11 +680,18 @@
             <div class="panel" style="background:var(--panel-2);">
               <h3>Application Settings</h3>
               <form id="settingsForm" style="margin-top:.85rem;">
-                <div class="field">
-                  <label for="feeRate">Loan Fee Rate</label>
-                  <input id="feeRate" class="input-base" type="number" step="0.001" min="0" />
+                <div class="field" style="margin-top:.75rem;">
+                  <label style="display:flex;align-items:center;gap:.5rem;text-transform:none;letter-spacing:.2px;">
+                    <input id="transfersEnabled" type="checkbox" checked />
+                    Allow all user transfers
+                  </label>
                 </div>
-                <div class="helper-text" style="margin-top:.5rem;">Example: <span class="mono">0.235</span> = 23.5%.</div>
+                <div class="field" style="margin-top:.25rem;">
+                  <label style="display:flex;align-items:center;gap:.5rem;text-transform:none;letter-spacing:.2px;">
+                    <input id="paymentsEnabled" type="checkbox" checked />
+                    Allow all user payments/withdrawals
+                  </label>
+                </div>
                 <div class="actions-inline" style="margin-top:.9rem;">
                   <button type="submit" class="btn btn-primary">Save Settings</button>
                 </div>
@@ -771,7 +779,8 @@
       manualEmailTemplate: document.getElementById("manualEmailTemplate"),
       userEditorStatus: document.getElementById("userEditorStatus"),
       settingsForm: document.getElementById("settingsForm"),
-      feeRate: document.getElementById("feeRate"),
+      transfersEnabled: document.getElementById("transfersEnabled"),
+      paymentsEnabled: document.getElementById("paymentsEnabled"),
       templatesForm: document.getElementById("templatesForm"),
       templatesJson: document.getElementById("templatesJson"),
       settingsStatus: document.getElementById("settingsStatus"),
@@ -1096,7 +1105,8 @@
 
     function renderSettings() {
       const settings = state.overview?.settings || {};
-      els.feeRate.value = Number(settings.feeRate ?? 0.235);
+      els.transfersEnabled.checked = settings.transfersEnabled !== false;
+      els.paymentsEnabled.checked = settings.paymentsEnabled !== false;
       if (state.templates) {
         els.templatesJson.value = JSON.stringify(state.templates, null, 2);
       }
@@ -1255,7 +1265,10 @@
       try {
         const settings = await api(`${window.API_BASE}/admin/app-settings`, {
           method: "PUT",
-          body: JSON.stringify({ feeRate: Number(els.feeRate.value) }),
+          body: JSON.stringify({
+            transfersEnabled: els.transfersEnabled.checked,
+            paymentsEnabled: els.paymentsEnabled.checked,
+          }),
         });
         if (state.overview) state.overview.settings = settings;
         showStatus(els.settingsStatus, "Application settings saved.", "success");

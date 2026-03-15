@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="ui.css" />
   <script src="config.js"></script>
   <script src="common.js"></script>
-  <link rel="icon" href="base.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -23,8 +23,8 @@
       display:flex; align-items:center; justify-content:space-between; gap:.75rem;
       padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:rgba(13,15,20,.9); backdrop-filter: blur(10px);
     }
-    .brand { display:flex; align-items:center; gap:.6rem; font-weight:700; min-width:0; }
-    .brand img { width:22px; height:22px; }
+    .brand { display:flex; align-items:center; gap:.55rem; font-weight:700; min-width:0; }
+    .brand img { width:140px; height:auto; max-width:42vw; display:block; }
     .brand span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .menu-btn { display:none; background:#1d2733; color:#e9eef5; border:none; border-radius:10px; padding:.55rem .75rem; cursor:pointer; }
     .menu-btn:hover { background:#233040; }
@@ -144,7 +144,8 @@
     @media (max-width: 400px){
       header.appbar { padding:.85rem .8rem; }
       .menu-btn { padding:.5rem .7rem; }
-      .brand span { font-size:.92rem; }
+      .brand img { width:122px; }
+      .brand span { font-size:.84rem; }
       .panel, .hero { border-radius:12px; }
     }
   </style>
@@ -154,8 +155,8 @@
   <header class="appbar">
     <button id="menuBtn" class="menu-btn">☰</button>
     <div class="brand">
-      <img src="base.svg" alt="" />
-      <span>Base Credit</span>
+      <img src="assets/logo-base-credit.svg" alt="Base Credit" />
+      <span>Dashboard</span>
     </div>
     <a class="btn" href="settings.html">⚙️ Settings</a>
   </header>

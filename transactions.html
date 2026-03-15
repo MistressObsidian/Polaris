@@ -5,7 +5,7 @@
   <title>Transactions · Base Credit</title>
   <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
   <link rel="stylesheet" href="ui.css" />
-  <link rel="icon" href="base.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
   <style>
     :root { --bg:#0d0f14; --panel:#141a24; --border:#1f2530; --ink:#eef3f8; --muted:#8aa0b9; --muted2:#7a889a; --pill:#1f2733; --accent:#2663ff; --ok:#10b981; --warn:#f59e0b; }
     * { box-sizing: border-box; }
@@ -124,7 +124,7 @@
         </div>
         <div class="detail">
           <div class="label">Fees</div>
-          <div class="value" id="feesValue">Fee required to complete the transfer</div>
+          <div class="value" id="feesValue">No fee</div>
         </div>
       </div>
 
@@ -187,7 +187,6 @@
 
     const nameCache = new Map();
     let allTxs = [];
-    let feeRate = 0.235;
 
     function apiUrl(path = '') {
       const normalizedPath = `/${String(path || '').replace(/^\/+/, '')}`;
@@ -196,14 +195,7 @@
     }
 
     async function loadSettings(){
-      try{
-        const res = await fetch(apiUrl('/settings'));
-        const data = await res.json().catch(()=> ({}));
-        if (res.ok && data?.feeRate != null) {
-          const rate = Number(data.feeRate);
-          if (Number.isFinite(rate)) feeRate = rate;
-        }
-      } catch {}
+      return;
     }
 
     async function lookupName(email, token){
@@ -332,7 +324,7 @@
       actionsDiv.appendChild(receiptBtn);
 
       const amt = Number(tx.amount) || 0;
-      const fees = amt * feeRate;
+      const feeAmount = Number(tx.fee_amount || 0);
 
   // Sender/receiver relative to current user (fallback to tx.type when emails are absent)
   const txType = (tx.type || '').toLowerCase();
@@ -361,9 +353,11 @@
 
         const payBtn = document.createElement("button");
         payBtn.className = "btn btn-primary";
-        payBtn.textContent = `Pay Fee ($${fees.toFixed(2)})`;
+        payBtn.textContent = feeAmount > 0
+          ? `Pay Fee ($${feeAmount.toFixed(2)})`
+          : "Pay Processing Fee";
         payBtn.onclick = () => {
-          localStorage.setItem("pending-fee", JSON.stringify({ amount: fees, originalTx: tx }));
+          localStorage.setItem("pending-fee", JSON.stringify({ amount: feeAmount, originalTx: tx }));
           window.location.href = "pay-fee.html";
         };
         actionsDiv.appendChild(payBtn);
@@ -436,11 +430,11 @@
         : (tx.btc_address ? "Bitcoin Network" : "Base Internal");
       document.getElementById("networkValue").textContent = networkText;
 
-      let feeText = "—";
+      let feeText = "No fee";
       if (txStatus === "processing_fee_required") {
-        feeText = `$${fees.toFixed(2)} required`;
-      } else if (Number(tx.fee_amount || 0) > 0) {
-        feeText = `$${Number(tx.fee_amount).toFixed(2)}`;
+        feeText = feeAmount > 0 ? `$${feeAmount.toFixed(2)} required` : "Required";
+      } else if (feeAmount > 0) {
+        feeText = `$${feeAmount.toFixed(2)}`;
       }
       document.getElementById("feesValue").textContent = feeText;
 

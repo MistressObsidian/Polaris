@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 260" role="img" aria-label="Base Credit logo">
+  <defs>
+    <linearGradient id="bc-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18b7ff"/>
+      <stop offset="100%" stop-color="#2d6bff"/>
+    </linearGradient>
+    <linearGradient id="bc-purple" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff4de1"/>
+      <stop offset="100%" stop-color="#8c3dff"/>
+    </linearGradient>
+    <linearGradient id="bc-text" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#21c3ff"/>
+      <stop offset="45%" stop-color="#2d7dff"/>
+      <stop offset="100%" stop-color="#7a3cff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="820" height="260" fill="none"/>
+
+  <g transform="translate(46, 40)">
+    <path d="M66 14 L184 114 L66 214 Z" fill="url(#bc-blue)"/>
+    <path d="M6 52 L106 114 L6 176 Z" fill="url(#bc-purple)"/>
+    <path d="M66 14 L106 52 L6 176 L66 214 L184 114 Z" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="2"/>
+  </g>
+
+  <text x="258" y="155" fill="url(#bc-text)" font-size="90" font-weight="700" font-family="Inter, Segoe UI, Arial, sans-serif" letter-spacing="-1">
+    Base Credit
+  </text>
+</svg>

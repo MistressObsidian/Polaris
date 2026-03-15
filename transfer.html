@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <title>Transfer · Home</title>
   <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
-  <link rel="icon" href="base.svg" type="image/svg+xml" />
-  <link rel="shortcut icon" href="base.svg" />
+  <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
+  <link rel="shortcut icon" href="assets/favicon-base-credit.svg" />
   <link rel="stylesheet" href="ui.css" />
   <style>
     body { background:#0d0f14; color:#eef3f8; font-family: system-ui, Arial, sans-serif; }
@@ -184,7 +184,7 @@
   <!-- Success Modal -->
   <div id="successModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="successTitle">
     <div class="card">
-      <div class="ok">✅ <strong id="successTitle">Transfer Processing</strong></div>
+      <div class="ok">✅ <strong id="successTitle">Transfer Successful</strong></div>
       <div class="kvs" id="successDetails"></div>
       <div class="actions">
         <button class="btn" id="closeModalBtn">Close</button>
@@ -199,8 +199,8 @@
     let user = null;
     let userStream = null;
     let currentMethod = 'wire';
-    let feeRate = 0.235;
-    const SSE_RECONNECT_MS = 5000;
+    let transfersEnabled = true;
+    const SSE_RECONNECT_MS = 2000;
 
     const qs = (s)=>document.querySelector(s);
     const qsa = (s)=>Array.from(document.querySelectorAll(s));
@@ -235,14 +235,26 @@
       return true;
     }
 
-    async function loadFeeRate(){
+    function setTransfersAvailability(enabled, reason = '') {
+      transfersEnabled = Boolean(enabled);
+      const message = reason || 'Transfers are currently disabled by admin.';
+
+      qsa('#transferForm input, #transferForm select, #transferForm textarea, #transferForm button, .tabs .tab').forEach((el) => {
+        el.disabled = !transfersEnabled;
+      });
+
+      if (!transfersEnabled) {
+        qs('#formError').textContent = message;
+      } else if (qs('#formError').textContent === message) {
+        qs('#formError').textContent = '';
+      }
+    }
+
+    async function loadSettings(){
       try {
         const res = await fetch(apiUrl('/settings'));
         const data = await res.json();
-        if (res.ok && data?.feeRate != null) {
-          const rate = Number(data.feeRate);
-          if (Number.isFinite(rate)) feeRate = rate;
-        }
+        setTransfersAvailability(data?.transfersEnabled !== false);
       } catch {}
     }
     function updateBalancePillFromAccounts(accounts){
@@ -317,6 +329,11 @@
       e.preventDefault();
       qs('#formError').textContent = '';
 
+      if (!transfersEnabled) {
+        qs('#formError').textContent = 'Transfers are currently disabled by admin.';
+        return;
+      }
+
       const form = e.currentTarget;
       const fd = new FormData(form);
       const payload = {
@@ -371,13 +388,11 @@
 
         // Success modal
         const recipientDisplay = payload.recipient_name || '—';
-        const feeAmount = payload.amount * feeRate;
         document.getElementById('successDetails').innerHTML = `
           <div class="kv"><span>Recipient</span><strong>${recipientDisplay}</strong></div>
           <div class="kv"><span>Amount</span><strong>${fmtAmt(payload.amount)}</strong></div>
-          <div class="kv"><span>Fee</span><strong>${fmtAmt(feeAmount)}</strong></div>
           <div class="kv"><span>Method</span><strong>${currentMethod.toUpperCase()}</strong></div>
-          <div class="kv"><span>Status</span><strong>PENDING</strong></div>
+          <div class="kv"><span>Status</span><strong>SUCCESSFUL</strong></div>
         `;
         document.getElementById('successModal').style.display = 'flex';
 
@@ -393,7 +408,7 @@
           recipient_fullname: tx.recipient_fullname || payload.recipient_name || null,
           sender_account_name: tx.sender_account_name || user.accountname || null,
           recipient_account_name: tx.recipient_account_name || payload.recipient_name || null,
-          status: 'pending',
+          status: 'completed',
           created_at: tx.created_at || new Date().toISOString()
         }));
 
@@ -452,7 +467,7 @@
     (async function init(){
       if (window.Notifications) window.Notifications.init();
       if (!loadStoredUser()) return;
-      await loadFeeRate();
+      await loadSettings();
       await refreshProfile();
       bindUI();
       selectMethod('wire');

@@ -6,8 +6,8 @@ import fs from 'fs';
 let mailer = null;
 
 // Optional logo for emails
-const BRAND_LOGO_PATH = process.env.BRAND_LOGO_PATH || path.join(process.cwd(), 'assets', 'logo.png');
-const BRAND_LOGO_CID = 'bankswiftlogo';
+const BRAND_LOGO_PATH = process.env.BRAND_LOGO_PATH || path.join(process.cwd(), 'assets', 'logo-base-credit.svg');
+const BRAND_LOGO_CID = 'basecreditlogo';
 
 /**
  * Initialize SMTP mailer

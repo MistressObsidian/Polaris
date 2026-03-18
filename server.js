@@ -25,7 +25,6 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { Pool } from "pg";
 import crypto from "crypto";
 import path from "path";
 import fs from "fs";
@@ -88,8 +87,7 @@ const PORT = Number(process.env.PORT) || 4000;
 
 const DATABASE_URL = process.env.DATABASE_URL || "";
 if (!DATABASE_URL) {
-  console.error("❌ Missing DATABASE_URL in environment");
-  process.exit(1);
+  console.warn("⚠️ Missing DATABASE_URL in environment; database routes will fail until it is configured");
 }
 
 if (NODE_ENV === "production" && !process.env.JWT_SECRET) {
@@ -204,6 +202,66 @@ function handleError(res, label, err) {
   console.error(label, err);
   if (NODE_ENV === "production") return res.status(500).json({ error: "Server error" });
   return res.status(500).json({ error: err.message || "Server error", stack: err.stack });
+}
+
+let pool;
+let dbReady = false;
+let dbInitPromise = null;
+let mailerInitPromise = null;
+
+async function getDB() {
+  if (dbReady && pool) return pool;
+  if (dbInitPromise) return dbInitPromise;
+  if (!DATABASE_URL) throw new Error("DATABASE_URL is not configured");
+
+  dbInitPromise = (async () => {
+    const pkg = await import("pg");
+    const { Pool } = pkg;
+
+    const nextPool = new Pool({
+      connectionString: DATABASE_URL,
+      ssl: getSSLFromDatabaseUrl(DATABASE_URL),
+    });
+
+    await nextPool.query("SELECT 1");
+    pool = nextPool;
+    initBank(pool);
+    dbReady = true;
+
+    console.log("✅ Postgres connected");
+    console.log("✅ Bank module initialized");
+
+    return pool;
+  })();
+
+  try {
+    return await dbInitPromise;
+  } catch (err) {
+    dbInitPromise = null;
+    throw err;
+  }
+}
+
+function hasMailerConfig() {
+  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
+async function ensureMailerReady() {
+  if (isMailerReady()) return true;
+  if (mailerInitPromise) {
+    await mailerInitPromise;
+    return isMailerReady();
+  }
+
+  mailerInitPromise = initMailerUtils();
+
+  try {
+    await mailerInitPromise;
+  } finally {
+    mailerInitPromise = null;
+  }
+
+  return isMailerReady();
 }
 
 async function authMiddleware(req, res, next) {
@@ -543,30 +601,8 @@ const registerUploads = upload.fields([
   { name: "proof_of_address", maxCount: 1 },
 ]);
 
-// --- Postgres Pool ---
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl: getSSLFromDatabaseUrl(DATABASE_URL),
-});
-
-// Initialize bank module and verify DB
-(async function verifyDB() {
-  try {
-    await pool.query("SELECT 1");
-    
-    // Initialize bank module with pool
-    initBank(pool);
-
-    console.log("✅ Postgres connected");
-    console.log("✅ Bank module initialized");
-  } catch (e) {
-    console.error("❌ Postgres connection failed at startup:", e);
-    process.exit(1);
-  }
-})();
-
 function canSendEmail() {
-  return isMailerReady();
+  return isMailerReady() || hasMailerConfig();
 }
 
 // ---- Branded Email Helper (logo on every email) ----
@@ -813,6 +849,8 @@ function buildBrandedEmailHtml({ title, preheader = "", bodyHtml, emailId = "", 
 
 async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text, attachments = [], userId = null }) {
   if (!canSendEmail()) throw new Error("Mailer not configured (SMTP env vars missing)");
+  await ensureMailerReady();
+  if (!isMailerReady()) throw new Error("Mailer not configured (SMTP env vars missing)");
   if (!to) throw new Error("Missing recipient email (to)");
   if (!subject) throw new Error("Missing subject");
 
@@ -1003,6 +1041,22 @@ app.options("*", cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 
+app.get("/ping", (req, res) => {
+  res.status(200).send("ok");
+});
+
+app.use(async (req, res, next) => {
+  if (req.path === "/ping") return next();
+  if (!req.path.startsWith("/api/") && !req.path.startsWith("/emails/")) return next();
+
+  try {
+    await getDB();
+    return next();
+  } catch (err) {
+    return handleError(res, "Database initialization error", err);
+  }
+});
+
 function sha256Hex(input) {
   return crypto.createHash("sha256").update(String(input)).digest("hex");
 }
@@ -1022,6 +1076,8 @@ function getAppBaseUrl(req) {
 
 async function sendPasswordResetEmail({ to, resetLink }) {
   if (!canSendEmail()) throw new Error("Mailer not configured (SMTP env vars missing)");
+  await ensureMailerReady();
+  if (!isMailerReady()) throw new Error("Mailer not configured (SMTP env vars missing)");
   await sendEmail(to, "Reset your password", `
       <div style="font-family:Arial,sans-serif;line-height:1.4">
         <p>You requested a password reset.</p>
@@ -3673,10 +3729,15 @@ app.get(/^\/(?!api\/).*/, (req, res) => res.sendFile(path.join(__dirname, "index
 // --- Start ---
 app.listen(PORT, () => {
   console.log(`🚀 Server running at ${BASE_URL} (env=${NODE_ENV})`);
-
-  (async () => {
-    await initMailerUtils();
-  })().catch((err) => {
-    console.warn("Mailer startup init failed:", err?.message || err);
-  });
+  console.log(`🚀 Server listening on port ${PORT}`);
 });
+
+setTimeout(() => {
+  getDB().catch((err) => {
+    console.warn("Background DB warmup failed:", err?.message || err);
+  });
+
+  ensureMailerReady().catch((err) => {
+    console.warn("Background mailer warmup failed:", err?.message || err);
+  });
+}, 2000);

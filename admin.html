@@ -119,6 +119,28 @@
     }
     .hero h1 { margin:.1rem 0 .5rem; font-size:1.35rem; }
     .hero-subtitle { margin:0 0 1rem; color:var(--muted2); }
+    .guide-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:.75rem;
+      margin:0 0 1rem;
+    }
+    .guide-card {
+      background:rgba(255,255,255,.04);
+      border:1px solid #223048;
+      border-radius:12px;
+      padding:.9rem 1rem;
+    }
+    .guide-card h3 {
+      margin:0 0 .35rem;
+      font-size:.95rem;
+    }
+    .guide-card p {
+      margin:0;
+      color:var(--muted2);
+      font-size:.86rem;
+      line-height:1.5;
+    }
     .pills { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.85rem; }
     .pill {
       background:var(--pill);
@@ -127,6 +149,22 @@
       padding:.35rem .65rem;
       font-size:.74rem;
     }
+    .scope-badge {
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+      border-radius:999px;
+      padding:.26rem .6rem;
+      font-size:.7rem;
+      font-weight:800;
+      letter-spacing:.7px;
+      text-transform:uppercase;
+      background:#1b2330;
+      color:#d7e4f3;
+      margin-bottom:.45rem;
+    }
+    .scope-global { background:rgba(38,99,255,.16); color:#9dc0ff; }
+    .scope-user { background:rgba(16,185,129,.16); color:#86efac; }
     .stats-grid {
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
@@ -160,11 +198,24 @@
     .panel h2, .panel h3 { margin:0; }
     .panel-sub { color:var(--muted2); font-size:.9rem; margin-top:.2rem; }
     .toolbar { display:flex; gap:.6rem; flex-wrap:wrap; }
+    .panel-tools {
+      display:flex;
+      align-items:center;
+      gap:.55rem;
+      flex-wrap:wrap;
+    }
 
     .cards-2 {
       display:grid;
       grid-template-columns:1.1fr .9fr;
       gap:1rem;
+    }
+    .settings-layout {
+      grid-template-columns:minmax(280px, 360px) minmax(0, 1fr);
+      align-items:start;
+    }
+    .settings-layout > .panel {
+      height:fit-content;
     }
     .cards-3 {
       display:grid;
@@ -290,6 +341,98 @@
       font-size:.86rem;
       color:#dbeafe;
     }
+    .template-workspace {
+      display:grid;
+      grid-template-columns:minmax(0, 1.4fr) minmax(340px, .8fr);
+      gap:1rem;
+      align-items:start;
+    }
+    .template-editor-pane,
+    .template-preview-pane {
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:1rem;
+    }
+    .template-editor-pane {
+      min-width:0;
+    }
+    .template-editor-pane .field textarea,
+    .template-editor-pane .field input,
+    .template-editor-pane .field select {
+      font-size:.9rem;
+    }
+    .template-preview-pane {
+      position:sticky;
+      top:88px;
+      max-height:calc(100vh - 120px);
+      overflow:auto;
+    }
+    .template-preview-stack {
+      display:grid;
+      gap:.8rem;
+      margin-top:.75rem;
+    }
+    .template-preview-card {
+      border:1px solid #223048;
+      border-radius:10px;
+      padding:.85rem;
+      background:#0f1520;
+    }
+    .template-preview-label {
+      font-size:.72rem;
+      text-transform:uppercase;
+      letter-spacing:.7px;
+      color:#9fb1c9;
+      margin-bottom:.35rem;
+      font-weight:700;
+    }
+    .template-preview-value {
+      color:#eef3f8;
+      line-height:1.55;
+      word-break:break-word;
+    }
+    .template-preview-text {
+      white-space:pre-wrap;
+      font-family:Consolas,monospace;
+      font-size:.83rem;
+    }
+    .template-preview-html {
+      border:1px dashed #2a3750;
+      border-radius:10px;
+      padding:.85rem;
+      background:rgba(255,255,255,.02);
+    }
+    .template-preview-html > :first-child { margin-top:0; }
+    .template-preview-html > :last-child { margin-bottom:0; }
+    .template-validation-list {
+      margin:.65rem 0 0;
+      padding-left:1.1rem;
+      color:#fca5a5;
+      font-size:.82rem;
+    }
+    .template-validation-list li + li { margin-top:.25rem; }
+    .selected-user-card {
+      margin-bottom:.9rem;
+      background:rgba(255,255,255,.03);
+      border:1px solid #223048;
+      border-radius:12px;
+      padding:.85rem .95rem;
+    }
+    .selected-user-title {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:.75rem;
+      flex-wrap:wrap;
+      margin-bottom:.35rem;
+    }
+    .selected-user-title strong {
+      font-size:.95rem;
+    }
+    .collapsed-panel {
+      display:none;
+    }
     .login-shell {
       min-height:100vh;
       display:flex;
@@ -310,8 +453,21 @@
     .login-card p { color:var(--muted2); }
     .footer-note { margin-top:1.5rem; text-align:center; color:var(--muted2); font-size:.8rem; }
 
+    @media (max-width: 1200px) {
+      .settings-layout {
+        grid-template-columns:1fr;
+      }
+      .template-workspace {
+        grid-template-columns:1fr;
+      }
+      .template-preview-pane {
+        position:static;
+        max-height:none;
+        overflow:visible;
+      }
+    }
     @media (max-width: 1080px) {
-      .cards-2, .cards-3, .form-grid, .form-grid-3 { grid-template-columns:1fr; }
+      .cards-2, .cards-3, .form-grid, .form-grid-3, .template-workspace { grid-template-columns:1fr; }
     }
     @media (max-width: 980px) {
       .main { margin-left:0; max-width:none; padding:1rem; }
@@ -380,8 +536,25 @@
           <span class="pill">Mailer: <span id="mailerStatusLabel">—</span></span>
           <span class="pill">Notify: <span id="notifyEmailLabel">—</span></span>
         </div>
-        <h1>Manual control center</h1>
-        <p class="hero-subtitle">Monitor platform activity and manually operate the project from one place.</p>
+        <h1>Admin Dashboard</h1>
+        <p class="hero-subtitle">Manage users, platform-wide settings, and email templates from one place without guessing what affects everyone.</p>
+        <div class="guide-grid">
+          <div class="guide-card">
+            <span class="scope-badge scope-global">Global</span>
+            <h3>Settings and templates</h3>
+            <p>Changes in Settings affect every user and all future emails that use those templates.</p>
+          </div>
+          <div class="guide-card">
+            <span class="scope-badge scope-user">Selected user</span>
+            <h3>User actions</h3>
+            <p>Profile edits, balance changes, suspensions, and manual emails only affect the user currently selected.</p>
+          </div>
+          <div class="guide-card">
+            <span class="scope-badge">Workflow</span>
+            <h3>Simpler operation</h3>
+            <p>Start in Users to select an account, then use Settings only when you want a platform-wide change.</p>
+          </div>
+        </div>
         <div id="statsGrid" class="stats-grid"></div>
         <div id="globalStatus" class="status-line"></div>
       </section>
@@ -390,184 +563,27 @@
         <section id="users" class="panel">
           <div class="panel-head">
             <div>
+              <div class="scope-badge scope-user">Selected user only</div>
               <h2>Users</h2>
-              <div class="panel-sub">Edit core user data, suspend access, and manually adjust balances.</div>
+              <div class="panel-sub">Use this list to find a user and load them into the admin workspace under Settings.</div>
             </div>
-            <input id="userSearch" class="search-input" type="search" placeholder="Search users by name or email" style="max-width:320px;" />
+            <div class="panel-tools">
+              <input id="userSearch" class="search-input" type="search" placeholder="Search users by name or email" style="max-width:320px;" />
+              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="usersPanelBody" data-label-show="Show Users" data-label-hide="Hide Users" aria-expanded="false">Show Users</button>
+            </div>
           </div>
-          <div class="cards-2">
-            <div class="panel" style="padding:0; background:transparent; border:none;">
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>User</th>
-                      <th>Balances</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="usersTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-            <div class="panel" style="background:var(--panel-2);">
-              <div class="panel-head">
-                <div>
-                  <h3>User editor</h3>
-                  <div class="panel-sub">Create users, edit full profile details, and send default emails manually.</div>
-                </div>
-              </div>
-              <form id="createUserForm">
-                <div class="panel-sub" style="margin-bottom:.55rem;">Create New User</div>
-                <div class="form-grid">
-                  <div class="field">
-                    <label for="createFullname">Full Name</label>
-                    <input id="createFullname" class="input-base" type="text" required />
-                  </div>
-                  <div class="field">
-                    <label for="createEmail">Email</label>
-                    <input id="createEmail" class="input-base" type="email" required />
-                  </div>
-                  <div class="field">
-                    <label for="createPassword">Temporary Password</label>
-                    <input id="createPassword" class="input-base" type="text" minlength="6" required />
-                  </div>
-                  <div class="field">
-                    <label for="createPhone">Phone</label>
-                    <input id="createPhone" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="createAccountname">Account Name</label>
-                    <input id="createAccountname" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="createInitialBalance">Opening Balance</label>
-                    <input id="createInitialBalance" class="input-base" type="number" min="0" step="0.01" value="0" />
-                  </div>
-                </div>
-                <div class="actions-inline" style="margin-top:.9rem;">
-                  <label class="helper-text" style="display:flex; align-items:center; gap:.4rem;">
-                    <input id="createSendWelcome" type="checkbox" checked /> Send default registration email
-                  </label>
-                  <button type="submit" class="btn-success">Create User</button>
-                </div>
-              </form>
-              <div id="createUserStatus" class="status-line"></div>
-              <hr style="border-color:var(--border); opacity:.4; margin:1rem 0;" />
-              <form id="userEditorForm">
-                <div class="form-grid">
-                  <div class="field">
-                    <label for="editEmail">User Email</label>
-                    <input id="editEmail" class="input-base" type="email" readonly />
-                  </div>
-                  <div class="field">
-                    <label for="editAccountname">Account Name</label>
-                    <input id="editAccountname" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="editFullname">Full Name</label>
-                    <input id="editFullname" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="editPhone">Phone</label>
-                    <input id="editPhone" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="editSuspended">Access</label>
-                    <select id="editSuspended" class="input-base">
-                      <option value="false">Active</option>
-                      <option value="true">Suspended</option>
-                    </select>
-                  </div>
-                  <div class="field">
-                    <label for="editDob">Date of Birth</label>
-                    <input id="editDob" class="input-base" type="date" />
-                  </div>
-                  <div class="field">
-                    <label for="editCitizenship">Citizenship Status</label>
-                    <input id="editCitizenship" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="editAddress1">Address Line 1</label>
-                    <input id="editAddress1" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="editAddress2">Address Line 2</label>
-                    <input id="editAddress2" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="editCity">City</label>
-                    <input id="editCity" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="editState">State</label>
-                    <input id="editState" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="editPostalCode">Postal Code</label>
-                    <input id="editPostalCode" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="editCountry">Country</label>
-                    <input id="editCountry" class="input-base" type="text" placeholder="US" />
-                  </div>
-                  <div class="field">
-                    <label for="editOccupation">Occupation</label>
-                    <input id="editOccupation" class="input-base" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="editEmployer">Employer</label>
-                    <input id="editEmployer" class="input-base" type="text" />
-                  </div>
-                </div>
-                <div class="actions-inline" style="margin-top:.9rem;">
-                  <button type="submit" class="btn btn-primary">Save User</button>
-                </div>
-              </form>
-              <hr style="border-color:var(--border); opacity:.4; margin:1rem 0;" />
-              <form id="balanceAdjustForm">
-                <div class="form-grid-3">
-                  <div class="field">
-                    <label for="adjustDirection">Adjustment Type</label>
-                    <select id="adjustDirection" class="input-base">
-                      <option value="credit">Credit</option>
-                      <option value="debit">Debit</option>
-                    </select>
-                  </div>
-                  <div class="field">
-                    <label for="adjustAmount">Amount</label>
-                    <input id="adjustAmount" class="input-base" type="number" min="0" step="0.01" placeholder="0.00" />
-                  </div>
-                  <div class="field">
-                    <label for="adjustDescription">Description</label>
-                    <input id="adjustDescription" class="input-base" type="text" placeholder="Admin manual balance adjustment" />
-                  </div>
-                </div>
-                <div class="actions-inline" style="margin-top:.9rem;">
-                  <button type="submit" class="btn-success">Apply Balance Change</button>
-                </div>
-                <div class="helper-text" style="margin-top:.5rem;">Balance updates create a completed transaction entry automatically.</div>
-              </form>
-              <hr style="border-color:var(--border); opacity:.4; margin:1rem 0;" />
-              <form id="manualEmailForm">
-                <div class="panel-sub" style="margin-bottom:.55rem;">Send Default Email</div>
-                <div class="form-grid">
-                  <div class="field">
-                    <label for="manualEmailTo">Recipient Email</label>
-                    <input id="manualEmailTo" class="input-base" type="email" placeholder="user@example.com" />
-                  </div>
-                  <div class="field">
-                    <label for="manualEmailTemplate">Template</label>
-                    <select id="manualEmailTemplate" class="input-base"></select>
-                  </div>
-                </div>
-                <div class="actions-inline" style="margin-top:.9rem;">
-                  <button type="submit" class="btn btn-primary">Send Default Email</button>
-                </div>
-              </form>
-              <div id="userEditorStatus" class="status-line"></div>
-            </div>
+          <div id="usersPanelBody" class="table-wrap collapsed-panel">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Balances</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
           </div>
         </section>
 
@@ -575,10 +591,13 @@
           <div class="panel-head">
             <div>
               <h2>Recent Transactions</h2>
-              <div class="panel-sub">Audit recent balance activity across the platform.</div>
+              <div class="panel-sub">Audit recent balance activity across the platform. Collapsed by default.</div>
+            </div>
+            <div class="panel-tools">
+              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="transactionsPanelBody" data-label-show="Show Transactions" data-label-hide="Hide Transactions" aria-expanded="false">Show Transactions</button>
             </div>
           </div>
-          <div class="table-wrap">
+          <div id="transactionsPanelBody" class="table-wrap collapsed-panel">
             <table>
               <thead>
                 <tr>
@@ -600,10 +619,13 @@
           <div class="panel-head">
             <div>
               <h2>Transfers</h2>
-              <div class="panel-sub">Manually change transfer states and inspect routing details.</div>
+              <div class="panel-sub">Manually change transfer states and inspect routing details. Collapsed by default.</div>
+            </div>
+            <div class="panel-tools">
+              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="transfersPanelBody" data-label-show="Show Transfers" data-label-hide="Hide Transfers" aria-expanded="false">Show Transfers</button>
             </div>
           </div>
-          <div class="table-wrap">
+          <div id="transfersPanelBody" class="table-wrap collapsed-panel">
             <table>
               <thead>
                 <tr>
@@ -625,10 +647,13 @@
           <div class="panel-head">
             <div>
               <h2>Loans</h2>
-              <div class="panel-sub">Approve, reject, or reset loan records.</div>
+              <div class="panel-sub">Approve, reject, or reset loan records. Collapsed by default.</div>
+            </div>
+            <div class="panel-tools">
+              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="loansPanelBody" data-label-show="Show Loans" data-label-hide="Hide Loans" aria-expanded="false">Show Loans</button>
             </div>
           </div>
-          <div class="table-wrap">
+          <div id="loansPanelBody" class="table-wrap collapsed-panel">
             <table>
               <thead>
                 <tr>
@@ -650,10 +675,13 @@
           <div class="panel-head">
             <div>
               <h2>Email Logs</h2>
-              <div class="panel-sub">Track delivery history and inspect failures.</div>
+              <div class="panel-sub">Track delivery history and inspect failures. Collapsed by default.</div>
+            </div>
+            <div class="panel-tools">
+              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="emailsPanelBody" data-label-show="Show Email Logs" data-label-hide="Hide Email Logs" aria-expanded="false">Show Email Logs</button>
             </div>
           </div>
-          <div class="table-wrap">
+          <div id="emailsPanelBody" class="table-wrap collapsed-panel">
             <table>
               <thead>
                 <tr>
@@ -672,13 +700,182 @@
         <section id="settings" class="panel">
           <div class="panel-head">
             <div>
-              <h2>Settings</h2>
-              <div class="panel-sub">Control operational settings and editable email template content.</div>
+              <div class="scope-badge">Admin controls</div>
+              <h2>Admin Settings</h2>
+              <div class="panel-sub">Use this area for admin actions and platform-wide changes. User-specific actions work on the account selected from the Users section.</div>
             </div>
           </div>
-          <div class="cards-2">
-            <div class="panel" style="background:var(--panel-2);">
-              <h3>Application Settings</h3>
+          <div class="panel" style="background:var(--panel-2); margin-bottom:1rem;">
+            <div class="panel-head">
+              <div>
+                <div class="scope-badge scope-user">Admin workspace</div>
+                <h3>User Admin Actions</h3>
+                <div class="panel-sub">Create users, manage the selected user, apply balance changes, and send manual emails from one place.</div>
+              </div>
+            </div>
+            <div id="selectedUserCard" class="selected-user-card">
+              <div class="selected-user-title">
+                <strong id="selectedUserName">No user selected</strong>
+                <span id="selectedUserState" class="scope-badge">Choose a user from the Users section</span>
+              </div>
+              <div id="selectedUserMeta" class="helper-text">Open Users, click Edit on an account, then manage that user here.</div>
+            </div>
+            <form id="createUserForm">
+              <div class="panel-sub" style="margin-bottom:.55rem;">Create New User</div>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="createFullname">Full Name</label>
+                  <input id="createFullname" class="input-base" type="text" required />
+                </div>
+                <div class="field">
+                  <label for="createEmail">Email</label>
+                  <input id="createEmail" class="input-base" type="email" required />
+                </div>
+                <div class="field">
+                  <label for="createPassword">Temporary Password</label>
+                  <input id="createPassword" class="input-base" type="text" minlength="6" required />
+                </div>
+                <div class="field">
+                  <label for="createPhone">Phone</label>
+                  <input id="createPhone" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="createAccountname">Account Name</label>
+                  <input id="createAccountname" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="createInitialBalance">Opening Balance</label>
+                  <input id="createInitialBalance" class="input-base" type="number" min="0" step="0.01" value="0" />
+                </div>
+              </div>
+              <div class="actions-inline" style="margin-top:.9rem;">
+                <label class="helper-text" style="display:flex; align-items:center; gap:.4rem;">
+                  <input id="createSendWelcome" type="checkbox" checked /> Send default registration email
+                </label>
+                <button type="submit" class="btn-success">Create User</button>
+              </div>
+            </form>
+            <div id="createUserStatus" class="status-line"></div>
+            <hr style="border-color:var(--border); opacity:.4; margin:1rem 0;" />
+            <form id="userEditorForm">
+              <div class="panel-sub" style="margin-bottom:.55rem;">Selected User Profile</div>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="editEmail">User Email</label>
+                  <input id="editEmail" class="input-base" type="email" readonly />
+                </div>
+                <div class="field">
+                  <label for="editAccountname">Account Name</label>
+                  <input id="editAccountname" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="editFullname">Full Name</label>
+                  <input id="editFullname" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="editPhone">Phone</label>
+                  <input id="editPhone" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="editSuspended">Access</label>
+                  <select id="editSuspended" class="input-base">
+                    <option value="false">Active</option>
+                    <option value="true">Suspended</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="editDob">Date of Birth</label>
+                  <input id="editDob" class="input-base" type="date" />
+                </div>
+                <div class="field">
+                  <label for="editCitizenship">Citizenship Status</label>
+                  <input id="editCitizenship" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="editAddress1">Address Line 1</label>
+                  <input id="editAddress1" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="editAddress2">Address Line 2</label>
+                  <input id="editAddress2" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="editCity">City</label>
+                  <input id="editCity" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="editState">State</label>
+                  <input id="editState" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="editPostalCode">Postal Code</label>
+                  <input id="editPostalCode" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="editCountry">Country</label>
+                  <input id="editCountry" class="input-base" type="text" placeholder="US" />
+                </div>
+                <div class="field">
+                  <label for="editOccupation">Occupation</label>
+                  <input id="editOccupation" class="input-base" type="text" />
+                </div>
+                <div class="field">
+                  <label for="editEmployer">Employer</label>
+                  <input id="editEmployer" class="input-base" type="text" />
+                </div>
+              </div>
+              <div class="actions-inline" style="margin-top:.9rem;">
+                <button type="submit" class="btn btn-primary">Save User</button>
+                <button type="button" class="btn-outline" data-action="reset-selected-user">Reset Form</button>
+              </div>
+            </form>
+            <hr style="border-color:var(--border); opacity:.4; margin:1rem 0;" />
+            <form id="balanceAdjustForm">
+              <div class="panel-sub" style="margin-bottom:.55rem;">Balance Change</div>
+              <div class="form-grid-3">
+                <div class="field">
+                  <label for="adjustDirection">Adjustment Type</label>
+                  <select id="adjustDirection" class="input-base">
+                    <option value="credit">Credit</option>
+                    <option value="debit">Debit</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="adjustAmount">Amount</label>
+                  <input id="adjustAmount" class="input-base" type="number" min="0" step="0.01" placeholder="0.00" />
+                </div>
+                <div class="field">
+                  <label for="adjustDescription">Description</label>
+                  <input id="adjustDescription" class="input-base" type="text" placeholder="Admin manual balance adjustment" />
+                </div>
+              </div>
+              <div class="actions-inline" style="margin-top:.9rem;">
+                <button type="submit" class="btn-success">Apply Balance Change</button>
+              </div>
+              <div class="helper-text" style="margin-top:.5rem;">Balance updates create a completed transaction entry automatically.</div>
+            </form>
+            <hr style="border-color:var(--border); opacity:.4; margin:1rem 0;" />
+            <form id="manualEmailForm">
+              <div class="panel-sub" style="margin-bottom:.55rem;">Manual Email</div>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="manualEmailTo">Recipient Email</label>
+                  <input id="manualEmailTo" class="input-base" type="email" placeholder="user@example.com" />
+                </div>
+                <div class="field">
+                  <label for="manualEmailTemplate">Template</label>
+                  <select id="manualEmailTemplate" class="input-base"></select>
+                </div>
+              </div>
+              <div class="actions-inline" style="margin-top:.9rem;">
+                <button type="submit" class="btn btn-primary">Send Default Email</button>
+              </div>
+            </form>
+            <div id="userEditorStatus" class="status-line"></div>
+          </div>
+          <div class="panel" style="background:var(--panel-2); max-width:360px; margin-bottom:1rem;">
+              <div class="scope-badge scope-global">Global</div>
+              <h3>Application Controls</h3>
               <form id="settingsForm" style="margin-top:.85rem;">
                 <div class="field" style="margin-top:.75rem;">
                   <label style="display:flex;align-items:center;gap:.5rem;text-transform:none;letter-spacing:.2px;">
@@ -695,20 +892,72 @@
                 <div class="actions-inline" style="margin-top:.9rem;">
                   <button type="submit" class="btn btn-primary">Save Settings</button>
                 </div>
+                <div class="helper-text" style="margin-top:.5rem;">Transfer and payment switches apply to every user immediately after saving.</div>
               </form>
             </div>
-            <div class="panel" style="background:var(--panel-2);">
-              <h3>Email Templates JSON</h3>
-              <form id="templatesForm" style="margin-top:.85rem;">
-                <div class="field">
-                  <label for="templatesJson">Templates</label>
-                  <textarea id="templatesJson"></textarea>
+          <div class="panel" style="background:var(--panel-2);">
+            <div class="scope-badge scope-global">Global</div>
+            <h3>Email Templates</h3>
+            <form id="templatesForm" style="margin-top:.85rem;">
+              <div class="template-workspace">
+                <div class="template-editor-pane">
+                  <div class="field">
+                    <label for="templateEditorSelect">Template</label>
+                    <select id="templateEditorSelect" class="input-base"></select>
+                  </div>
+                  <div class="helper-text" id="templatePreviewData" style="margin-top:.5rem;"></div>
+                  <div id="templateValidation" class="status-line"></div>
+                  <div class="form-grid" style="margin-top:.4rem;">
+                    <div class="field">
+                      <label for="templateSubject">Subject</label>
+                      <input id="templateSubject" class="input-base" type="text" />
+                    </div>
+                    <div class="field">
+                      <label for="templateTitle">Title</label>
+                      <input id="templateTitle" class="input-base" type="text" />
+                    </div>
+                    <div class="field" style="grid-column:1 / -1;">
+                      <label for="templatePreheader">Preheader</label>
+                      <input id="templatePreheader" class="input-base" type="text" />
+                    </div>
+                    <div class="field" style="grid-column:1 / -1;">
+                      <label for="templateText">Plain Text</label>
+                      <textarea id="templateText" style="min-height:180px;"></textarea>
+                    </div>
+                    <div class="field" style="grid-column:1 / -1;">
+                      <label for="templateBodyHtml">HTML Body</label>
+                      <textarea id="templateBodyHtml" style="min-height:240px;"></textarea>
+                    </div>
+                  </div>
                 </div>
-                <div class="actions-inline" style="margin-top:.9rem;">
-                  <button type="submit" class="btn btn-primary">Save Templates</button>
+                <div class="template-preview-pane">
+                  <h3 style="margin:0;">Live Preview</h3>
+                  <div class="panel-sub">Preview values use sample data so placeholder variables render the same way users will see them.</div>
+                  <div class="template-preview-stack">
+                    <div class="template-preview-card">
+                      <div class="template-preview-label">Subject</div>
+                      <div id="templatePreviewSubject" class="template-preview-value"></div>
+                    </div>
+                    <div class="template-preview-card">
+                      <div class="template-preview-label">Preheader</div>
+                      <div id="templatePreviewPreheader" class="template-preview-value"></div>
+                    </div>
+                    <div class="template-preview-card">
+                      <div class="template-preview-label">Plain Text</div>
+                      <div id="templatePreviewText" class="template-preview-value template-preview-text"></div>
+                    </div>
+                    <div class="template-preview-card">
+                      <div class="template-preview-label">HTML Render</div>
+                      <div id="templatePreviewHtml" class="template-preview-html"></div>
+                    </div>
+                  </div>
                 </div>
-              </form>
-            </div>
+              </div>
+              <div class="actions-inline" style="margin-top:.9rem;">
+                <button id="templatesSaveBtn" type="submit" class="btn btn-primary">Save Templates</button>
+              </div>
+              <div class="helper-text" style="margin-top:.5rem;">Template changes affect all future emails that use the selected template.</div>
+            </form>
           </div>
           <div id="settingsStatus" class="status-line"></div>
         </section>
@@ -721,9 +970,52 @@
   <script>
     const ADMIN_TOKEN_KEY = "bs-admin-token";
     const ADMIN_META_KEY = "bs-admin-meta";
+    const TEMPLATE_REQUIRED_FIELDS = ["subject", "title", "preheader", "bodyHtml"];
+    const TEMPLATE_PREVIEW_DATA = {
+      default: {
+        fullname: "Alex Morgan",
+        borrower_name: "Alex Morgan",
+        recipient_name: "Jamie Chen",
+        account_name: "Primary Checking",
+        email: "alex@example.com",
+        status: "completed",
+        amount: "1,250.00",
+        term: "36 months",
+        apr_estimate: "8.5% APR",
+        monthly_payment_estimate: "$39.12",
+        bank_name: "Base Credit",
+        routing_number: "021000021",
+        account_number: "****4321",
+        fee: "45.00",
+        expires_at: "March 20, 2026 4:00 PM"
+      },
+      transferSender: {
+        status: "completed",
+        amount: "480.00"
+      },
+      transferRecipient: {
+        recipient_name: "Jamie Chen",
+        bank_name: "Base Credit",
+        amount: "480.00",
+        status: "pending"
+      },
+      loanStatusUpdate: {
+        borrower_name: "Alex Morgan",
+        amount: "15,000.00",
+        term: "36 months"
+      },
+      processingFeeNotice: {
+        borrower_name: "Alex Morgan",
+        fee: "45.00"
+      },
+      registrationReceived: {
+        fullname: "Alex Morgan"
+      }
+    };
     const state = {
       overview: null,
       templates: null,
+      selectedTemplateKey: "",
       selectedUser: null,
     };
 
@@ -777,12 +1069,27 @@
       manualEmailForm: document.getElementById("manualEmailForm"),
       manualEmailTo: document.getElementById("manualEmailTo"),
       manualEmailTemplate: document.getElementById("manualEmailTemplate"),
+      selectedUserName: document.getElementById("selectedUserName"),
+      selectedUserState: document.getElementById("selectedUserState"),
+      selectedUserMeta: document.getElementById("selectedUserMeta"),
       userEditorStatus: document.getElementById("userEditorStatus"),
       settingsForm: document.getElementById("settingsForm"),
       transfersEnabled: document.getElementById("transfersEnabled"),
       paymentsEnabled: document.getElementById("paymentsEnabled"),
       templatesForm: document.getElementById("templatesForm"),
-      templatesJson: document.getElementById("templatesJson"),
+      templateEditorSelect: document.getElementById("templateEditorSelect"),
+      templateSubject: document.getElementById("templateSubject"),
+      templateTitle: document.getElementById("templateTitle"),
+      templatePreheader: document.getElementById("templatePreheader"),
+      templateText: document.getElementById("templateText"),
+      templateBodyHtml: document.getElementById("templateBodyHtml"),
+      templateValidation: document.getElementById("templateValidation"),
+      templatePreviewData: document.getElementById("templatePreviewData"),
+      templatePreviewSubject: document.getElementById("templatePreviewSubject"),
+      templatePreviewPreheader: document.getElementById("templatePreviewPreheader"),
+      templatePreviewText: document.getElementById("templatePreviewText"),
+      templatePreviewHtml: document.getElementById("templatePreviewHtml"),
+      templatesSaveBtn: document.getElementById("templatesSaveBtn"),
       settingsStatus: document.getElementById("settingsStatus"),
       refreshBtn: document.getElementById("refreshBtn"),
       logoutBtn: document.getElementById("logoutBtn"),
@@ -837,6 +1144,178 @@
       return `status-badge status-${raw}`;
     }
 
+    function replaceTemplateTokens(str, data) {
+      return String(str || "").replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
+        return Object.prototype.hasOwnProperty.call(data, key) ? String(data[key]) : "";
+      });
+    }
+
+    function getTemplateKeys() {
+      return Object.keys(state.templates || {});
+    }
+
+    function ensureSelectedTemplateKey() {
+      const keys = getTemplateKeys();
+      if (!keys.length) {
+        state.selectedTemplateKey = "";
+        return;
+      }
+      if (!keys.includes(state.selectedTemplateKey)) {
+        state.selectedTemplateKey = keys[0];
+      }
+    }
+
+    function getSelectedTemplate() {
+      ensureSelectedTemplateKey();
+      if (!state.selectedTemplateKey) return null;
+      if (!state.templates[state.selectedTemplateKey] || typeof state.templates[state.selectedTemplateKey] !== "object") {
+        state.templates[state.selectedTemplateKey] = {};
+      }
+      return state.templates[state.selectedTemplateKey];
+    }
+
+    function getTemplatePreviewData(key) {
+      return {
+        ...TEMPLATE_PREVIEW_DATA.default,
+        ...(TEMPLATE_PREVIEW_DATA[key] || {}),
+      };
+    }
+
+    function sanitizePreviewHtml(html) {
+      const template = document.createElement("template");
+      template.innerHTML = String(html || "");
+      const blockedTags = new Set(["SCRIPT", "IFRAME", "OBJECT", "EMBED", "LINK", "META"]);
+      const nodes = [];
+      const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT);
+      while (walker.nextNode()) {
+        nodes.push(walker.currentNode);
+      }
+      nodes.forEach((node) => {
+        if (blockedTags.has(node.tagName)) {
+          node.remove();
+          return;
+        }
+        Array.from(node.attributes || []).forEach((attr) => {
+          const attrName = String(attr.name || "").toLowerCase();
+          const attrValue = String(attr.value || "");
+          if (attrName.startsWith("on")) {
+            node.removeAttribute(attr.name);
+            return;
+          }
+          if ((attrName === "href" || attrName === "src") && /^\s*javascript:/i.test(attrValue)) {
+            node.removeAttribute(attr.name);
+          }
+        });
+      });
+      return template.innerHTML;
+    }
+
+    function validateSingleTemplate(key, template) {
+      const issues = [];
+      if (!template || typeof template !== "object" || Array.isArray(template)) {
+        return [`${key}: template must be an object.`];
+      }
+
+      TEMPLATE_REQUIRED_FIELDS.forEach((field) => {
+        if (typeof template[field] !== "string" || !template[field].trim()) {
+          issues.push(`${key}: ${field} is required.`);
+        }
+      });
+
+      if (template.text != null && typeof template.text !== "string") {
+        issues.push(`${key}: text must be a string when provided.`);
+      }
+
+      return issues;
+    }
+
+    function validateAllTemplates() {
+      return getTemplateKeys().flatMap((key) => validateSingleTemplate(key, state.templates[key]));
+    }
+
+    function renderTemplateValidation() {
+      const selectedKey = state.selectedTemplateKey;
+      const localIssues = selectedKey ? validateSingleTemplate(selectedKey, getSelectedTemplate()) : [];
+      const allIssues = validateAllTemplates();
+
+      if (!selectedKey) {
+        els.templateValidation.innerHTML = "<span style=\"color:#fbbf24;\">No templates available.</span>";
+      } else if (localIssues.length) {
+        els.templateValidation.innerHTML = `<div style="color:#fca5a5;">Resolve the issues below before saving.</div><ul class="template-validation-list">${localIssues.map((issue) => `<li>${escapeHtml(issue)}</li>`).join("")}</ul>`;
+      } else {
+        els.templateValidation.innerHTML = `<span style="color:#86efac;">${escapeHtml(selectedKey)} is valid and ready to save.</span>`;
+      }
+
+      els.templatesSaveBtn.disabled = allIssues.length > 0 || !selectedKey;
+      els.templatesSaveBtn.style.opacity = els.templatesSaveBtn.disabled ? ".65" : "1";
+      els.templatesSaveBtn.style.cursor = els.templatesSaveBtn.disabled ? "not-allowed" : "pointer";
+    }
+
+    function renderTemplateEditorOptions() {
+      const keys = getTemplateKeys();
+      if (!keys.length) {
+        els.templateEditorSelect.innerHTML = `<option value="">No templates available</option>`;
+        return;
+      }
+      els.templateEditorSelect.innerHTML = keys
+        .map((key) => `<option value="${escapeHtml(key)}">${escapeHtml(key)}</option>`)
+        .join("");
+      els.templateEditorSelect.value = state.selectedTemplateKey;
+    }
+
+    function renderTemplateEditorFields() {
+      const template = getSelectedTemplate();
+      const hasTemplate = Boolean(template);
+      els.templateSubject.value = hasTemplate ? String(template.subject || "") : "";
+      els.templateTitle.value = hasTemplate ? String(template.title || "") : "";
+      els.templatePreheader.value = hasTemplate ? String(template.preheader || "") : "";
+      els.templateText.value = hasTemplate ? String(template.text || "") : "";
+      els.templateBodyHtml.value = hasTemplate ? String(template.bodyHtml || "") : "";
+
+      [els.templateSubject, els.templateTitle, els.templatePreheader, els.templateText, els.templateBodyHtml].forEach((field) => {
+        field.disabled = !hasTemplate;
+      });
+    }
+
+    function renderTemplatePreview() {
+      const key = state.selectedTemplateKey;
+      const template = getSelectedTemplate();
+      const previewData = getTemplatePreviewData(key);
+
+      els.templatePreviewData.textContent = key
+        ? `Sample data: ${Object.entries(previewData).map(([sampleKey, sampleValue]) => `${sampleKey}=${sampleValue}`).join(" • ")}`
+        : "";
+
+      if (!template) {
+        els.templatePreviewSubject.textContent = "";
+        els.templatePreviewPreheader.textContent = "";
+        els.templatePreviewText.textContent = "";
+        els.templatePreviewHtml.innerHTML = "";
+        return;
+      }
+
+      els.templatePreviewSubject.textContent = replaceTemplateTokens(template.subject || "", previewData);
+      els.templatePreviewPreheader.textContent = replaceTemplateTokens(template.preheader || "", previewData);
+      els.templatePreviewText.textContent = replaceTemplateTokens(template.text || "", previewData) || "No plain text version set.";
+      els.templatePreviewHtml.innerHTML = sanitizePreviewHtml(replaceTemplateTokens(template.bodyHtml || "", previewData)) || "<div class=\"helper-text\">No HTML body set.</div>";
+    }
+
+    function renderTemplateEditor() {
+      ensureSelectedTemplateKey();
+      renderTemplateEditorOptions();
+      renderTemplateEditorFields();
+      renderTemplateValidation();
+      renderTemplatePreview();
+    }
+
+    function updateSelectedTemplateField(field, value) {
+      const template = getSelectedTemplate();
+      if (!template) return;
+      template[field] = value;
+      renderTemplateValidation();
+      renderTemplatePreview();
+    }
+
     async function api(path, options = {}) {
       const headers = {
         ...(options.body ? { "Content-Type": "application/json" } : {}),
@@ -869,6 +1348,73 @@
       els.adminShell.classList.toggle("hidden", !isAuthenticated);
     }
 
+    function setActiveNavLink(sectionId) {
+      const links = Array.from(document.querySelectorAll(".nav-link"));
+      links.forEach((link) => {
+        const href = String(link.getAttribute("href") || "").replace(/^#/, "");
+        link.classList.toggle("active", href === sectionId);
+      });
+    }
+
+    function setPanelVisibility(panelId, isExpanded) {
+      const panel = document.getElementById(panelId);
+      if (!panel) return;
+
+      const toggleButton = document.querySelector(`[data-action="toggle-panel"][data-target="${panelId}"]`);
+      panel.classList.toggle("collapsed-panel", !isExpanded);
+
+      if (toggleButton) {
+        toggleButton.textContent = isExpanded
+          ? (toggleButton.dataset.labelHide || "Hide")
+          : (toggleButton.dataset.labelShow || "Show");
+        toggleButton.setAttribute("aria-expanded", String(isExpanded));
+      }
+    }
+
+    function navigateToSection(sectionId, options = {}) {
+      const section = document.getElementById(sectionId);
+      if (!section) return;
+
+      if (options.panelId) {
+        setPanelVisibility(options.panelId, true);
+      }
+
+      setActiveNavLink(sectionId);
+      if (window.location.hash !== `#${sectionId}`) {
+        history.replaceState(null, "", `#${sectionId}`);
+      }
+
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      if (options.focusElement) {
+        window.setTimeout(() => {
+          options.focusElement.focus({ preventScroll: true });
+          if (typeof options.focusElement.select === "function") {
+            options.focusElement.select();
+          }
+        }, 220);
+      }
+    }
+
+    function togglePanelBody(button) {
+      const targetId = button?.dataset?.target;
+      if (!targetId) return;
+      const panel = document.getElementById(targetId);
+      if (!panel) return;
+      const isExpanded = panel.classList.contains("collapsed-panel");
+      setPanelVisibility(targetId, isExpanded);
+    }
+
+    function resetSelectedUserWorkspace() {
+      if (!state.selectedUser?.user_email) {
+        showStatus(els.userEditorStatus, "Select a user first.", "error");
+        return;
+      }
+      setSelectedUser(state.selectedUser);
+      els.adjustAmount.value = "";
+      showStatus(els.userEditorStatus, "Selected user form reset.", "success");
+    }
+
     function setSelectedUser(user) {
       state.selectedUser = user || null;
       els.editEmail.value = user?.user_email || "";
@@ -887,6 +1433,12 @@
       els.editOccupation.value = user?.occupation || "";
       els.editEmployer.value = user?.employer || "";
       els.manualEmailTo.value = user?.user_email || "";
+      els.selectedUserName.textContent = user?.fullname || user?.user_email || "No user selected";
+      els.selectedUserState.textContent = user?.user_email ? (user?.suspended ? "Suspended account" : "Active account") : "Choose a user from the table";
+      els.selectedUserState.className = `scope-badge ${user?.user_email ? (user?.suspended ? "status-suspended" : "scope-user") : ""}`.trim();
+      els.selectedUserMeta.textContent = user?.user_email
+        ? `${user.user_email} • ${user.accountname || "No account name"} • Available ${fmtMoney(user.available_total ?? user.available_balance ?? 0)}`
+        : "Use Edit on the left to load a user into this workspace.";
       if (user?.user_email) {
         els.adjustDescription.value = els.adjustDescription.value || `Admin manual balance adjustment for ${user.user_email}`;
       }
@@ -1107,9 +1659,7 @@
       const settings = state.overview?.settings || {};
       els.transfersEnabled.checked = settings.transfersEnabled !== false;
       els.paymentsEnabled.checked = settings.paymentsEnabled !== false;
-      if (state.templates) {
-        els.templatesJson.value = JSON.stringify(state.templates, null, 2);
-      }
+      renderTemplateEditor();
       renderManualTemplateOptions();
     }
 
@@ -1261,6 +1811,11 @@
 
     async function handleSettingsSave(event) {
       event.preventDefault();
+      const confirmed = window.confirm("Save application controls for all users? This will immediately update transfer and payment availability platform-wide.");
+      if (!confirmed) {
+        showStatus(els.settingsStatus, "Application settings save cancelled.", "info");
+        return;
+      }
       showStatus(els.settingsStatus, "Saving application settings…");
       try {
         const settings = await api(`${window.API_BASE}/admin/app-settings`, {
@@ -1279,15 +1834,28 @@
 
     async function handleTemplatesSave(event) {
       event.preventDefault();
+      const issues = validateAllTemplates();
+      if (issues.length) {
+        renderTemplateValidation();
+        showStatus(els.settingsStatus, `Fix ${issues.length} template issue${issues.length === 1 ? "" : "s"} before saving.`, "error");
+        return;
+      }
+
+      const templateLabel = state.selectedTemplateKey || "selected template";
+      const confirmed = window.confirm(`Save email template changes for ${templateLabel}? This will affect all future emails that use this template.`);
+      if (!confirmed) {
+        showStatus(els.settingsStatus, "Template save cancelled.", "info");
+        return;
+      }
+
       showStatus(els.settingsStatus, "Saving templates…");
       try {
-        const payload = JSON.parse(els.templatesJson.value || "{}");
         const templates = await api(`${window.API_BASE}/admin/email-templates`, {
           method: "PUT",
-          body: JSON.stringify(payload),
+          body: JSON.stringify(state.templates || {}),
         });
         state.templates = templates;
-        els.templatesJson.value = JSON.stringify(templates, null, 2);
+        renderTemplateEditor();
         renderManualTemplateOptions();
         showStatus(els.settingsStatus, "Email templates saved.", "success");
       } catch (err) {
@@ -1328,8 +1896,19 @@
           if (user) {
             setSelectedUser(user);
             await loadUserProfile(user.user_email);
+            navigateToSection("settings", { focusElement: els.editFullname });
             showStatus(els.userEditorStatus, `Selected ${user.user_email}`, "success");
           }
+          return;
+        }
+
+        if (action === "reset-selected-user") {
+          resetSelectedUserWorkspace();
+          return;
+        }
+
+        if (action === "toggle-panel") {
+          togglePanelBody(button);
           return;
         }
 
@@ -1374,9 +1953,17 @@
     function bindNavHighlight() {
       const links = Array.from(document.querySelectorAll(".nav-link"));
       links.forEach((link) => {
-        link.addEventListener("click", () => {
-          links.forEach((item) => item.classList.remove("active"));
-          link.classList.add("active");
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          const sectionId = String(link.getAttribute("href") || "").replace(/^#/, "");
+          const panelIdBySection = {
+            users: "usersPanelBody",
+            transactions: "transactionsPanelBody",
+            transfers: "transfersPanelBody",
+            loans: "loansPanelBody",
+            emails: "emailsPanelBody",
+          };
+          navigateToSection(sectionId, { panelId: panelIdBySection[sectionId] });
           els.sidebar.classList.remove("active");
         });
       });
@@ -1403,6 +1990,15 @@
     els.manualEmailForm.addEventListener("submit", handleManualEmailSend);
     els.settingsForm.addEventListener("submit", handleSettingsSave);
     els.templatesForm.addEventListener("submit", handleTemplatesSave);
+    els.templateEditorSelect.addEventListener("change", () => {
+      state.selectedTemplateKey = els.templateEditorSelect.value;
+      renderTemplateEditor();
+    });
+    els.templateSubject.addEventListener("input", () => updateSelectedTemplateField("subject", els.templateSubject.value));
+    els.templateTitle.addEventListener("input", () => updateSelectedTemplateField("title", els.templateTitle.value));
+    els.templatePreheader.addEventListener("input", () => updateSelectedTemplateField("preheader", els.templatePreheader.value));
+    els.templateText.addEventListener("input", () => updateSelectedTemplateField("text", els.templateText.value));
+    els.templateBodyHtml.addEventListener("input", () => updateSelectedTemplateField("bodyHtml", els.templateBodyHtml.value));
     els.userSearch.addEventListener("input", renderUsers);
     els.refreshBtn.addEventListener("click", () => loadDashboard().catch((err) => showStatus(els.globalStatus, err.message || "Refresh failed", "error")));
     els.logoutBtn.addEventListener("click", () => {

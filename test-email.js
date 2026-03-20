@@ -2,18 +2,23 @@
 import 'dotenv/config';
 import nodemailer from 'nodemailer';
 
+const DEFAULT_FROM = {
+  email: 'support@basecrypto.help',
+  name: 'BaseCrypto Support'
+};
+
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
-const MAIL_FROM = process.env.MAIL_FROM || SMTP_USER;
+const MAIL_FROM = normalizeFrom(process.env.MAIL_FROM || DEFAULT_FROM);
 
 console.log('\n📧 Email Configuration Test\n');
 console.log('─'.repeat(50));
 console.log(`SMTP Host: ${SMTP_HOST}`);
 console.log(`SMTP Port: ${SMTP_PORT}`);
 console.log(`SMTP User: ${SMTP_USER}`);
-console.log(`Mail From: ${MAIL_FROM}`);
+console.log(`Mail From: ${formatFrom(MAIL_FROM)}`);
 console.log('─'.repeat(50));
 
 if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
@@ -55,7 +60,7 @@ async function testEmail() {
           <hr style="border:none; border-top:1px solid #e5e7eb; margin:20px 0;">
           <p style="font-size:12px; color:#6b7280;">
             Sent at: ${new Date().toLocaleString()}<br>
-            From: ${MAIL_FROM}<br>
+            From: ${formatFrom(MAIL_FROM)}<br>
             SMTP Server: ${SMTP_HOST}:${SMTP_PORT}
           </p>
         </div>
@@ -86,6 +91,22 @@ async function testEmail() {
     
     process.exit(1);
   }
+}
+
+function normalizeFrom(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+
+  const email = String(value.email || value.address || '').trim();
+  const name = String(value.name || '').trim();
+  if (!email) return null;
+  return name ? { address: email, name } : email;
+}
+
+function formatFrom(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return value.name ? `${value.name} <${value.address}>` : value.address;
 }
 
 testEmail();

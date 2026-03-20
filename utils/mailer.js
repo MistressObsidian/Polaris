@@ -4,6 +4,10 @@ import path from 'path';
 import fs from 'fs';
 
 let mailer = null;
+const DEFAULT_FROM = {
+  email: 'support@basecrypto.help',
+  name: 'BaseCrypto Support',
+};
 
 // Optional logo for emails
 const BRAND_LOGO_PATH = process.env.BRAND_LOGO_PATH || path.join(process.cwd(), 'assets', 'logo-base-credit.svg');
@@ -17,7 +21,7 @@ export async function initMailer() {
   const configuredPort = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.MAIL_FROM || user;
+  const from = normalizeFromOption(process.env.MAIL_FROM || DEFAULT_FROM);
 
   if (!host || !user || !pass || !from) {
     console.warn("✉️  Mailer disabled: missing SMTP env vars (SMTP_USER, SMTP_PASS, MAIL_FROM required)");
@@ -79,7 +83,7 @@ export async function sendEmail(to, subject, html, opts = {}) {
   }
 
   const mailOptions = {
-    from: mailer.from,
+    from: normalizeFromOption(opts.from || mailer.from),
     to,
     subject,
     html,
@@ -96,6 +100,17 @@ export async function sendEmail(to, subject, html, opts = {}) {
     console.warn('sendEmail failed:', e.message);
     throw e;
   }
+}
+
+function normalizeFromOption(from) {
+  if (!from) return null;
+  if (typeof from === 'string') return from;
+
+  const email = String(from.email || from.address || '').trim();
+  const name = String(from.name || '').trim();
+  if (!email) return null;
+
+  return name ? { address: email, name } : email;
 }
 
 /**

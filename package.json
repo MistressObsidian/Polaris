@@ -12,6 +12,7 @@
     "dev:all": "concurrently -n api,web -c blue,magenta \"nodemon server.js\" \"http-server -p 5173 -c-1 .\""
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "busboy": "^1.6.0",

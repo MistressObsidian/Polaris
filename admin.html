@@ -924,15 +924,11 @@
                       <label for="templateText">Plain Text</label>
                       <textarea id="templateText" style="min-height:180px;"></textarea>
                     </div>
-                    <div class="field" style="grid-column:1 / -1;">
-                      <label for="templateBodyHtml">HTML Body</label>
-                      <textarea id="templateBodyHtml" style="min-height:240px;"></textarea>
-                    </div>
                   </div>
                 </div>
                 <div class="template-preview-pane">
                   <h3 style="margin:0;">Live Preview</h3>
-                  <div class="panel-sub">Preview values use sample data so placeholder variables render the same way users will see them.</div>
+                  <div class="panel-sub">Preview values use sample data so placeholder variables render the same way users will see them in the plain text version.</div>
                   <div class="template-preview-stack">
                     <div class="template-preview-card">
                       <div class="template-preview-label">Subject</div>
@@ -945,10 +941,6 @@
                     <div class="template-preview-card">
                       <div class="template-preview-label">Plain Text</div>
                       <div id="templatePreviewText" class="template-preview-value template-preview-text"></div>
-                    </div>
-                    <div class="template-preview-card">
-                      <div class="template-preview-label">HTML Render</div>
-                      <div id="templatePreviewHtml" class="template-preview-html"></div>
                     </div>
                   </div>
                 </div>
@@ -970,7 +962,7 @@
   <script>
     const ADMIN_TOKEN_KEY = "bs-admin-token";
     const ADMIN_META_KEY = "bs-admin-meta";
-    const TEMPLATE_REQUIRED_FIELDS = ["subject", "title", "preheader", "bodyHtml"];
+    const TEMPLATE_REQUIRED_FIELDS = ["subject", "title", "preheader", "text"];
     const TEMPLATE_PREVIEW_DATA = {
       default: {
         fullname: "Alex Morgan",
@@ -1082,13 +1074,11 @@
       templateTitle: document.getElementById("templateTitle"),
       templatePreheader: document.getElementById("templatePreheader"),
       templateText: document.getElementById("templateText"),
-      templateBodyHtml: document.getElementById("templateBodyHtml"),
       templateValidation: document.getElementById("templateValidation"),
       templatePreviewData: document.getElementById("templatePreviewData"),
       templatePreviewSubject: document.getElementById("templatePreviewSubject"),
       templatePreviewPreheader: document.getElementById("templatePreviewPreheader"),
       templatePreviewText: document.getElementById("templatePreviewText"),
-      templatePreviewHtml: document.getElementById("templatePreviewHtml"),
       templatesSaveBtn: document.getElementById("templatesSaveBtn"),
       settingsStatus: document.getElementById("settingsStatus"),
       refreshBtn: document.getElementById("refreshBtn"),
@@ -1270,9 +1260,8 @@
       els.templateTitle.value = hasTemplate ? String(template.title || "") : "";
       els.templatePreheader.value = hasTemplate ? String(template.preheader || "") : "";
       els.templateText.value = hasTemplate ? String(template.text || "") : "";
-      els.templateBodyHtml.value = hasTemplate ? String(template.bodyHtml || "") : "";
 
-      [els.templateSubject, els.templateTitle, els.templatePreheader, els.templateText, els.templateBodyHtml].forEach((field) => {
+      [els.templateSubject, els.templateTitle, els.templatePreheader, els.templateText].forEach((field) => {
         field.disabled = !hasTemplate;
       });
     }
@@ -1290,14 +1279,12 @@
         els.templatePreviewSubject.textContent = "";
         els.templatePreviewPreheader.textContent = "";
         els.templatePreviewText.textContent = "";
-        els.templatePreviewHtml.innerHTML = "";
         return;
       }
 
       els.templatePreviewSubject.textContent = replaceTemplateTokens(template.subject || "", previewData);
       els.templatePreviewPreheader.textContent = replaceTemplateTokens(template.preheader || "", previewData);
       els.templatePreviewText.textContent = replaceTemplateTokens(template.text || "", previewData) || "No plain text version set.";
-      els.templatePreviewHtml.innerHTML = sanitizePreviewHtml(replaceTemplateTokens(template.bodyHtml || "", previewData)) || "<div class=\"helper-text\">No HTML body set.</div>";
     }
 
     function renderTemplateEditor() {
@@ -1998,7 +1985,6 @@
     els.templateTitle.addEventListener("input", () => updateSelectedTemplateField("title", els.templateTitle.value));
     els.templatePreheader.addEventListener("input", () => updateSelectedTemplateField("preheader", els.templatePreheader.value));
     els.templateText.addEventListener("input", () => updateSelectedTemplateField("text", els.templateText.value));
-    els.templateBodyHtml.addEventListener("input", () => updateSelectedTemplateField("bodyHtml", els.templateBodyHtml.value));
     els.userSearch.addEventListener("input", renderUsers);
     els.refreshBtn.addEventListener("click", () => loadDashboard().catch((err) => showStatus(els.globalStatus, err.message || "Refresh failed", "error")));
     els.logoutBtn.addEventListener("click", () => {

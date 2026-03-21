@@ -758,6 +758,29 @@ function saveEmailTemplates(templates) {
   fs.writeFileSync(EMAIL_TEMPLATES_PATH, JSON.stringify(templates, null, 2), "utf8");
 }
 
+function stripTemplateHtmlFields(templates) {
+  return Object.fromEntries(
+    Object.entries(templates || {}).map(([key, value]) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return [key, value];
+      }
+
+      const { bodyHtml, ...rest } = value;
+      return [key, rest];
+    })
+  );
+}
+
+function plainTextToEmailHtml(text) {
+  const normalized = String(text || "").trim();
+  if (!normalized) return "";
+
+  return normalized
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`)
+    .join("");
+}
+
 function renderTemplate(str, data) {
   if (!str) return "";
   return String(str).replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
@@ -1451,13 +1474,14 @@ app.post("/api/admin/users", adminAuthMiddleware, async (req, res) => {
         const templates = loadEmailTemplates();
         const regTpl = templates.registrationReceived || {};
         const data = toAdminTemplateData(createdQ.rows[0]);
+        const registrationText = renderTemplate(regTpl.text, data.plain);
         await sendBrandedEmail({
           to: emailRaw,
           subject: renderTemplate(regTpl.subject || "Registration received", data.plain),
           title: renderTemplate(regTpl.title || "We received your registration", data.plain),
           preheader: renderTemplate(regTpl.preheader, data.plain),
-          text: renderTemplate(regTpl.text, data.plain),
-          bodyHtml: renderTemplate(regTpl.bodyHtml, data.html),
+          text: registrationText,
+          bodyHtml: plainTextToEmailHtml(registrationText),
           userId: emailRaw,
         });
         emailResult = { sent: true, template: "registrationReceived" };
@@ -1817,10 +1841,7 @@ app.post("/api/admin/users/:email/send-default-email", adminAuthMiddleware, asyn
       req.body?.textOverride || template.text || subject,
       data.plain
     );
-    const bodyHtml = renderTemplate(
-      req.body?.bodyHtmlOverride || template.bodyHtml || `<p>${escapeHtml(subject)}</p>`,
-      data.html
-    );
+    const bodyHtml = plainTextToEmailHtml(text) || `<p>${escapeHtml(subject)}</p>`;
 
     await sendBrandedEmail({
       to: toEmail,
@@ -2037,7 +2058,7 @@ app.put("/api/admin/app-settings", adminAuthMiddleware, async (req, res) => {
 
 app.get("/api/admin/email-templates", adminAuthMiddleware, async (req, res) => {
   try {
-    return res.json(loadEmailTemplates());
+    return res.json(stripTemplateHtmlFields(loadEmailTemplates()));
   } catch (err) {
     return handleError(res, "Admin email templates fetch error", err);
   }
@@ -2050,10 +2071,10 @@ app.put("/api/admin/email-templates", adminAuthMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Templates payload must be an object" });
     }
 
-    const nextTemplates = {
-      ...DEFAULT_EMAIL_TEMPLATES,
+    const nextTemplates = stripTemplateHtmlFields({
+      ...stripTemplateHtmlFields(DEFAULT_EMAIL_TEMPLATES),
       ...templates,
-    };
+    });
 
     saveEmailTemplates(nextTemplates);
     return res.json(nextTemplates);
@@ -2322,17 +2343,15 @@ app.post("/api/users", registerUploads, async (req, res) => {
             const regDataPlain = {
               fullname: user.fullname || "there",
             };
-            const regDataHtml = {
-              fullname: escapeHtml(regDataPlain.fullname),
-            };
+            const registrationText = renderTemplate(regTpl.text, regDataPlain);
 
             await sendBrandedEmail({
               to: normEmail,
               subject: renderTemplate(regTpl.subject || "Registration received", regDataPlain),
               title: renderTemplate(regTpl.title || "We received your registration", regDataPlain),
               preheader: renderTemplate(regTpl.preheader, regDataPlain),
-              text: renderTemplate(regTpl.text, regDataPlain),
-              bodyHtml: renderTemplate(regTpl.bodyHtml, regDataHtml),
+              text: registrationText,
+              bodyHtml: plainTextToEmailHtml(registrationText),
             });
           }
         } catch (e) {
@@ -3385,18 +3404,15 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
           amount: amt.toFixed(2),
           status: transferStatus,
         };
-        const senderDataHtml = {
-          amount: escapeHtml(senderDataPlain.amount),
-          status: escapeHtml(senderDataPlain.status),
-        };
+        const senderText = renderTemplate(transferSenderTpl.text, senderDataPlain);
 
         await sendBrandedEmail({
           to: req.user.email,
           subject: renderTemplate(transferSenderTpl.subject || "Transfer update", senderDataPlain),
           title: renderTemplate(transferSenderTpl.title || "Transfer update", senderDataPlain),
           preheader: renderTemplate(transferSenderTpl.preheader, senderDataPlain),
-          text: renderTemplate(transferSenderTpl.text, senderDataPlain),
-          bodyHtml: renderTemplate(transferSenderTpl.bodyHtml, senderDataHtml),
+          text: senderText,
+          bodyHtml: plainTextToEmailHtml(senderText),
         });
 
         // recipient (send whenever an email is provided)
@@ -3418,22 +3434,15 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
             routing_number: recipientRoutingText,
             account_number: recipientAccountText,
           };
-          const dataHtml = {
-            amount: escapeHtml(dataPlain.amount),
-            status: escapeHtml(dataPlain.status),
-            recipient_name: escapeHtml(dataPlain.recipient_name),
-            bank_name: escapeHtml(dataPlain.bank_name),
-            routing_number: escapeHtml(dataPlain.routing_number),
-            account_number: escapeHtml(dataPlain.account_number),
-          };
+          const recipientText = renderTemplate(transferRecipientTpl.text, dataPlain);
 
           await sendBrandedEmail({
             to: recipient_email,
             subject: renderTemplate(transferRecipientTpl.subject || recipientSubject, dataPlain),
             title: renderTemplate(transferRecipientTpl.title || recipientTitle, dataPlain),
             preheader: renderTemplate(transferRecipientTpl.preheader, dataPlain),
-            text: renderTemplate(transferRecipientTpl.text, dataPlain),
-            bodyHtml: renderTemplate(transferRecipientTpl.bodyHtml, dataHtml),
+            text: recipientText,
+            bodyHtml: plainTextToEmailHtml(recipientText),
           });
         }
 

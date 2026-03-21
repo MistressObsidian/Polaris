@@ -6,10 +6,11 @@ import fs from 'fs';
 let mailer = null;
 const DEFAULT_FROM = {
   email: 'support@basecrypto.help',
-  name: 'BaseCrypto Support',
+  name: 'Base Credit',
 };
 
 // Optional logo for emails
+const BRAND_LOGO_URL = String(process.env.BRAND_LOGO_URL || '').trim();
 const BRAND_LOGO_PATH = process.env.BRAND_LOGO_PATH || path.join(process.cwd(), 'assets', 'logo-base-credit.svg');
 const BRAND_LOGO_CID = 'basecreditlogo';
 
@@ -71,14 +72,14 @@ export async function sendEmail(to, subject, html, opts = {}) {
   if (!to) throw new Error('sendEmail: missing "to" address');
 
   const defaultReplyTo = process.env.MAIL_REPLY_TO || process.env.SUPPORT_EMAIL || undefined;
-
   const attachments = Array.isArray(opts.attachments) ? [...opts.attachments] : [];
 
-  if (fs.existsSync(BRAND_LOGO_PATH)) {
+  if (htmlIncludesBrandLogoCid(html) && !hasBrandLogoAttachment(attachments) && fs.existsSync(BRAND_LOGO_PATH)) {
     attachments.push({
       filename: path.basename(BRAND_LOGO_PATH),
       path: BRAND_LOGO_PATH,
       cid: BRAND_LOGO_CID,
+      contentDisposition: 'inline',
     });
   }
 
@@ -86,11 +87,14 @@ export async function sendEmail(to, subject, html, opts = {}) {
     from: normalizeFromOption(opts.from || mailer.from),
     to,
     subject,
-    html,
     replyTo: opts.replyTo || defaultReplyTo,
     attachments,
     ...opts,
   };
+
+  if (typeof html === 'string' && html.trim()) {
+    mailOptions.html = html;
+  }
 
   try {
     const info = await mailer.sendMail(mailOptions);
@@ -104,10 +108,16 @@ export async function sendEmail(to, subject, html, opts = {}) {
 
 function normalizeFromOption(from) {
   if (!from) return null;
-  if (typeof from === 'string') return from;
+  const brandName = String(process.env.MAIL_FROM_NAME || process.env.BRAND_NAME || '').trim();
+  if (typeof from === 'string') {
+    const trimmed = from.trim();
+    if (!trimmed) return null;
+    if (trimmed.includes('<') && trimmed.includes('>')) return trimmed;
+    return brandName ? { address: trimmed, name: brandName } : trimmed;
+  }
 
   const email = String(from.email || from.address || '').trim();
-  const name = String(from.name || '').trim();
+  const name = String(from.name || brandName || '').trim();
   if (!email) return null;
 
   return name ? { address: email, name } : email;
@@ -118,7 +128,7 @@ function normalizeFromOption(from) {
  */
 export function renderEmail(title, bodyHtml) {
   const BRAND_NAME = process.env.BRAND_NAME || 'Base Credit';
-  const BRAND_LOGO_SRC = `cid:${BRAND_LOGO_CID}`;
+  const BRAND_LOGO_SRC = BRAND_LOGO_URL || `cid:${BRAND_LOGO_CID}`;
 
   return `
   <div style="font-family:Arial,sans-serif; background:#f6f8fb; padding:24px;">
@@ -142,4 +152,16 @@ export function renderEmail(title, bodyHtml) {
 function escapeHtml(s) {
   if (!s) return '';
   return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]);
+}
+
+function htmlIncludesBrandLogoCid(html) {
+  return String(html || '').includes(`cid:${BRAND_LOGO_CID}`);
+}
+
+function hasBrandLogoAttachment(attachments) {
+  return attachments.some((attachment) => {
+    const cid = String(attachment?.cid || '').trim();
+    const filePath = String(attachment?.path || '').trim();
+    return cid === BRAND_LOGO_CID || filePath === BRAND_LOGO_PATH;
+  });
 }

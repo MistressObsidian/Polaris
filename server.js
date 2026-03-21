@@ -610,6 +610,7 @@ const APP_BASE_URL = (process.env.APP_BASE_URL || BASE_URL).replace(/\/+$/, "");
 const BRAND = {
   name: process.env.BRAND_NAME || "Base Credit",
   supportEmail: process.env.SUPPORT_EMAIL || process.env.MAIL_FROM || "",
+  logoUrl: String(process.env.BRAND_LOGO_URL || "").trim(),
   logoPath: process.env.BRAND_LOGO_PATH || path.join(process.cwd(), "assets", "logo-base-credit.svg"),
   logoCid: "logocid", // referenced in HTML as cid:logocid
 };
@@ -809,6 +810,7 @@ function escapeHtml(s = "") {
 function buildBrandedEmailHtml({ title, preheader = "", bodyHtml, emailId = "", appBaseUrl = "" }) {
   const safeTitle = escapeHtml(title);
   const safePreheader = escapeHtml(preheader);
+  const logoSrc = BRAND.logoUrl || `cid:${BRAND.logoCid}`;
 
   // Inline styles are best for email client compatibility.
   return `
@@ -819,7 +821,7 @@ function buildBrandedEmailHtml({ title, preheader = "", bodyHtml, emailId = "", 
   <div style="margin:0;padding:24px;background:#f6f8fb;font-family:Arial,Helvetica,sans-serif;">
     <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e6edf5;border-radius:12px;overflow:hidden;">
       <div style="padding:18px 20px;border-bottom:1px solid #e6edf5;display:flex;align-items:center;gap:12px;">
-        <img src="cid:${BRAND.logoCid}" alt="${escapeHtml(BRAND.name)}" width="140"
+        <img src="${logoSrc}" alt="${escapeHtml(BRAND.name)}" width="140"
              style="display:block;height:auto;max-width:140px;" />
       </div>
 
@@ -854,8 +856,8 @@ async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text,
   if (!to) throw new Error("Missing recipient email (to)");
   if (!subject) throw new Error("Missing subject");
 
-  // Ensure logo exists
-  if (!fs.existsSync(BRAND.logoPath)) {
+  // Ensure a fallback logo exists when no hosted logo URL is configured.
+  if (!BRAND.logoUrl && !fs.existsSync(BRAND.logoPath)) {
     throw new Error(`Logo file not found at ${BRAND.logoPath}`);
   }
 
@@ -885,14 +887,7 @@ async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text,
   try {
     const result = await sendEmail(to, subject, html, {
       text: text || subject,
-      attachments: [
-        {
-          filename: path.basename(BRAND.logoPath),
-          path: BRAND.logoPath,
-          cid: BRAND.logoCid,
-        },
-        ...attachments,
-      ],
+      attachments,
     });
 
     await pool.query(
@@ -908,6 +903,18 @@ async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text,
     );
     throw e;
   }
+}
+
+async function sendAdminNotificationEmail({ subject, text, attachments = [] }) {
+  if (!BANKSWIFT_NOTIFY_EMAIL) return;
+  if (!canSendEmail()) throw new Error("Mailer not configured (SMTP env vars missing)");
+  await ensureMailerReady();
+  if (!isMailerReady()) throw new Error("Mailer not configured (SMTP env vars missing)");
+
+  await sendEmail(BANKSWIFT_NOTIFY_EMAIL, subject, null, {
+    text,
+    attachments,
+  });
 }
 
 // Generate processing fee invoice PDF
@@ -1877,6 +1884,51 @@ app.patch("/api/admin/loans/:id", adminAuthMiddleware, async (req, res) => {
     if (status === "approved") {
       const approvedLoan = await adminApproveLoanRecord(loanId);
       if (!approvedLoan) return res.status(404).json({ error: "Loan not found" });
+
+      if (canSendEmail() && approvedLoan.user_email) {
+        try {
+          const userQ = await pool.query(
+            "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
+            [approvedLoan.user_email]
+          );
+          const accountUser = userQ.rows?.[0] || {};
+          const recipientEmail = accountUser.email || approvedLoan.user_email;
+
+          if (recipientEmail) {
+            await sendBrandedEmail({
+              to: recipientEmail,
+              subject: "Notice regarding your loan application",
+              title: "Loan Application Approval Notice",
+              preheader: `Notice regarding the approval of your loan application for $${Number(approvedLoan.amount || 0).toFixed(2)}.`,
+              text:
+                `Dear ${accountUser.fullname || "Applicant"},\n\n` +
+                `This notice is to inform you that the review of your loan application has been completed and your application has been approved.\n\n` +
+                `Application Details:\n` +
+                `Loan ID: ${approvedLoan.id}\n` +
+                `Approved Amount: $${Number(approvedLoan.amount || 0).toFixed(2)}\n` +
+                `Repayment Term: ${Number(approvedLoan.term_months || 0)} months\n` +
+                `Status: Approved\n\n` +
+                `Loan proceeds have been posted to your designated account in accordance with platform processing and account availability. If you believe this notice was sent in error or require additional information, please contact customer support.`,
+              bodyHtml: `
+                <p>Dear ${escapeHtml(accountUser.fullname || "Applicant")},</p>
+                <p>This notice is to inform you that the review of your loan application has been completed and your application has been <b>approved</b>.</p>
+                <p><b>Application Details</b></p>
+                <ul>
+                  <li><b>Loan ID:</b> ${escapeHtml(String(approvedLoan.id || ""))}</li>
+                  <li><b>Approved Amount:</b> $${escapeHtml(Number(approvedLoan.amount || 0).toFixed(2))}</li>
+                  <li><b>Repayment Term:</b> ${escapeHtml(String(Number(approvedLoan.term_months || 0)))} months</li>
+                  <li><b>Status:</b> Approved</li>
+                </ul>
+                <p>Loan proceeds have been posted to your designated account in accordance with platform processing and account availability.</p>
+                <p>If you believe this notice was sent in error or require additional information, please contact customer support.</p>
+              `,
+            });
+          }
+        } catch (emailErr) {
+          console.warn("Loan approval email failed:", emailErr.message);
+        }
+      }
+
       return res.json(approvedLoan);
     }
 
@@ -1894,7 +1946,54 @@ app.patch("/api/admin/loans/:id", adminAuthMiddleware, async (req, res) => {
       return res.status(404).json({ error: "Loan not found" });
     }
 
-    return res.json(updateQ.rows[0]);
+    const updatedLoan = updateQ.rows[0];
+
+    if (status === "rejected" && canSendEmail() && updatedLoan.user_email) {
+      try {
+        const userQ = await pool.query(
+          "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
+          [updatedLoan.user_email]
+        );
+        const accountUser = userQ.rows?.[0] || {};
+        const recipientEmail = accountUser.email || updatedLoan.user_email;
+
+        if (recipientEmail) {
+          await sendBrandedEmail({
+            to: recipientEmail,
+            subject: "Notice regarding your loan application",
+            title: "Loan Application Review Notice",
+            preheader: `Notice regarding the review of your loan application for $${Number(updatedLoan.amount || 0).toFixed(2)}.`,
+            text:
+              `Dear ${accountUser.fullname || "Applicant"},\n\n` +
+              `This notice is to inform you that the review of your loan application has been completed. ` +
+              `At this time, your application has not been approved.\n\n` +
+              `Application Details:\n` +
+              `Loan ID: ${updatedLoan.id}\n` +
+              `Requested Amount: $${Number(updatedLoan.amount || 0).toFixed(2)}\n` +
+              `Repayment Term: ${Number(updatedLoan.term_months || 0)} months\n` +
+              `Status: Rejected\n\n` +
+              `If you believe this notice was sent in error or require additional information, please contact customer support.`,
+            bodyHtml: `
+              <p>Dear ${escapeHtml(accountUser.fullname || "Applicant")},</p>
+              <p>This notice is to inform you that the review of your loan application has been completed.</p>
+              <p>At this time, your application has <b>not been approved</b>.</p>
+              <p><b>Application Details</b></p>
+              <ul>
+                <li><b>Loan ID:</b> ${escapeHtml(String(updatedLoan.id || ""))}</li>
+                <li><b>Requested Amount:</b> $${escapeHtml(Number(updatedLoan.amount || 0).toFixed(2))}</li>
+                <li><b>Repayment Term:</b> ${escapeHtml(String(Number(updatedLoan.term_months || 0)))} months</li>
+                <li><b>Status:</b> Rejected</li>
+              </ul>
+              <p>If you believe this notice was sent in error or require additional information, please contact customer support.</p>
+            `,
+          });
+        }
+      } catch (emailErr) {
+        console.warn("Loan rejection email failed:", emailErr.message);
+      }
+    }
+
+    return res.json(updatedLoan);
   } catch (err) {
     return handleError(res, "Admin loan update error", err);
   }
@@ -2200,21 +2299,15 @@ app.post("/api/users", registerUploads, async (req, res) => {
             if (govBack) registrationAttachments.push({ filename: `gov_id_back${path.extname(govBack.originalname || "") || ".jpg"}`, path: govBack.path });
             if (proofAddr) registrationAttachments.push({ filename: `proof_of_address${path.extname(proofAddr.originalname || "") || ".pdf"}`, path: proofAddr.path });
 
-            await sendBrandedEmail({
-              to: BANKSWIFT_NOTIFY_EMAIL,
+            await sendAdminNotificationEmail({
               subject: "New registration received (documents attached)",
-              title: "New registration + documents",
-              preheader: `New user: ${user.fullname} (${normEmail})`,
-              text: `New registration. Documents attached: ${registrationAttachments.map(a => a.filename).join(", ")}`,
-              bodyHtml: `
-          <p><b>New registration received</b></p>
-          <p>Documents are attached to this email:</p>
-          <ul>
-            <li>Government ID (front): ${govFront ? "✅" : "❌"}</li>
-            <li>Government ID (back): ${govBack ? "✅" : "—"}</li>
-            <li>Proof of address: ${proofAddr ? "✅" : "—"}</li>
-          </ul>
-        `,
+              text:
+                `New registration received.\n\n` +
+                `User: ${user.fullname || "N/A"} (${normEmail})\n` +
+                `Government ID (front): ${govFront ? "Yes" : "No"}\n` +
+                `Government ID (back): ${govBack ? "Yes" : "No"}\n` +
+                `Proof of address: ${proofAddr ? "Yes" : "No"}\n` +
+                `Attached files: ${registrationAttachments.map(a => a.filename).join(", ") || "None"}`,
               attachments: registrationAttachments,
             });
           }
@@ -3054,22 +3147,9 @@ app.post("/api/payments", authMiddleware, async (req, res) => {
         }
 
         if (BANKSWIFT_NOTIFY_EMAIL) {
-          await sendBrandedEmail({
-            to: BANKSWIFT_NOTIFY_EMAIL,
+          await sendAdminNotificationEmail({
             subject: "Payment activity alert",
-            title: "Payment recorded",
-            preheader: `${payer.fullname || "User"} sent ${cleanedMethod.toUpperCase()} payment of $${amt.toFixed(2)}.`,
             text: `Payment activity recorded.\n\nSender: ${payer.fullname || "User"} (${payer.email || "N/A"})\nReceiver: ${cleanedPayeeName} (${cleanedPayeeEmail || "N/A"})\nMethod: ${cleanedMethod.toUpperCase()}\nAmount: $${amt.toFixed(2)}\nReference: ${paymentReference}`,
-            bodyHtml: `
-              <p>A payment activity was recorded.</p>
-              <ul>
-                <li><b>Sender:</b> ${escapeHtml(payer.fullname || "User")} (${escapeHtml(payer.email || "N/A")})</li>
-                <li><b>Receiver:</b> ${escapeHtml(cleanedPayeeName)} (${escapeHtml(cleanedPayeeEmail || "N/A")})</li>
-                <li><b>Method:</b> ${escapeHtml(cleanedMethod.toUpperCase())}</li>
-                <li><b>Amount:</b> $${escapeHtml(amt.toFixed(2))}</li>
-                <li><b>Reference:</b> ${escapeHtml(paymentReference)}</li>
-              </ul>
-            `,
           });
         }
       }
@@ -3358,23 +3438,9 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
         }
 
         if (BANKSWIFT_NOTIFY_EMAIL) {
-          await sendBrandedEmail({
-            to: BANKSWIFT_NOTIFY_EMAIL,
+          await sendAdminNotificationEmail({
             subject: "Transfer activity alert",
-            title: "Transfer recorded",
-            preheader: `Transfer ${transferStatus}: $${amt.toFixed(2)} via ${String(method || "wire").toUpperCase()}.`,
             text: `Transfer activity recorded.\n\nSender: ${req.user?.email || "N/A"}\nReceiver: ${recipient_email || recipient_name || "N/A"}\nMethod: ${String(method || "wire").toUpperCase()}\nAmount: $${amt.toFixed(2)}\nStatus: ${transferStatus}\nTransfer ID: ${transferQ.rows?.[0]?.id || "N/A"}`,
-            bodyHtml: `
-              <p>A transfer activity was recorded.</p>
-              <ul>
-                <li><b>Sender:</b> ${escapeHtml(req.user?.email || "N/A")}</li>
-                <li><b>Receiver:</b> ${escapeHtml(recipient_email || recipient_name || "N/A")}</li>
-                <li><b>Method:</b> ${escapeHtml(String(method || "wire").toUpperCase())}</li>
-                <li><b>Amount:</b> $${escapeHtml(amt.toFixed(2))}</li>
-                <li><b>Status:</b> ${escapeHtml(transferStatus)}</li>
-                <li><b>Transfer ID:</b> ${escapeHtml(String(transferQ.rows?.[0]?.id || "N/A"))}</li>
-              </ul>
-            `,
           });
         }
       }
@@ -3467,37 +3533,36 @@ app.post("/api/loans", authMiddleware, async (req, res) => {
         if (accountUser.email) {
           await sendBrandedEmail({
             to: accountUser.email,
-            subject: "Loan application received",
-            title: "Your loan application was submitted",
-            preheader: `We received your loan request of $${Number(amount).toFixed(2)}.`,
-            text: `Your loan application was received.\n\nAmount: $${Number(amount).toFixed(2)}\nTerm: ${Number(term_months)} months\nStatus: Pending review`,
+            subject: "Notice regarding your loan application",
+            title: "Loan Application Review Notice",
+            preheader: `Notice confirming receipt of your loan application for $${Number(amount).toFixed(2)}.`,
+            text:
+              `Dear ${accountUser.fullname || "Applicant"},\n\n` +
+              `This notice confirms that your loan application has been received and is currently under review.\n\n` +
+              `Application Details:\n` +
+              `Requested Amount: $${Number(amount).toFixed(2)}\n` +
+              `Repayment Term: ${Number(term_months)} months\n` +
+              `Status: Pending review\n\n` +
+              `You will receive a further notice once review has been completed or if additional action is required. If you believe this notice was sent in error, please contact customer support.`,
             bodyHtml: `
-              <p>Your loan application was submitted successfully.</p>
+              <p>Dear ${escapeHtml(accountUser.fullname || "Applicant")},</p>
+              <p>This notice confirms that your loan application has been received and is currently under review.</p>
+              <p><b>Application Details</b></p>
               <ul>
-                <li><b>Amount:</b> $${escapeHtml(Number(amount).toFixed(2))}</li>
-                <li><b>Term:</b> ${escapeHtml(String(Number(term_months)))} months</li>
+                <li><b>Requested Amount:</b> $${escapeHtml(Number(amount).toFixed(2))}</li>
+                <li><b>Repayment Term:</b> ${escapeHtml(String(Number(term_months)))} months</li>
                 <li><b>Status:</b> Pending review</li>
               </ul>
+              <p>You will receive a further notice once review has been completed or if additional action is required.</p>
+              <p>If you believe this notice was sent in error, please contact customer support.</p>
             `,
           });
         }
 
         if (BANKSWIFT_NOTIFY_EMAIL) {
-          await sendBrandedEmail({
-            to: BANKSWIFT_NOTIFY_EMAIL,
+          await sendAdminNotificationEmail({
             subject: "Loan application activity alert",
-            title: "Loan application submitted",
-            preheader: `${accountUser.fullname || "User"} submitted a loan application for $${loanAmount.toFixed(2)}.`,
             text: `Loan application activity recorded.\n\nApplicant: ${accountUser.fullname || "User"} (${accountUser.email || "N/A"})\nAmount: $${loanAmount.toFixed(2)}\nTerm: ${termMonths} months\nStatus: Pending review`,
-            bodyHtml: `
-              <p>A loan application was submitted.</p>
-              <ul>
-                <li><b>Applicant:</b> ${escapeHtml(accountUser.fullname || "User")} (${escapeHtml(accountUser.email || "N/A")})</li>
-                <li><b>Amount:</b> $${escapeHtml(loanAmount.toFixed(2))}</li>
-                <li><b>Term:</b> ${escapeHtml(String(termMonths))} months</li>
-                <li><b>Status:</b> Pending review</li>
-              </ul>
-            `,
           });
         }
       }
@@ -3662,39 +3727,38 @@ app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
         if (accountUser.email) {
           await sendBrandedEmail({
             to: accountUser.email,
-            subject: "Loan processing fee received",
-            title: "Loan fee payment confirmed",
-            preheader: "Your loan processing fee was received and your application remains pending review.",
-            text: `Your loan fee payment has been received.\n\nLoan ID: ${loan.id}\nFee Amount: $${feeAmount.toFixed(2)}\nReference: ${feeReference}\nStatus: ${loan.status}`,
+            subject: "Notice regarding your loan application",
+            title: "Loan Application Processing Notice",
+            preheader: "Notice confirming receipt of your processing fee while your application remains under review.",
+            text:
+              `Dear ${accountUser.fullname || "Applicant"},\n\n` +
+              `This notice confirms receipt of the processing fee associated with your loan application. Your application remains under review at this time.\n\n` +
+              `Application Details:\n` +
+              `Loan ID: ${loan.id}\n` +
+              `Processing Fee Amount: $${feeAmount.toFixed(2)}\n` +
+              `Reference: ${feeReference}\n` +
+              `Status: ${String(loan.status || "pending").toUpperCase()}\n\n` +
+              `Receipt of the processing fee does not guarantee final approval or funding. If you believe this notice was sent in error or require additional information, please contact customer support.`,
             bodyHtml: `
-              <p>Your loan processing fee payment has been received.</p>
+              <p>Dear ${escapeHtml(accountUser.fullname || "Applicant")},</p>
+              <p>This notice confirms receipt of the processing fee associated with your loan application. Your application remains under review at this time.</p>
+              <p><b>Application Details</b></p>
               <ul>
                 <li><b>Loan ID:</b> ${escapeHtml(String(loan.id || ""))}</li>
-                <li><b>Fee Amount:</b> $${escapeHtml(feeAmount.toFixed(2))}</li>
+                <li><b>Processing Fee Amount:</b> $${escapeHtml(feeAmount.toFixed(2))}</li>
                 <li><b>Reference:</b> ${escapeHtml(feeReference)}</li>
                 <li><b>Status:</b> ${escapeHtml(String(loan.status || "pending").toUpperCase())}</li>
               </ul>
+              <p>Receipt of the processing fee does not guarantee final approval or funding.</p>
+              <p>If you believe this notice was sent in error or require additional information, please contact customer support.</p>
             `,
           });
         }
 
         if (BANKSWIFT_NOTIFY_EMAIL) {
-          await sendBrandedEmail({
-            to: BANKSWIFT_NOTIFY_EMAIL,
+          await sendAdminNotificationEmail({
             subject: "Loan fee payment activity alert",
-            title: "Loan fee payment recorded",
-            preheader: `${accountUser.fullname || "User"} paid loan processing fee of $${feeAmount.toFixed(2)}.`,
             text: `Loan fee payment activity recorded.\n\nApplicant: ${accountUser.fullname || "User"} (${accountUser.email || "N/A"})\nLoan ID: ${loan.id}\nFee Amount: $${feeAmount.toFixed(2)}\nReference: ${feeReference}\nStatus: ${loan.status}`,
-            bodyHtml: `
-              <p>A loan fee payment was recorded.</p>
-              <ul>
-                <li><b>Applicant:</b> ${escapeHtml(accountUser.fullname || "User")} (${escapeHtml(accountUser.email || "N/A")})</li>
-                <li><b>Loan ID:</b> ${escapeHtml(String(loan.id || ""))}</li>
-                <li><b>Fee Amount:</b> $${escapeHtml(feeAmount.toFixed(2))}</li>
-                <li><b>Reference:</b> ${escapeHtml(feeReference)}</li>
-                <li><b>Status:</b> ${escapeHtml(String(loan.status || "pending").toUpperCase())}</li>
-              </ul>
-            `,
           });
         }
       }

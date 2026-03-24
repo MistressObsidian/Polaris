@@ -7,81 +7,42 @@
   <link rel="stylesheet" href="ui.css" />
   <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
   <style>
-    :root { --bg:#0d0f14; --panel:#141a24; --border:#1f2530; --ink:#eef3f8; --muted:#8aa0b9; --muted2:#7a889a; --pill:#1f2733; --accent:#2663ff; --ok:#10b981; --warn:#f59e0b; }
-    * { box-sizing: border-box; }
-    body { margin:0; background:var(--bg); color:var(--ink); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, sans-serif; min-height:100vh; }
+    .layout { display:grid; gap:1rem; grid-template-columns: 1.15fr .85fr; }
+    .status-bar { margin-bottom:.6rem; font-size:.72rem; }
+    .tabs { margin-bottom:1rem; }
+    .muted { font-size:.75rem; }
+    .error { font-size:.78rem; min-height:1.1rem; }
 
-    header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid var(--border); position:sticky; top:0; background:rgba(13,15,20,.9); backdrop-filter: blur(10px); z-index:5; }
-    header h1 { font-size:1.05rem; margin:0; letter-spacing:.5px; }
-    a.back-link { color:#7aa8ff; text-decoration:none; font-size:.85rem; }
-    a.back-link:hover { text-decoration:underline; }
-
-    main.layout { max-width:1100px; margin:1rem auto 2rem; padding:0 1rem; display:grid; gap:1rem; grid-template-columns: 1.15fr .85fr; }
-    .panel { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:1.1rem 1.1rem 1.25rem; }
-    .panel h2 { margin:0 0 .85rem; font-size:.9rem; letter-spacing:.5px; text-transform:uppercase; color:#7d8da3; }
-
-    .status-bar { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:.6rem; font-size:.72rem; color:#96a6bd; }
-    .pill { background:var(--pill); padding:.35rem .6rem; border-radius:999px; font-size:.7rem; color:#9fb1c9; display:inline-block; }
-
-    .tabs { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem; }
-    .tab { cursor:pointer; border:none; border-radius:10px; padding:.55rem .8rem; background:#1d2733; color:#e9eef5; font-size:.78rem; }
-    .tab.active { background:#2663ff; color:#fff; }
-
-    .row { display:grid; grid-template-columns: 1fr 1fr; gap:.85rem; }
-    .row.full { grid-template-columns: 1fr; }
-    .field { display:flex; flex-direction:column; gap:.35rem; }
-    .field label { font-size:.75rem; color:#8aa0b9; }
-    .field input, .field select, .field textarea {
-      background:#0f141d; border:1px solid #202a39; color:#e8eef6; border-radius:8px; padding:.7rem .8rem; font-size:.85rem; outline:none;
-    }
-
-    .actions { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem; }
-    .btn { cursor:pointer; border:none; border-radius:10px; padding:.75rem 1rem; background:#1d2733; color:#e9eef5; font-size:.82rem; }
-    .btn:hover { background:#233040; }
-    .btn-primary { background:#2663ff; color:#fff; }
-    .btn-primary:hover { background:#1f55dc; }
-    .muted { font-size:.75rem; color:#7a889a; }
-    .error { color:#ff8a8a; font-size:.78rem; min-height:1.1rem; }
-
-    .list { border:1px solid var(--border); border-radius:12px; background:#0f141d; max-height:520px; overflow:auto; }
-    .item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px; border-bottom:1px solid var(--border); cursor:pointer; }
+    .list { max-height:520px; overflow:auto; }
+    .item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px; cursor:pointer; }
     .item:last-child { border-bottom:none; }
-    .item:hover { background:#121a22; }
-    .item.active { background:#182537; box-shadow: inset 3px 0 0 var(--accent); }
+    .item:hover { background:var(--color-surface-muted); }
+    .item.active { background:color-mix(in srgb, var(--color-accent-soft) 60%, var(--color-surface-strong)); box-shadow: inset 3px 0 0 var(--color-accent); }
     .item-left { display:flex; align-items:center; gap:10px; }
-    .item-icon { width:36px; height:36px; display:grid; place-items:center; border-radius:50%; background:#192438; color:#bcd7ff; font-weight:900; }
+    .item-icon { width:36px; height:36px; display:grid; place-items:center; border-radius:50%; background:var(--color-accent-soft); color:color-mix(in srgb, var(--color-accent) 72%, white 12%); font-weight:900; }
     .item-title { font-weight:800; }
-    .item-meta { font-size:.8rem; color:var(--muted); }
+    .item-meta { font-size:.8rem; color:var(--color-text-muted); }
     .amt { font-weight:900; }
-    .amt.neg { color:#ff7b7b; }
-
-    .summary { background:#121a28; border:1px solid #202a39; border-radius:12px; padding:.85rem; display:grid; gap:.35rem; font-size:.82rem; }
-    .summary .rowline { display:flex; justify-content:space-between; gap:.75rem; }
+    .amt.neg { color:var(--color-danger); }
 
     /* Success Modal */
-    .modal { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:40; }
-    .modal .card { background:#0f141d; border:1px solid #223048; border-radius:14px; width:min(480px,92vw); padding:1rem 1rem 1.15rem; }
     .modal h3 { margin:0 0 .35rem; font-size:1rem; }
-    .modal .ok { display:flex; align-items:center; gap:.5rem; color:#91f2b4; font-size:.9rem; margin-bottom:.5rem; }
-    .kvs { background:#101826; border:1px solid #223048; border-radius:10px; padding:.75rem; display:grid; gap:.45rem; margin:.6rem 0 .8rem; font-size:.85rem; }
-    .kv { display:flex; justify-content:space-between; gap:.75rem; }
     .modal .actions { justify-content:flex-end; }
 
     @media (max-width:880px){ main.layout { grid-template-columns: 1fr; } }
     @media (max-width:520px){
-      header { flex-direction:column; align-items:flex-start; }
       .row { grid-template-columns: 1fr; }
       .btn { flex:1; justify-content:center; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Payments</h1>
-  <nav><a class="back-link" href="dashboard.html">← Back to Home</a></nav>
+  <header class="page-header">
+    <h1 class="page-title">Payments</h1>
+    <nav class="page-header-nav"><button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button><a class="back-link" href="dashboard.html">← Back to Home</a></nav>
   </header>
 
-  <main class="layout">
+  <main class="layout layout-wide layout-split">
     <!-- Left: New Payment -->
     <section class="panel">
       <h2>New Payment</h2>
@@ -253,7 +214,20 @@
       setText('balPill', 'Available — ' + fmtAmt(avail));
     }
     function authHeaders(){
-      return { 'Content-Type':'application/json', ...getAuthHeaders() };
+      let headers = {};
+      if (window.getAuthHeaders) {
+        headers = window.getAuthHeaders();
+      } else {
+        try {
+          const storedUser = JSON.parse(localStorage.getItem('bs-user') || 'null');
+          const token = storedUser?.token || localStorage.getItem('bs-token') || '';
+          headers = token ? { Authorization: `Bearer ${token}` } : {};
+        } catch {
+          const token = localStorage.getItem('bs-token') || '';
+          headers = token ? { Authorization: `Bearer ${token}` } : {};
+        }
+      }
+      return { 'Content-Type':'application/json', ...headers };
     }
 
     function setPaymentsAvailability(enabled, reason = '') {

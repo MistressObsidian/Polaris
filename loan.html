@@ -8,57 +8,22 @@
   <link rel="shortcut icon" href="assets/favicon-base-credit.svg" />
   <link rel="stylesheet" href="ui.css" />
   <style>
-    body { background:#0d0f14; color:#eef3f8; font-family: system-ui, Arial, sans-serif; }
-    header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid #1e2530; }
-    header h1 { font-size:1.05rem; margin:0; letter-spacing:.5px; }
-    a.back-link { color:#7aa8ff; text-decoration:none; font-size:.85rem; }
-    a.back-link:hover { text-decoration:underline; }
-
-    main.layout { max-width:1000px; margin:1rem auto 2rem; padding:0 1rem; display:grid; gap:1rem; grid-template-columns: 1.1fr .9fr; }
-    .panel { background:#141a24; border:1px solid #1f2530; border-radius:14px; padding:1.1rem 1.1rem 1.25rem; }
-    .panel h2 { margin:0 0 .85rem; font-size:.9rem; letter-spacing:.5px; text-transform:uppercase; color:#7d8da3; }
-
-    .status-bar { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:.6rem; }
-    .pill { background:#1f2733; padding:.35rem .6rem; border-radius:999px; font-size:.7rem; color:#9fb1c9; }
-
-    .row { display:grid; grid-template-columns:1fr 1fr; gap:.85rem; }
-    .field { display:flex; flex-direction:column; gap:.35rem; }
-    .field label { font-size:.75rem; color:#8aa0b9; }
-    .field input {
-      background:#0f141d;
-      border:1px solid #202a39;
-      color:#e8eef6;
-      border-radius:8px;
-      padding:.7rem .8rem;
-      font-size:.85rem;
-      outline:none;
-    }
-
-    .summary { background:#121a28; border:1px solid #202a39; border-radius:12px; padding:.85rem; display:grid; gap:.35rem; font-size:.82rem; }
-    .summary .line { display:flex; justify-content:space-between; gap:.75rem; }
-
-    .actions { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem; }
-    .btn { cursor:pointer; border:none; border-radius:10px; padding:.75rem 1rem; background:#1d2733; color:#e9eef5; font-size:.82rem; }
-    .btn:hover { background:#233040; }
-    .btn-primary { background:#2663ff; color:#fff; }
-    .btn-primary:hover { background:#1f55dc; }
-    .btn-outline { background:transparent; color:#e9eef5; border:1px solid rgba(255,255,255,.25); }
-    .btn-outline:hover { background:rgba(255,255,255,.06); }
-
-    .error { color:#ff8a8a; font-size:.78rem; min-height:1.1rem; margin-top:.45rem; }
-    .muted { font-size:.8rem; color:#92a4bc; }
+    .layout { display:grid; gap:1rem; grid-template-columns: 1.1fr .9fr; }
+    .status-bar { margin-bottom:.6rem; }
+    .error { font-size:.78rem; min-height:1.1rem; margin-top:.45rem; }
+    .muted { font-size:.8rem; }
 
     .loan-list { display:grid; gap:.7rem; }
     .loan-card {
-      background:#111927;
-      border:1px solid #23324a;
+      background:var(--color-surface-strong);
+      border:1px solid var(--color-border);
       border-radius:12px;
       padding:.85rem .9rem;
       display:grid;
       gap:.45rem;
     }
     .loan-head { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
-    .loan-id { color:#8ea5c1; font-size:.72rem; }
+    .loan-id { color:var(--color-text-muted); font-size:.72rem; }
 
     .badge {
       border-radius:999px;
@@ -75,26 +40,26 @@
     .badge.processing_fee_required { background:#fb923c; color:#2b1100; }
     .badge.unknown { background:#64748b; color:#fff; }
 
-    .loan-meta { display:grid; gap:.2rem; font-size:.82rem; color:#d8e1ec; }
-    .fee-box { margin-top:.3rem; background:#1c283b; border:1px solid #2a3c59; border-radius:10px; padding:.55rem .65rem; display:flex; justify-content:space-between; align-items:center; gap:.6rem; }
+    .loan-meta { display:grid; gap:.2rem; font-size:.82rem; color:var(--color-text); }
+    .fee-box { margin-top:.3rem; background:var(--color-surface-muted); border:1px solid var(--color-border); border-radius:10px; padding:.55rem .65rem; display:flex; justify-content:space-between; align-items:center; gap:.6rem; }
 
     @media (max-width:900px){ main.layout { grid-template-columns:1fr; } }
     @media (max-width:520px){
-      header { flex-direction:column; align-items:flex-start; }
       .row { grid-template-columns:1fr; }
       .btn { flex:1; justify-content:center; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Personal Loan</h1>
-    <nav>
+  <header class="page-header">
+    <h1 class="page-title">Personal Loan</h1>
+    <nav class="page-header-nav">
+      <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
       <a class="back-link" href="dashboard.html">← Back to Home</a>
     </nav>
   </header>
 
-  <main class="layout">
+  <main class="layout layout-narrow layout-split">
     <section class="panel">
       <h2>Apply for Loan</h2>
 
@@ -210,6 +175,18 @@
       return String(status || 'pending').replace(/_/g, ' ');
     }
 
+    function authHeaders(){
+      if (window.getAuthHeaders) return window.getAuthHeaders();
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('bs-user') || 'null');
+        const token = storedUser?.token || localStorage.getItem('bs-token') || '';
+        return token ? { Authorization: `Bearer ${token}` } : {};
+      } catch {
+        const token = localStorage.getItem('bs-token') || '';
+        return token ? { Authorization: `Bearer ${token}` } : {};
+      }
+    }
+
     async function payProcessingFee(loanId){
       const statusPill = document.getElementById('statusPill');
       if (statusPill) statusPill.textContent = 'Status — Paying fee...';
@@ -219,7 +196,7 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...getAuthHeaders()
+            ...authHeaders()
           }
         });
 
@@ -305,7 +282,7 @@
       const currentUserId = window.resolveUserId?.(user?.id || user?.sub) || (user?.id || user?.sub || "");
 
       const response = await fetch(`${window.API_BASE}/loans?userId=${encodeURIComponent(currentUserId)}`, {
-        headers: getAuthHeaders()
+        headers: authHeaders()
       });
 
       if (response.status === 401) {
@@ -346,7 +323,7 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...getAuthHeaders()
+            ...authHeaders()
           },
           body: JSON.stringify({ amount, term_months: Math.trunc(term) })
         });

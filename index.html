@@ -5,21 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
     <meta name="theme-color" content="#0a0e27"/>
   <title>Base Credit - Premier Digital Banking & Financial Services</title>
-    <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
+        <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="ui.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1e40af;
-            --secondary: #7c3aed;
-            --accent: #06b6d4;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --dark: #0f172a;
-            --light: #f8fafc;
-            --glass: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
+                        --primary: var(--color-accent);
+                        --primary-dark: var(--color-accent-hover);
+                        --secondary: #0f9f70;
+                        --accent: var(--color-info);
+                        --success: var(--color-good);
+                        --warning: var(--color-warn);
+                        --danger: var(--color-danger);
+                        --dark: var(--color-bg);
+                        --light: var(--color-surface-strong);
+                        --glass: color-mix(in srgb, var(--color-surface) 72%, transparent);
+                        --glass-border: color-mix(in srgb, var(--color-border-strong) 88%, transparent);
+                        --landing-heading-gradient: linear-gradient(135deg, #fff, #e0e7ff);
+                        --landing-brand-gradient: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+                        --landing-panel-bg: rgba(255, 255, 255, 0.08);
+                        --landing-panel-border: rgba(255, 255, 255, 0.2);
+                        --landing-panel-hover: rgba(255, 255, 255, 0.14);
+                        --landing-section-bg: rgba(15, 23, 42, 0.95);
+                        --landing-section-bg-alt: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+                        --landing-footer-bg: #0a0e27;
+                        --landing-overlay-bg: rgba(15, 23, 42, 0.97);
+                        --landing-text-strong: #fff;
+                        --landing-text-muted: rgba(255, 255, 255, 0.9);
+                        --landing-text-soft: rgba(255, 255, 255, 0.76);
+                        --landing-text-faint: rgba(255, 255, 255, 0.65);
+                        --landing-button-dark: #0f172a;
+                        --landing-stat-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        :root[data-theme="light"] {
+                        --landing-heading-gradient: linear-gradient(135deg, var(--color-text), var(--color-accent));
+                        --landing-brand-gradient: linear-gradient(135deg, #235fe0, #0d8ab8, #0f9f70);
+                        --landing-panel-bg: rgba(255, 255, 255, 0.76);
+                        --landing-panel-border: rgba(18, 32, 51, 0.14);
+                        --landing-panel-hover: rgba(255, 255, 255, 0.9);
+                        --landing-section-bg: rgba(255, 255, 255, 0.84);
+                        --landing-section-bg-alt: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(223, 233, 242, 0.92));
+                        --landing-footer-bg: #dfe8f1;
+                        --landing-overlay-bg: rgba(237, 243, 248, 0.98);
+                        --landing-text-strong: var(--color-text);
+                        --landing-text-muted: color-mix(in srgb, var(--color-text) 84%, transparent);
+                        --landing-text-soft: var(--color-text-muted);
+                        --landing-text-faint: var(--color-text-soft);
+                        --landing-button-dark: var(--color-text);
+                        --landing-stat-shadow: 0 14px 34px rgba(18, 32, 51, 0.12);
         }
 
         * {
@@ -29,9 +63,10 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: var(--font-sans);
             overflow-x: hidden;
-            background: #0a0e27;
+            background: var(--color-bg);
+            color: var(--color-text);
         }
 
         /* Animated Background */
@@ -45,6 +80,11 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 20%, #f093fb 40%, #f5576c 60%, #4facfe 80%, #00f2fe 100%);
             background-size: 400% 400%;
             animation: gradientShift 20s ease infinite;
+        }
+
+        :root[data-theme="light"] .hero-background {
+            background: linear-gradient(135deg, #f3f8ff 0%, #e1ecfb 20%, #d7f0ef 42%, #fdf2d5 68%, #d8e7ff 100%);
+            background-size: 240% 240%;
         }
 
         @keyframes gradientShift {
@@ -73,6 +113,10 @@
             animation: float 15s infinite linear;
         }
 
+        :root[data-theme="light"] .particle {
+            background: rgba(35, 95, 224, 0.22);
+        }
+
         @keyframes float {
             from {
                 transform: translateY(100vh) translateX(0);
@@ -98,9 +142,9 @@
             right: 0;
             z-index: 1000;
             padding: calc(1rem + env(safe-area-inset-top)) 5% 1rem;
-            background: rgba(15, 23, 42, 0.9);
+            background: color-mix(in srgb, var(--color-surface) 92%, transparent);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--color-border);
             transition: all 0.3s ease;
         }
 
@@ -128,15 +172,33 @@
             align-items: center;
         }
 
+        .header-actions {
+            display:flex;
+            align-items:center;
+            gap:1rem;
+        }
+
         .nav-links a {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--color-text-muted);
             text-decoration: none;
             font-weight: 500;
             transition: all 0.3s ease;
         }
 
         .nav-links a:hover {
-            color: white;
+            color: var(--color-text);
+        }
+
+        .theme-toggle.landing-toggle {
+            min-width: auto;
+            padding: 0.72rem 0.95rem;
+            background: var(--landing-panel-bg);
+            color: var(--landing-text-strong);
+            border-color: var(--landing-panel-border);
+        }
+
+        .theme-toggle.landing-toggle:hover {
+            background: var(--landing-panel-hover);
         }
 
         .btn {
@@ -156,20 +218,25 @@
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
+        :root[data-theme="light"] .btn-primary {
+            background: linear-gradient(135deg, var(--color-accent), var(--color-info));
+            box-shadow: 0 8px 24px rgba(35, 95, 224, 0.24);
+        }
+
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
         }
 
         .btn-glass {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: var(--landing-panel-bg);
+            color: var(--landing-text-strong);
+            border: 1px solid var(--landing-panel-border);
             backdrop-filter: blur(10px);
         }
 
         .btn-glass:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--landing-panel-hover);
         }
 
         /* Hero Section */
@@ -211,14 +278,14 @@
             font-weight: 900;
             line-height: 1.1;
             margin-bottom: 1.5rem;
-            background: linear-gradient(135deg, #fff, #e0e7ff);
+            background: var(--landing-heading-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .gradient-text {
-            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            background: var(--landing-brand-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -226,9 +293,24 @@
 
         .hero-text p {
             font-size: 1.25rem;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--landing-text-soft);
             margin-bottom: 2rem;
             line-height: 1.6;
+        }
+
+        .trust-indicators {
+            display: flex;
+            gap: 2rem;
+            margin-top: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .trust-stat {
+            color: var(--landing-text-soft);
+        }
+
+        .trust-stat strong {
+            color: var(--landing-text-strong);
         }
 
         .hero-buttons {
@@ -305,7 +387,7 @@
         .card-number {
             font-size: 1.2rem;
             letter-spacing: 2px;
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--landing-text-muted);
             font-family: 'Courier New', monospace;
         }
 
@@ -316,8 +398,13 @@
         }
 
         .card-holder {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--landing-text-soft);
             font-size: 0.9rem;
+        }
+
+        .card-eyebrow {
+            font-size: 0.7rem;
+            opacity: 0.7;
         }
 
         .card-brand {
@@ -329,17 +416,17 @@
 
         .balance-widget {
           margin-top: 2rem;
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.2);
+                    background: var(--landing-panel-bg);
+                    border: 1px solid var(--landing-panel-border);
           backdrop-filter: blur(20px);
           border-radius: 20px;
           padding: 1.5rem 2rem;
           display: none;
-          color: #fff;
+                    color: var(--landing-text-strong);
           font-size: 1.2rem;
           font-weight: 600;
           text-align: center;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+                    box-shadow: var(--landing-stat-shadow);
         }
         .balance-widget span {
           display: block;
@@ -355,7 +442,7 @@
         /* Features Section */
         .features {
             padding: 100px 5%;
-            background: rgba(15, 23, 42, 0.95);
+            background: var(--landing-section-bg);
             backdrop-filter: blur(20px);
         }
 
@@ -373,7 +460,7 @@
             font-size: 3rem;
             font-weight: 900;
             margin-bottom: 1rem;
-            background: linear-gradient(135deg, #fff, #e0e7ff);
+            background: var(--landing-heading-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -381,7 +468,7 @@
 
         .section-header p {
             font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--landing-text-soft);
             max-width: 600px;
             margin: 0 auto;
         }
@@ -421,6 +508,10 @@
             box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
         }
 
+        :root[data-theme="light"] .feature-card:hover {
+            box-shadow: 0 20px 40px rgba(18, 32, 51, 0.12);
+        }
+
         .feature-card:hover::before {
             transform: scaleX(1);
         }
@@ -441,18 +532,18 @@
         .feature-card h3 {
             font-size: 1.3rem;
             margin-bottom: 1rem;
-            color: white;
+            color: var(--landing-text-strong);
         }
 
         .feature-card p {
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--landing-text-soft);
             line-height: 1.6;
         }
 
         /* Banking Services */
         .services {
             padding: 100px 5%;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+            background: var(--landing-section-bg-alt);
         }
 
         .services-grid {
@@ -498,6 +589,10 @@
             box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
         }
 
+        :root[data-theme="light"] .service-card:hover {
+            box-shadow: 0 15px 35px rgba(18, 32, 51, 0.14);
+        }
+
         .service-icon {
             font-size: 3rem;
             margin-bottom: 1rem;
@@ -508,20 +603,20 @@
         }
 
         .service-card h3 {
-            color: white;
+            color: var(--landing-text-strong);
             margin-bottom: 0.5rem;
             font-size: 1.2rem;
         }
 
         .service-card p {
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--landing-text-soft);
             font-size: 0.9rem;
         }
 
         /* Stats Section */
         .stats {
             padding: 80px 5%;
-            background: rgba(15, 23, 42, 0.95);
+            background: var(--landing-section-bg);
         }
 
         .stats-container {
@@ -544,42 +639,43 @@
         }
 
         .stat-label {
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--landing-text-soft);
             font-size: 1.1rem;
         }
 
         /* About Section */
-        .about { padding: 100px 5%; background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(15,23,42,0.95)); }
+        .about { padding: 100px 5%; background: var(--landing-section-bg-alt); }
         .about-inner { max-width: 1200px; margin:0 auto; display:grid; gap:3rem; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); align-items:start; }
-        .about-text h2 { font-size:2.75rem; font-weight:900; background:linear-gradient(135deg,#fff,#e0e7ff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; margin:0 0 1.2rem; }
-        .about-text p { color:rgba(255,255,255,0.75); line-height:1.65; font-size:1.05rem; margin-bottom:1.2rem; }
+        .about-text h2 { font-size:2.75rem; font-weight:900; background:var(--landing-heading-gradient); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; margin:0 0 1.2rem; }
+        .about-text p { color:var(--landing-text-soft); line-height:1.65; font-size:1.05rem; margin-bottom:1.2rem; }
         .about-points { list-style:none; margin:1.5rem 0 0; padding:0; display:grid; gap:.9rem; }
-        .about-points li { display:flex; gap:.7rem; align-items:flex-start; color:rgba(255,255,255,0.8); font-size:.95rem; }
+        .about-points li { display:flex; gap:.7rem; align-items:flex-start; color:var(--landing-text-muted); font-size:.95rem; }
         .about-points li span { width:26px; height:26px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#667eea,#764ba2); font-size:.85rem; font-weight:600; }
-        .about-visual { position:relative; min-height:360px; border:1px solid var(--glass-border); border-radius:28px; background:rgba(255,255,255,0.05); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); padding:2rem; overflow:hidden; }
+        .about-visual { position:relative; min-height:360px; border:1px solid var(--glass-border); border-radius:28px; background:var(--landing-panel-bg); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); padding:2rem; overflow:hidden; }
         .about-visual::before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 75% 25%,rgba(255,255,255,.18),transparent 60%); }
         .about-kpi-grid { position:relative; display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); margin-top:1.2rem; }
-        .kpi { background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); border-radius:18px; padding:1rem 1rem 1.1rem; text-align:center; }
+        .kpi { background:var(--landing-panel-bg); border:1px solid var(--glass-border); border-radius:18px; padding:1rem 1rem 1.1rem; text-align:center; }
         .kpi strong { display:block; font-size:1.4rem; font-weight:800; background:linear-gradient(135deg,#667eea,#f093fb); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; }
-        .kpi span { font-size:.68rem; letter-spacing:.6px; text-transform:uppercase; color:rgba(255,255,255,0.65); font-weight:600; }
+        .kpi span { font-size:.68rem; letter-spacing:.6px; text-transform:uppercase; color:var(--landing-text-faint); font-weight:600; }
+        .metrics-title { margin:0 0 1.2rem; font-size:1.05rem; letter-spacing:1px; text-transform:uppercase; color:var(--landing-text-faint); font-weight:700; }
 
         /* Contact Section */
-        .contact { padding: 100px 5%; background: rgba(15, 23, 42, 0.9); }
+        .contact { padding: 100px 5%; background: color-mix(in srgb, var(--landing-section-bg) 94%, transparent); }
         .contact-inner { max-width:1100px; margin:0 auto; display:grid; gap:3rem; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); }
-        .contact-info h2 { font-size:2.5rem; font-weight:900; margin:0 0 1rem; background:linear-gradient(135deg,#fff,#e0e7ff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; }
-        .contact-info p { color:rgba(255,255,255,0.75); font-size:1.05rem; line-height:1.55; margin:0 0 1.4rem; }
+        .contact-info h2 { font-size:2.5rem; font-weight:900; margin:0 0 1rem; background:var(--landing-heading-gradient); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; }
+        .contact-info p { color:var(--landing-text-soft); font-size:1.05rem; line-height:1.55; margin:0 0 1.4rem; }
         .contact-badges { display:flex; flex-wrap:wrap; gap:.65rem; }
-        .contact-badges span { background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); padding:.55rem .85rem; font-size:.7rem; letter-spacing:.7px; font-weight:600; text-transform:uppercase; border-radius:30px; color:rgba(255,255,255,0.75); }
-        .contact-form { background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); padding:2rem 2rem 2.4rem; border-radius:30px; display:grid; gap:1.1rem; }
+        .contact-badges span { background:var(--landing-panel-bg); border:1px solid var(--glass-border); padding:.55rem .85rem; font-size:.7rem; letter-spacing:.7px; font-weight:600; text-transform:uppercase; border-radius:30px; color:var(--landing-text-soft); }
+        .contact-form { background:var(--landing-panel-bg); border:1px solid var(--glass-border); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); padding:2rem 2rem 2.4rem; border-radius:30px; display:grid; gap:1.1rem; }
         .contact-form .field-col { display:flex; flex-direction:column; gap:.5rem; }
-        .contact-form label { font-size:.65rem; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:rgba(255,255,255,0.7); }
-        .contact-form input, .contact-form textarea { border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.07); color:#fff; padding:.9rem 1rem; border-radius:14px; font-size:.92rem; resize:vertical; min-height:52px; }
+        .contact-form label { font-size:.65rem; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:var(--landing-text-soft); }
+        .contact-form input, .contact-form textarea { border:1px solid var(--landing-panel-border); background:color-mix(in srgb, var(--landing-panel-bg) 82%, var(--color-surface-strong)); color:var(--landing-text-strong); padding:.9rem 1rem; border-radius:14px; font-size:.92rem; resize:vertical; min-height:52px; }
         .contact-form textarea { min-height:120px; }
-        .contact-form input:focus, .contact-form textarea:focus { outline:none; border-color:#667eea; background:rgba(255,255,255,0.12); box-shadow:0 0 0 3px rgba(102,126,234,.25); }
+        .contact-form input:focus, .contact-form textarea:focus { outline:none; border-color:var(--color-accent); background:color-mix(in srgb, var(--landing-panel-hover) 78%, var(--color-surface-strong)); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-accent) 24%, transparent); }
         .contact-form button { justify-self:start; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; padding:.95rem 1.6rem; border-radius:14px; font-weight:600; font-size:.9rem; cursor:pointer; box-shadow:0 12px 30px -8px rgba(102,126,234,.55); }
         .contact-form button:hover { filter:brightness(1.07); }
-        .contact-status { font-size:.75rem; font-weight:600; color:#6ee7b7; display:none; }
-        .contact-status.error { color:#fca5a5; }
+        .contact-status { font-size:.75rem; font-weight:600; color:var(--color-good); display:none; }
+        .contact-status.error { color:var(--color-danger); }
 
         /* CTA Banner */
         .cta-banner { padding:90px 5%; background:linear-gradient(135deg,#667eea,#764ba2,#f093fb); text-align:center; position:relative; overflow:hidden; }
@@ -589,14 +685,40 @@
         .cta-inner p { font-size:1.1rem; color:rgba(255,255,255,0.92); margin:0 0 2rem; }
         .cta-actions { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
         .cta-actions a { text-decoration:none; font-weight:600; font-size:.95rem; padding:1rem 1.6rem; border-radius:14px; display:inline-flex; align-items:center; gap:.5rem; }
-        .cta-primary { background:#0f172a; color:#fff; }
+        .cta-primary { background:var(--landing-button-dark); color:#fff; }
         .cta-secondary { background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3); }
         .cta-secondary:hover { background:rgba(255,255,255,0.25); }
         .cta-primary:hover { filter:brightness(1.1); }
 
+        :root[data-theme="light"] .cta-banner {
+            background: linear-gradient(135deg, #dbe8ff, #d8f0ef, #fdf0cf);
+        }
+
+        :root[data-theme="light"] .cta-banner::after {
+            background: radial-gradient(circle at 70% 30%, rgba(255,255,255,.6), transparent 65%);
+        }
+
+        :root[data-theme="light"] .cta-inner h2 {
+            color: var(--color-text);
+        }
+
+        :root[data-theme="light"] .cta-inner p {
+            color: color-mix(in srgb, var(--color-text) 82%, transparent);
+        }
+
+        :root[data-theme="light"] .cta-secondary {
+            background: rgba(255,255,255,0.74);
+            color: var(--color-text);
+            border-color: rgba(18, 32, 51, 0.12);
+        }
+
+        :root[data-theme="light"] .cta-secondary:hover {
+            background: rgba(255,255,255,0.92);
+        }
+
         /* Footer */
         .app-footer {
-            background: #0a0e27;
+            background: var(--landing-footer-bg);
             padding: 60px 5% 30px;
             border-top: 1px solid var(--glass-border);
         }
@@ -610,7 +732,7 @@
             margin-bottom: 3rem;
         }
         .app-footer .footer-section h3 {
-            color: white;
+            color: var(--landing-text-strong);
             margin-bottom: 1rem;
             font-size: 1.2rem;
         }
@@ -621,19 +743,24 @@
             margin-bottom: 0.8rem;
         }
         .app-footer .footer-section ul li a {
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--landing-text-soft);
             text-decoration: none;
             transition: all 0.3s ease;
         }
         .app-footer .footer-section ul li a:hover {
-            color: white;
+            color: var(--landing-text-strong);
             padding-left: 5px;
         }
         .app-footer .footer-bottom {
             text-align: center;
             padding-top: 2rem;
             border-top: 1px solid var(--glass-border);
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--landing-text-faint);
+        }
+
+        .footer-copy {
+            color: var(--landing-text-soft);
+            line-height: 1.6;
         }
 
         /* Mobile Menu */
@@ -645,7 +772,7 @@
             display: none;
             background: none;
             border: none;
-            color: white;
+            color: var(--landing-text-strong);
             font-size: 2rem;
             cursor: pointer;
         }
@@ -657,7 +784,7 @@
             left: 0;
             width: 100vw;
             height: 100dvh;
-            background: rgba(15,23,42,0.97);
+            background: var(--landing-overlay-bg);
             z-index: 1002;
             flex-direction: column;
             align-items: center;
@@ -670,7 +797,7 @@
             right: 22px;
             background: none;
             border: none;
-            color: #fff;
+            color: var(--landing-text-strong);
             font-size: 2rem;
             cursor: pointer;
         }
@@ -687,7 +814,7 @@
         }
 
         #mobileMenu a {
-            color: #fff;
+            color: var(--landing-text-strong);
             text-decoration: none;
         }
 
@@ -745,6 +872,7 @@
     <header class="app-header">
         <div class="header-content">
             <div class="logo">Base Credit</div>
+            <div class="header-actions">
             <nav>
                 <ul class="nav-links">
                     <li><a href="#home">Home</a></li>
@@ -756,6 +884,8 @@
                     <li><a href="login.html" class="btn btn-primary">Sign In</a></li>
                 </ul>
             </nav>
+            <button type="button" class="btn btn-outline theme-toggle landing-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
+            </div>
         </div>
     </header>
 
@@ -791,10 +921,10 @@
                 </div>
 
                 <!-- Trust Indicators -->
-                <div style="display:flex;gap:2rem;margin-top:3rem;flex-wrap:wrap;">
-                    <div style="color:rgba(255,255,255,0.7);"><strong style="color:#fff;">500K+</strong> Active Users</div>
-                    <div style="color:rgba(255,255,255,0.7);"><strong style="color:#fff;">$2B+</strong> Processed</div>
-                    <div style="color:rgba(255,255,255,0.7);"><strong style="color:#fff;">150+</strong> Countries</div>
+                <div class="trust-indicators">
+                    <div class="trust-stat"><strong>500K+</strong> Active Users</div>
+                    <div class="trust-stat"><strong>$2B+</strong> Processed</div>
+                    <div class="trust-stat"><strong>150+</strong> Countries</div>
                 </div>
             </div>
 
@@ -805,7 +935,7 @@
                         <div class="card-number">•••• •••• •••• 3482</div>
                         <div class="card-bottom">
                             <div class="card-holder">
-                                <div style="font-size:.7rem;opacity:.7;">MASTERCARD</div>
+                                <div class="card-eyebrow">MASTERCARD</div>
                                 <div>JASON SMITH</div>
                             </div>
                             <div class="card-brand">SWIFT</div>
@@ -816,7 +946,7 @@
                         <div class="card-number">•••• •••• •••• 9015</div>
                         <div class="card-bottom">
                             <div class="card-holder">
-                                <div style="font-size:.7rem;opacity:.7;">PLATINUM</div>
+                                <div class="card-eyebrow">PLATINUM</div>
                                 <div>PREMIUM</div>
                             </div>
                             <div class="card-brand">SWIFT</div>
@@ -827,7 +957,7 @@
                         <div class="card-number">•••• •••• •••• 1170</div>
                         <div class="card-bottom">
                             <div class="card-holder">
-                                <div style="font-size:.7rem;opacity:.7;">BUSINESS</div>
+                                <div class="card-eyebrow">BUSINESS</div>
                                 <div>CORPORATE</div>
                             </div>
                             <div class="card-brand">SWIFT</div>
@@ -980,7 +1110,7 @@
                 </ul>
             </div>
             <div class="about-visual">
-                <h3 style="margin:0 0 1.2rem; font-size:1.05rem; letter-spacing:1px; text-transform:uppercase; color:rgba(255,255,255,0.65); font-weight:700;">Platform Metrics</h3>
+                <h3 class="metrics-title">Platform Metrics</h3>
                 <div class="about-kpi-grid">
                     <div class="kpi"><strong>500K+</strong><span>Users</span></div>
                     <div class="kpi"><strong>$2B+</strong><span>Processed</span></div>
@@ -1037,7 +1167,7 @@
         <div class="footer-content">
             <div class="footer-section">
                 <h3>About Base Credit</h3>
-                <p style="color: rgba(255,255,255,0.7); line-height: 1.6;">
+                <p class="footer-copy">
                     Your trusted partner for modern banking solutions. We combine cutting-edge technology with personalized service to deliver the best banking experience.
                 </p>
             </div>
@@ -1078,6 +1208,7 @@
         </div>
     </footer>
     
+    <script src="common.js"></script>
     <script>
         // Particles creation
         function createParticles(){
@@ -1097,9 +1228,9 @@
         window.addEventListener('scroll', () => {
             const header = document.querySelector('.app-header');
             if(window.scrollY > 50) {
-                header.style.background = 'rgba(15, 23, 42, 0.95)';
+                header.style.background = 'color-mix(in srgb, var(--color-surface) 96%, transparent)';
             } else {
-                header.style.background = 'rgba(15, 23, 42, 0.9)';
+                header.style.background = 'color-mix(in srgb, var(--color-surface) 92%, transparent)';
             }
         });
 

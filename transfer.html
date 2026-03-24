@@ -8,54 +8,18 @@
   <link rel="shortcut icon" href="assets/favicon-base-credit.svg" />
   <link rel="stylesheet" href="ui.css" />
   <style>
-    body { background:#0d0f14; color:#eef3f8; font-family: system-ui, Arial, sans-serif; }
-    header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid #1e2530; }
-    header h1 { font-size:1.05rem; margin:0; letter-spacing:.5px; }
-    a.back-link { color:#7aa8ff; text-decoration:none; font-size:.85rem; }
-    a.back-link:hover { text-decoration:underline; }
-
-    main.layout { max-width:980px; margin:1rem auto 2rem; padding:0 1rem; display:grid; gap:1rem; grid-template-columns: 1.15fr .85fr; }
-    .panel { background:#141a24; border:1px solid #1f2530; border-radius:14px; padding:1.1rem 1.1rem 1.25rem; }
-    .panel h2 { margin:0 0 .85rem; font-size:.9rem; letter-spacing:.5px; text-transform:uppercase; color:#7d8da3; }
-
-    .status-bar { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:.6rem; font-size:.72rem; color:#96a6bd; }
-    .pill { background:#1f2733; padding:.35rem .6rem; border-radius:999px; font-size:.62rem; letter-spacing:.4px; }
-
-    .tabs { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem; }
-    .tab { cursor:pointer; border:none; border-radius:10px; padding:.55rem .8rem; background:#1d2733; color:#e9eef5; font-size:.78rem; }
-    .tab.active { background:#2663ff; color:#fff; }
-
-    .row { display:grid; grid-template-columns: 1fr 1fr; gap:.85rem; }
-    .row.full { grid-template-columns: 1fr; }
-    .field { display:flex; flex-direction:column; gap:.35rem; }
-    .field label { font-size:.75rem; color:#8aa0b9; }
-    .field input, .field select, .field textarea {
-      background:#0f141d; border:1px solid #202a39; color:#e8eef6; border-radius:8px; padding:.7rem .8rem; font-size:.85rem; outline:none;
-    }
-
-    .actions { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem; }
-    .btn { cursor:pointer; border:none; border-radius:10px; padding:.75rem 1rem; background:#1d2733; color:#e9eef5; font-size:.82rem; }
-    .btn:hover { background:#233040; }
-    .btn-primary { background:#2663ff; color:#fff; }
-    .btn-primary:hover { background:#1f55dc; }
-    .muted { font-size:.75rem; color:#7a889a; }
-    .error { color:#ff8a8a; font-size:.78rem; min-height:1.1rem; }
-
-    .summary { background:#121a28; border:1px solid #202a39; border-radius:12px; padding:.85rem; display:grid; gap:.35rem; font-size:.82rem; }
-    .summary .rowline { display:flex; justify-content:space-between; gap:.75rem; }
+    .layout { display:grid; gap:1rem; grid-template-columns: 1.15fr .85fr; }
+    .status-bar { margin-bottom:.6rem; font-size:.72rem; }
+    .tabs { margin-bottom:1rem; }
+    .muted { font-size:.75rem; }
+    .error { font-size:.78rem; min-height:1.1rem; }
 
     /* Success Modal */
-    .modal { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:40; }
-    .modal .card { background:#0f141d; border:1px solid #223048; border-radius:14px; width:min(480px,92vw); padding:1rem 1rem 1.15rem; }
     .modal h3 { margin:0 0 .35rem; font-size:1rem; }
-    .modal .ok { display:flex; align-items:center; gap:.5rem; color:#91f2b4; font-size:.9rem; margin-bottom:.5rem; }
-    .kvs { background:#101826; border:1px solid #223048; border-radius:10px; padding:.75rem; display:grid; gap:.45rem; margin:.6rem 0 .8rem; font-size:.85rem; }
-    .kv { display:flex; justify-content:space-between; gap:.75rem; }
     .modal .actions { justify-content:flex-end; }
 
     @media (max-width:880px){ main.layout { grid-template-columns: 1fr; } }
     @media (max-width:520px){
-      header { flex-direction:column; align-items:flex-start; }
       .row { grid-template-columns: 1fr; }
       .btn { flex:1; justify-content:center; }
     }
@@ -66,14 +30,15 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>Transfer</h1>
-    <nav>
+  <header class="page-header">
+    <h1 class="page-title">Transfer</h1>
+    <nav class="page-header-nav">
+      <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
   <a class="back-link" href="dashboard.html">← Back to Home</a>
     </nav>
   </header>
 
-  <main class="layout">
+  <main class="layout layout-narrow layout-split">
     <!-- Left: Transfer form -->
     <section class="panel">
       <h2>New Transfer</h2>
@@ -237,7 +202,7 @@
 
     function setTransfersAvailability(enabled, reason = '') {
       transfersEnabled = Boolean(enabled);
-      const message = reason || 'Transfers are currently disabled by admin.';
+      const message = reason || 'Transfers are currently disabled.';
 
       qsa('#transferForm input, #transferForm select, #transferForm textarea, #transferForm button, .tabs .tab').forEach((el) => {
         el.disabled = !transfersEnabled;
@@ -282,7 +247,20 @@
     }
 
     function authHeaders(){
-      return { 'Content-Type':'application/json', ...getAuthHeaders() };
+      let headers = {};
+      if (window.getAuthHeaders) {
+        headers = window.getAuthHeaders();
+      } else {
+        try {
+          const storedUser = JSON.parse(localStorage.getItem('bs-user') || 'null');
+          const token = storedUser?.token || localStorage.getItem('bs-token') || '';
+          headers = token ? { Authorization: `Bearer ${token}` } : {};
+        } catch {
+          const token = localStorage.getItem('bs-token') || '';
+          headers = token ? { Authorization: `Bearer ${token}` } : {};
+        }
+      }
+      return { 'Content-Type':'application/json', ...headers };
     }
 
     async function refreshProfile(){
@@ -330,7 +308,7 @@
       qs('#formError').textContent = '';
 
       if (!transfersEnabled) {
-        qs('#formError').textContent = 'Transfers are currently disabled by admin.';
+        qs('#formError').textContent = 'Transfers are currently disabled.';
         return;
       }
 

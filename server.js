@@ -3208,7 +3208,7 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
   try {
     const settings = loadAppSettings();
     if (settings.transfersEnabled === false) {
-      return res.status(403).json({ error: "Transfers are currently disabled by admin" });
+      return res.status(403).json({ error: "Transfers are currently disabled" });
     }
 
     const userId = req.userId || normalizeDbUserId(req.user?.sub);

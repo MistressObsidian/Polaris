@@ -4,54 +4,73 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Claim Pending Transfer</title>
+  <link rel="stylesheet" href="ui.css">
+  <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
   <style>
-    body { font-family: Arial, Helvetica, sans-serif; background:#f6fafc; color:#123; margin:0; padding:20px }
-    .card { max-width:720px; margin:28px auto; background:white; border-radius:8px; padding:18px; box-shadow:0 6px 18px rgba(9,30,66,0.06) }
-    h1 { margin:0 0 8px 0; font-size:20px }
-    .muted { color:#667; font-size:14px }
+    .layout { width:min(100% - 2rem, 760px); }
+    .claim-panel { padding:1.1rem; }
+    .claim-title { margin:0 0 .5rem; font-size:1.2rem; }
+    .claim-form { margin-top:.75rem; display:flex; flex-direction:column; gap:.8rem; }
     .row { display:flex; gap:12px; margin-top:12px }
-    .col { flex:1 }
-    label { display:block; font-size:13px; margin-bottom:6px }
-    input[type=text], textarea, select { width:100%; padding:10px;border:1px solid #d6e2ef;border-radius:6px }
-    button { background:#0b74de;color:#fff;border:0;padding:10px 14px;border-radius:6px;font-weight:700 }
-    .btn-secondary { background:#eef3fb;color:#123;border:0 }
-    .hint { font-size:13px;color:#556;margin-top:8px }
+    .field-note, .hint { font-size:13px;color:var(--color-text-soft);margin-top:8px }
+    .inline-actions { display:flex;gap:8px;margin-top:12px;flex-wrap:wrap; }
+    #result { margin-top:12px; min-height:1.2rem; }
+    @media (max-width: 640px) {
+      .row { flex-direction:column; }
+      .inline-actions > * { flex:1 1 100%; }
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Claim pending transfer</h1>
+  <header class="page-header">
+    <h1 class="page-title">Claim Pending Transfer</h1>
+    <nav class="page-header-nav">
+      <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
+      <a class="back-link" href="index.html">← Back to Home</a>
+    </nav>
+  </header>
+
+  <main class="layout layout-narrow">
+  <section class="panel claim-panel">
+    <h2 class="claim-title">Claim pending transfer</h2>
     <p class="muted">Follow the steps to complete the transfer and notify the company of your chosen payment method.</p>
 
     <div id="transfer-info" style="margin-top:14px">
       <p class="muted">Loading transfer details…</p>
     </div>
 
-  <form id="claim-form" style="margin-top:12px" enctype="multipart/form-data">
+  <form id="claim-form" class="claim-form" enctype="multipart/form-data">
+      <div class="field">
       <label for="payment_option">Select payment option</label>
-      <select id="payment_option" required>
+      <select class="input-base" id="payment_option" required>
         <option value="bank_wire">Bank wire / ACH</option>
         <option value="btc">Bitcoin (BTC)</option>
         <option value="third_party">Third-party payment (e.g., PayPal)</option>
       </select>
+      </div>
 
+      <div class="field">
   <label for="receipt_file">Payment receipt (upload a file or paste URL/text)</label>
-  <input id="receipt_file" type="file" accept="image/*,.pdf,.jpg,.png" />
-  <textarea id="receipt" rows="4" placeholder="Paste a URL to your receipt or paste the text of the payment confirmation"></textarea>
+  <input class="input-base" id="receipt_file" type="file" accept="image/*,.pdf,.jpg,.png" />
+  <textarea class="input-base" id="receipt" rows="4" placeholder="Paste a URL to your receipt or paste the text of the payment confirmation"></textarea>
+      </div>
 
+      <div class="field">
       <label for="payer_email">Your email (so we can match the transfer)</label>
-      <input id="payer_email" type="text" placeholder="your@email.com" required>
+      <input class="input-base" id="payer_email" type="text" placeholder="your@email.com" required>
+      </div>
 
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <button type="submit">Submit payment & notify</button>
-        <button type="button" id="cancel" class="btn-secondary">Cancel</button>
+      <div class="inline-actions actions">
+        <button type="submit" class="btn btn-primary">Submit payment & notify</button>
+        <button type="button" id="cancel" class="btn btn-outline">Cancel</button>
       </div>
 
       <p class="hint">After you submit, you'll be asked to forward a copy of your payment receipt to our company email. We will then confirm and release funds to the recipient.</p>
     </form>
 
-    <div id="result" style="margin-top:12px"></div>
-  </div>
+    <div id="result"></div>
+  </section>
+  </main>
 
 <script src="config.js"></script>
 <script src="common.js"></script>

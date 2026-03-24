@@ -7,17 +7,20 @@
   <link rel="stylesheet" href="ui.css" />
   <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f5f6fa; color: #222; }
-    main { max-width: 720px; margin: 24px auto; background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+    .layout { width:min(100% - 2rem, 720px); }
+    .simulator-panel { padding:1rem; }
     .row { display: grid; grid-template-columns: 160px 1fr; gap: 10px; margin-bottom: 10px; }
-    input, button { padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; }
-    button.primary { background: #4c6ef5; color: #fff; border: none; }
-    .log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #0f172a; color: #e2e8f0; padding: 10px; border-radius: 8px; max-height: 280px; overflow: auto; }
-    header{display:flex;align-items:center;gap:.75rem;padding:14px 20px;background:#ffffff;border-bottom:1px solid #e5e7eb;box-shadow:0 2px 4px rgba(0,0,0,.04)}
-    header img{height:42px;width:auto;display:block}
-    header h1{font-size:1.2rem;margin:0;font-weight:800;color:#1e3c72}
+    .row label { font-size:var(--text-sm); color:var(--color-text-muted); font-weight:600; align-self:center; }
+    .log { font-family: var(--font-mono); background: var(--color-surface-muted); color: var(--color-text); padding: 10px; border-radius: 8px; max-height: 280px; overflow: auto; }
+    .webhook-brand { display:flex; align-items:center; gap:.75rem; }
+    .webhook-brand h1 { font-size:1.2rem; margin:0; font-weight:800; }
+    .webhook-icon { height:42px; width:42px; display:inline-flex; }
+    @media (max-width: 640px) {
+      .row { grid-template-columns: 1fr; }
+    }
   </style>
   <script src="config.js"></script>
+  <script src="common.js"></script>
 <script>
 // Simulate webhook event (manual trigger)
 async function sendWebhookTest() {
@@ -45,8 +48,9 @@ async function sendWebhookTest() {
 </script>
 </head>
 <body>
-  <header>
-    <span style="height:42px;width:42px;display:inline-flex;">
+  <header class="page-header">
+    <div class="webhook-brand">
+    <span class="webhook-icon">
       <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
           <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -68,27 +72,34 @@ async function sendWebhookTest() {
         <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
       </svg>
     </span>
-    <h1>Base Webhook Simulator</h1>
+    <h1 class="page-title">Base Webhook Simulator</h1>
+    </div>
+    <nav class="page-header-nav">
+      <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
+      <a class="back-link" href="dashboard.html">← Back to Home</a>
+    </nav>
   </header>
-  <main>
+  <main class="layout layout-narrow">
+    <section class="panel simulator-panel">
     <h2>Webhook Receiver Simulator</h2>
     <div class="row">
       <label for="ref">Reference</label>
-      <input id="ref" placeholder="e.g., TXN12345678" />
+      <input class="input-base" id="ref" placeholder="e.g., TXN12345678" />
     </div>
     <div class="row">
       <label for="status">Status</label>
-      <input id="status" placeholder="Completed or Pending" />
+      <input class="input-base" id="status" placeholder="Completed or Pending" />
     </div>
     <div class="row">
       <label for="secret">Shared Secret</label>
-      <input id="secret" placeholder="WEBHOOK_SECRET (default change-me)" />
+      <input class="input-base" id="secret" placeholder="WEBHOOK_SECRET (default change-me)" />
     </div>
-    <button class="primary" onclick="sendWebhookTest()">Send Webhook</button>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="sendWebhookTest()">Send Webhook</button>
+    </div>
     <h3>Response</h3>
-    <pre id="log" class="log"></pre>
+    <pre id="webhookResult" class="log"></pre>
+    </section>
   </main>
-  <button onclick="sendWebhookTest()" class="btn-shared btn-primary-shared">Send Test Webhook</button>
-<pre id="webhookResult" style="margin-top:20px; padding:15px; background:rgba(255,255,255,.05); border-radius:8px; color:#fff;"></pre>
 </body>
 </html>

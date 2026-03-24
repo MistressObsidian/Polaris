@@ -8,34 +8,24 @@
   <link rel="shortcut icon" href="assets/favicon-base-credit.svg" />
   <link rel="stylesheet" href="ui.css" />
   <style>
-    body { background:#0d0f14; color:#f5f7fa; font-family: system-ui, Arial, sans-serif; }
-    header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1px solid #1f2530; }
-    header h1 { font-size:1.05rem; margin:0; letter-spacing:.5px; }
-    a.back-link { color:#7aa8ff; text-decoration:none; font-size:.85rem; }
-    a.back-link:hover { text-decoration:underline; }
-    .layout { max-width:1100px; margin:1rem auto 2.5rem; padding:0 1rem; }
+    .layout { width:min(100% - 2rem, 1100px); }
     .accounts-grid { display:grid; gap:1rem; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); margin-top:1rem; }
-    .acc-card { background:#141a24; border:1px solid #1f2530; border-radius:12px; padding:1rem 1rem 1.15rem; position:relative; overflow:hidden; }
-    .acc-card h2 { margin:0 0 .35rem; font-size:.85rem; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:#7d8da3; }
+    .acc-card { padding:1rem 1rem 1.15rem; position:relative; overflow:hidden; }
+    .acc-card h2 { margin:0 0 .35rem; font-size:.85rem; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:var(--color-text-soft); }
     .acc-balance { font-size:1.45rem; font-weight:600; line-height:1.2; font-variant-numeric: tabular-nums; }
-    .acc-sub { font-size:.65rem; text-transform:uppercase; letter-spacing:.5px; color:#5a6778; margin-top:.4rem; }
+    .acc-sub { font-size:.65rem; text-transform:uppercase; letter-spacing:.5px; color:var(--color-text-soft); margin-top:.4rem; }
     .actions { display:flex; flex-wrap:wrap; gap:.6rem; margin:1.25rem 0 .5rem; }
-    button, .btn { cursor:pointer; font:inherit; border:none; border-radius:8px; padding:.65rem 1rem; background:#1d2733; color:#e9eef5; font-size:.75rem; letter-spacing:.4px; display:inline-flex; align-items:center; gap:.4rem; transition:.2s background; }
-    button:hover, .btn:hover { background:#233040; }
-    .btn-accent { background:#2663ff; color:#fff; }
-    .btn-accent:hover { background:#1e54dd; }
-    .status-bar { font-size:.65rem; color:#77879a; display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; }
-    .status-pill { background:#1f2733; padding:.35rem .6rem; border-radius:999px; font-size:.6rem; letter-spacing:.4px; }
-    .panel { background:#141a24; border:1px solid #1f2530; border-radius:14px; padding:1.1rem 1.1rem 1.3rem; margin-top:1.35rem; }
-    .panel h3 { margin:0 0 .85rem; font-size:.85rem; letter-spacing:.5px; text-transform:uppercase; color:#7d8da3; }
-    .tx-list { list-style:none; margin:0; padding:0; max-height:300px; overflow:auto; border:1px solid #1f2530; border-radius:10px; }
+    .btn-accent { background:var(--color-accent); color:#fff; }
+    .btn-accent:hover { background:var(--color-accent-hover); }
+    .status-bar { font-size:.65rem; display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; }
+    .tx-list { list-style:none; margin:0; padding:0; max-height:300px; overflow:auto; }
     .tx-item { padding:.65rem .85rem; border-bottom:1px solid #1f2530; display:flex; justify-content:space-between; gap:.75rem; font-size:.72rem; cursor:pointer; }
     .tx-item:last-child { border-bottom:none; }
-    .tx-item:hover { background:#192231; }
-    .tx-item.active { background:#203044; }
-    .tx-amt.debit { color:#ff6b6b; }
-    .tx-amt.credit { color:#57d987; }
-    .empty { font-size:.7rem; color:#5e6b7b; padding:.75rem 0; }
+    .tx-item:hover { background:var(--color-surface-muted); }
+    .tx-item.active { background:color-mix(in srgb, var(--color-accent-soft) 55%, var(--color-surface-strong)); }
+    .tx-amt.debit { color:var(--color-danger); }
+    .tx-amt.credit { color:var(--color-good); }
+    .empty { font-size:.7rem; padding:.75rem 0; }
     .fade-in { animation:fade .35s ease; }
     @keyframes fade { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:translateY(0);} }
     @media (prefers-reduced-motion: reduce){
@@ -53,14 +43,15 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>Accounts Overview</h1>
-    <nav>
+  <header class="page-header">
+    <h1 class="page-title">Accounts Overview</h1>
+    <nav class="page-header-nav">
+      <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
   <a href="dashboard.html" class="back-link">← Back to Home</a>
     </nav>
   </header>
 
-  <main class="layout">
+  <main class="layout layout-wide">
     <div class="status-bar" id="statusBar">
       <span class="status-pill" id="userNamePill">Loading profile…</span>
       <span class="status-pill" id="lastSyncPill">Sync — …</span>
@@ -185,9 +176,22 @@
     }
 
     function authHeaders(){
+      let headers = {};
+      if (window.getAuthHeaders) {
+        headers = window.getAuthHeaders();
+      } else {
+        try {
+          const storedUser = JSON.parse(localStorage.getItem('bs-user') || 'null');
+          const token = storedUser?.token || localStorage.getItem('bs-token') || '';
+          headers = token ? { Authorization: `Bearer ${token}` } : {};
+        } catch {
+          const token = localStorage.getItem('bs-token') || '';
+          headers = token ? { Authorization: `Bearer ${token}` } : {};
+        }
+      }
       return {
         'Content-Type':'application/json',
-        ...getAuthHeaders()
+        ...headers
       };
     }
 

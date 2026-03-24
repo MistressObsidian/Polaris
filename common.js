@@ -2,6 +2,142 @@
 // Usage: include config.js then common.js; call window.Notifications.init() once per page.
 
 (function(){
+	if (window.BSTheme) return;
+
+	const STORAGE_KEY = "bs-prefs";
+	let mediaQuery = null;
+	let delegatedToggleBound = false;
+
+	function readPrefs(){
+		try {
+			return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+		} catch {
+			return {};
+		}
+	}
+
+	function writePrefs(nextPrefs){
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(nextPrefs));
+		return nextPrefs;
+	}
+
+	function getPreferredMode(){
+		const prefs = readPrefs();
+		return prefs.theme || "auto";
+	}
+
+	function getSystemTheme(){
+		if (!window.matchMedia) return "dark";
+		return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+	}
+
+	function resolveTheme(mode){
+		return mode === "auto" ? getSystemTheme() : mode;
+	}
+
+	function refreshToggleLabels(mode, resolved){
+		const toggles = document.querySelectorAll('[data-action="theme-toggle"]');
+		toggles.forEach((toggle) => {
+			const nextTheme = resolved === "dark" ? "light" : "dark";
+			const modeLabel = mode === "auto" ? `Auto (${resolved})` : resolved[0].toUpperCase() + resolved.slice(1);
+			toggle.setAttribute("aria-label", `Switch to ${nextTheme} theme`);
+			toggle.title = `Current theme: ${modeLabel}`;
+			const label = toggle.querySelector('.theme-toggle-label');
+			if (label) label.textContent = modeLabel;
+		}
+	}
+
+	function updateThemeMeta(resolved){
+		const meta = document.querySelector('meta[name="theme-color"]');
+		if (!meta) return;
+		meta.setAttribute("content", resolved === "light" ? "#edf3f8" : "#0a0e27");
+	}
+
+	function applyTheme(mode = getPreferredMode()){
+		const resolved = resolveTheme(mode);
+		const root = document.documentElement;
+		root.dataset.themeMode = mode;
+		root.dataset.theme = resolved;
+		root.classList.toggle("theme-dark", resolved === "dark");
+		root.classList.toggle("theme-light", resolved === "light");
+		root.style.colorScheme = resolved;
+		updateThemeMeta(resolved);
+		refreshToggleLabels(mode, resolved);
+		return { mode, resolved };
+	}
+
+	function saveTheme(mode){
+		const prefs = readPrefs();
+		prefs.theme = mode;
+		writePrefs(prefs);
+		return applyTheme(mode);
+	}
+
+	function toggleTheme(){
+		const current = applyTheme();
+		return saveTheme(current.resolved === "dark" ? "light" : "dark");
+	}
+
+	function bindSystemPreference(){
+		if (!window.matchMedia) return;
+		mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+		const sync = () => {
+			if (getPreferredMode() === "auto") applyTheme("auto");
+		};
+		if (typeof mediaQuery.addEventListener === "function") mediaQuery.addEventListener("change", sync);
+		else if (typeof mediaQuery.addListener === "function") mediaQuery.addListener(sync);
+	}
+
+	function bindThemeToggles(){
+		document.querySelectorAll('[data-action="theme-toggle"]').forEach((button) => {
+			if (button.dataset.themeBound === "1") return;
+			button.dataset.themeBound = "1";
+			button.addEventListener("click", () => {
+				toggleTheme();
+				if (window.Notifications?.toast) {
+					const { resolved } = applyTheme();
+					window.Notifications.toast({ title: "Theme Updated", body: `${resolved[0].toUpperCase()}${resolved.slice(1)} theme applied.` });
+				}
+			});
+		});
+		if (!delegatedToggleBound) {
+			delegatedToggleBound = true;
+			document.addEventListener("click", (event) => {
+				const toggle = event.target.closest('[data-action="theme-toggle"]');
+				if (!toggle) return;
+				if (toggle.dataset.themeBound === "1") return;
+				toggleTheme();
+				if (window.Notifications?.toast) {
+					const { resolved } = applyTheme();
+					window.Notifications.toast({ title: "Theme Updated", body: `${resolved[0].toUpperCase()}${resolved.slice(1)} theme applied.` });
+				}
+			});
+		}
+		applyTheme();
+	}
+
+	window.BSTheme = {
+		applyTheme,
+		saveTheme,
+		toggleTheme,
+		getPreferredMode,
+		getSystemTheme,
+		resolveTheme,
+		bindThemeToggles,
+		readPrefs,
+		writePrefs,
+	};
+
+	applyTheme();
+	bindSystemPreference();
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", bindThemeToggles);
+	} else {
+		bindThemeToggles();
+	}
+})();
+
+(function(){
 	if (window.BSSession) return;
 
 	function getUser(){

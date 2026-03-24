@@ -11,29 +11,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* Base + palette aligned with Accounts/Settings */
-    :root { --bg:#0d0f14; --panel:#141a24; --border:#1f2530; --ink:#eef3f8; --muted:#8aa0b9; --muted2:#7a889a; --pill:#1f2733; --accent:#2663ff; }
     *{ box-sizing:border-box }
     html, body { max-width:100%; overflow-x:hidden; }
-    body { font-family: 'Inter', system-ui, Arial, sans-serif; background: var(--bg); color: var(--ink); margin:0; min-height:100vh; min-height:100dvh; }
+    body { margin:0; min-height:100vh; min-height:100dvh; }
 
     /* Header (mobile/top bar) */
     header.appbar {
       position:sticky; top:0; z-index:5;
       display:flex; align-items:center; justify-content:space-between; gap:.75rem;
-      padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:rgba(13,15,20,.9); backdrop-filter: blur(10px);
+      padding:1rem 1.25rem; border-bottom:1px solid var(--color-border); background:color-mix(in srgb, var(--color-surface) 92%, transparent); backdrop-filter: blur(10px);
     }
     .brand { display:flex; align-items:center; gap:.55rem; font-weight:700; min-width:0; }
     .brand img { width:140px; height:auto; max-width:42vw; display:block; }
     .brand span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .menu-btn { display:none; background:#1d2733; color:#e9eef5; border:none; border-radius:10px; padding:.55rem .75rem; cursor:pointer; }
-    .menu-btn:hover { background:#233040; }
+    .menu-btn { display:none; }
 
     /* Sidebar */
     .sidebar {
       position:fixed; left:0; top:0; width:260px; height:100vh; height:100dvh;
-      background:rgba(15,23,42,0.95);
-      border-right:1px solid rgba(255,255,255,.08);
+      background:color-mix(in srgb, var(--color-surface-strong) 96%, transparent);
+      border-right:1px solid var(--color-border);
       padding:1.2rem .9rem; backdrop-filter:blur(15px);
       transform: translateX(0);
       transition: transform .25s ease;
@@ -55,10 +52,10 @@
     .sidebar h2 { margin:.25rem 0 1rem; font-size:1.05rem; }
     .nav-menu { list-style:none; padding:0; margin:0; display:grid; gap:.35rem; }
     .nav-link {
-      display:block; padding:.7rem .8rem; color:rgba(255,255,255,.8);
+      display:block; padding:.7rem .8rem; color:var(--color-text-muted);
       text-decoration:none; border-radius:10px; transition:.2s; font-size:.9rem;
     }
-    .nav-link:hover, .nav-link.active { background:rgba(99,102,241,.15); color:#fff; }
+    .nav-link:hover, .nav-link.active { background:var(--color-accent-soft); color:var(--color-text); }
 
     /* Main layout */
     .main {
@@ -71,30 +68,24 @@
     .grid { display:grid; gap:1rem; }
     .panels-2 { grid-template-columns: 1fr 1fr; }
     .panel {
-      background: var(--panel); border:1px solid var(--border);
+      background: var(--color-panel-elevated); border:1px solid var(--color-border);
       border-radius:14px; padding:1.1rem 1.1rem 1.25rem;
       min-width:0;
     }
-    .panel h3 { margin:0 0 .85rem; font-size:.95rem; letter-spacing:.4px; text-transform:uppercase; color:#7d8da3; }
+    .panel h3 { margin:0 0 .85rem; font-size:.95rem; letter-spacing:.4px; text-transform:uppercase; color:var(--color-text-soft); }
 
     /* Hero summary */
     .hero {
-      background: #121a28; border:1px solid var(--border);
+      background-image: var(--hero-gradient); border:1px solid var(--color-border);
       border-radius:14px; padding:1.2rem 1.25rem; margin-bottom:1rem;
     }
     .hero h1 { font-size:clamp(1.15rem, 1rem + 1.2vw, 1.85rem); margin:.1rem 0 .6rem; line-height:1.15; }
-    .hero-subtitle { color: var(--muted2); font-size:.9rem; margin:0 0 1rem; }
+    .hero-subtitle { color: var(--color-text-muted); font-size:.9rem; margin:0 0 1rem; }
     .hero-stats { display:grid; grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); gap:.7rem; }
-    .stat-card { background:#101826; border:1px solid #223048; border-radius:12px; padding:.8rem .9rem; }
-    .stat-label { font-size:.8rem; color:#9fb1c9; }
+    .stat-card { background:var(--color-surface-strong); border:1px solid var(--color-border); border-radius:12px; padding:.8rem .9rem; }
+    .stat-label { font-size:.8rem; color:var(--color-text-muted); }
     .stat-value { font-size:1.25rem; font-weight:700; margin-top:.15rem; }
     .hero-actions { margin-top:1rem; display:flex; gap:.6rem; flex-wrap:wrap; align-items:stretch; }
-    .btn { cursor:pointer; border:none; border-radius:10px; padding:.7rem 1rem; background:#1d2733; color:#e9eef5; font-size:.86rem; display:inline-flex; align-items:center; justify-content:center; text-align:center; text-decoration:none; }
-    .btn:hover { background:#233040; }
-    .btn-primary { background: var(--accent); color:#fff; }
-    .btn-primary:hover { background:#1f55dc; }
-    .btn-outline { background:transparent; color:#e9eef5; border:1px solid rgba(255,255,255,.25); border-radius:10px; padding:.7rem 1rem; cursor:pointer; }
-    .btn-outline:hover { background:rgba(255,255,255,.06); }
 
     /* Charts */
     .chart-card { min-height:320px; }
@@ -104,13 +95,12 @@
     .table-wrap { overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; }
     .transactions table { width:100%; border-collapse:collapse; font-size:.9rem; }
     .transactions table { min-width:640px; }
-    .transactions th, .transactions td { padding:12px; border-bottom:1px solid var(--border); text-align:left; }
-    .amount-positive { color:#10b981; font-weight:600; }
-    .amount-negative { color:#ef4444; font-weight:600; }
+    .transactions th, .transactions td { padding:12px; border-bottom:1px solid var(--color-border); text-align:left; }
+    .amount-positive { color:var(--color-good); font-weight:600; }
+    .amount-negative { color:var(--color-danger); font-weight:600; }
 
     /* Pills */
     .pills { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.75rem; }
-    .pill { background: var(--pill); padding:.35rem .65rem; border-radius:999px; font-size:.7rem; color:#9fb1c9; }
 
     /* Responsive sidebar */
     @media (max-width: 980px){
@@ -158,7 +148,10 @@
       <img src="assets/logo-base-credit.svg" alt="Base Credit" />
       <span>Dashboard</span>
     </div>
-    <a class="btn" href="settings.html">⚙️ Settings</a>
+    <div class="page-header-nav">
+      <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
+      <a class="btn" href="settings.html">⚙️ Settings</a>
+    </div>
   </header>
 
   <!-- Sidebar -->
@@ -238,6 +231,18 @@ const SSE_RECONNECT_MS = 5000;
 
 /* -------------------- Utilities -------------------- */
 function fmt(n){ return `$${Number(n||0).toFixed(2)}`; }
+
+function authHeaders(){
+  if (window.getAuthHeaders) return window.getAuthHeaders();
+  try {
+    const storedUser = JSON.parse(localStorage.getItem("bs-user") || "null");
+    const token = storedUser?.token || localStorage.getItem("bs-token") || "";
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    const token = localStorage.getItem("bs-token") || "";
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+}
 
 function normalizeTransactions(payload){
   if (Array.isArray(payload)) return payload;
@@ -322,7 +327,7 @@ async function loadUserProfile(){
 
     const currentUserId = window.resolveUserId?.(user?.id || user?.sub) || (user?.id || user?.sub || "");
     const { unauthorized, data } = await fetchJSON(`${window.API_BASE}/users/me?userId=${encodeURIComponent(currentUserId)}`, {
-      headers: getAuthHeaders()
+      headers: authHeaders()
     });
 
     if (unauthorized) {
@@ -342,7 +347,7 @@ async function loadTransactions(){
   try {
     const currentUserId = window.resolveUserId?.(user?.id || user?.sub) || (user?.id || user?.sub || "");
     const { unauthorized, data } = await fetchJSON(`${window.API_BASE}/transactions?userId=${encodeURIComponent(currentUserId)}`, {
-      headers: getAuthHeaders()
+      headers: authHeaders()
     });
 
     if (unauthorized) {

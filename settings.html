@@ -8,49 +8,31 @@
   <link rel="shortcut icon" href="assets/favicon-base-credit.svg" />
   <link rel="stylesheet" href="ui.css" />
   <style>
-    body { background:#0d0f14; color:#eef3f8; font-family: system-ui, Arial, sans-serif; }
-    header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid #1e2530; }
-    header h1 { font-size:1.05rem; margin:0; letter-spacing:.5px; }
-    a.back-link { color:#7aa8ff; text-decoration:none; font-size:.85rem; }
-    a.back-link:hover { text-decoration:underline; }
-    main.layout { max-width:980px; margin:1rem auto 2.25rem; padding:0 1rem; display:grid; gap:1rem; grid-template-columns: 1.2fr .8fr; }
-    .panel { background:#141a24; border:1px solid #1f2530; border-radius:14px; padding:1.1rem 1.1rem 1.3rem; }
-    .panel h2 { margin:0 0 .85rem; font-size:.9rem; letter-spacing:.5px; text-transform:uppercase; color:#7d8da3; }
-    .row { display:grid; grid-template-columns: 1fr 1fr; gap:.8rem; }
-    .row.full { grid-template-columns: 1fr; }
-    .field { display:flex; flex-direction:column; gap:.35rem; }
-    .field label { font-size:.75rem; color:#8aa0b9; }
-    .field input, .field select { background:#0f141d; border:1px solid #202a39; color:#e8eef6; border-radius:8px; padding:.7rem .8rem; font-size:.85rem; outline:none; }
-    .actions { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem; }
-    .btn { cursor:pointer; font:inherit; border:none; border-radius:8px; padding:.7rem 1rem; background:#1d2733; color:#e9eef5; font-size:.8rem; letter-spacing:.3px; }
-    .btn:hover { background:#233040; }
-    .btn-primary { background:#2663ff; color:#fff; }
-    .btn-primary:hover { background:#1f55dc; }
-    .muted { font-size:.75rem; color:#7a889a; }
+    .layout { display:grid; gap:1rem; grid-template-columns: 1.2fr .8fr; }
+    .muted { font-size:.75rem; }
     .switch { display:flex; align-items:center; gap:.6rem; }
     .switch input { width:1.1rem; height:1.1rem; }
-    .status { font-size:.75rem; color:#9ab0c9; margin-top:.35rem; min-height:1.1rem; }
-    .sep { border-top:1px solid #202a39; margin:1rem 0; }
-    .danger { color:#ff8a8a; }
-    .toast { position:fixed; left:50%; transform:translateX(-50%); bottom:18px; background:#101826; color:#eaf2ff; border:1px solid #223048; padding:.6rem .85rem; border-radius:8px; font-size:.8rem; display:none; z-index:30; }
+    .status { font-size:.75rem; margin-top:.35rem; min-height:1.1rem; }
+    .sep { border-top:1px solid var(--color-border); margin:1rem 0; }
+    .toast { position:fixed; left:50%; transform:translateX(-50%); bottom:18px; background:var(--color-surface-strong); color:var(--color-text); border:1px solid var(--color-border); padding:.6rem .85rem; border-radius:8px; font-size:.8rem; display:none; z-index:30; }
     @media (max-width:860px){ main.layout { grid-template-columns: 1fr; } }
     @media (max-width:520px){
       .row { grid-template-columns: 1fr; }
-      header { flex-direction:column; align-items:flex-start; }
       .actions { gap:.5rem; }
       .btn { flex:1; justify-content:center; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Settings</h1>
-    <nav>
+  <header class="page-header">
+    <h1 class="page-title">Settings</h1>
+    <nav class="page-header-nav">
+      <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
   <a class="back-link" href="dashboard.html">← Back to Home</a>
     </nav>
   </header>
 
-  <main class="layout">
+  <main class="layout layout-narrow layout-split">
     <section class="panel">
       <h2>Profile</h2>
       <div class="row">
@@ -170,7 +152,20 @@
     }
 
     function authHeaders(){
-      return { 'Content-Type':'application/json', ...getAuthHeaders() };
+      let headers = {};
+      if (window.getAuthHeaders) {
+        headers = window.getAuthHeaders();
+      } else {
+        try {
+          const storedUser = JSON.parse(localStorage.getItem('bs-user') || 'null');
+          const token = storedUser?.token || localStorage.getItem('bs-token') || '';
+          headers = token ? { Authorization: `Bearer ${token}` } : {};
+        } catch {
+          const token = localStorage.getItem('bs-token') || '';
+          headers = token ? { Authorization: `Bearer ${token}` } : {};
+        }
+      }
+      return { 'Content-Type':'application/json', ...headers };
     }
 
     async function fetchJSON(url, opts={}){
@@ -285,6 +280,10 @@
     }
 
     function applyTheme(mode){
+      if (window.BSTheme?.applyTheme) {
+        window.BSTheme.applyTheme(mode);
+        return;
+      }
       const cl = document.documentElement.classList;
       cl.remove('theme-dark','theme-light');
       if(mode === 'dark') cl.add('theme-dark');
@@ -305,14 +304,17 @@
       else location.href='login.html';
     });
 
-    // Init
-    if (window.Notifications) window.Notifications.init();
-    if (!loadStoredUser()) {
+    function initPage(){
+      if (window.Notifications) window.Notifications.init();
+      if (!loadStoredUser()) {
+        loadPrefs();
+        return;
+      }
+      loadProfile();
       loadPrefs();
-      return;
     }
-    loadProfile();
-    loadPrefs();
+
+    initPage();
   </script>
 </body>
 </html>

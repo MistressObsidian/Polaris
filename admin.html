@@ -879,18 +879,78 @@
             <hr class="admin-divider" />
             <form id="manualEmailForm">
               <div class="panel-sub" style="margin-bottom:.55rem;">Manual Email</div>
-              <div class="form-grid">
+              <div class="template-workspace">
+                <div class="template-editor-pane">
+                  <div class="form-grid">
                 <div class="field">
                   <label for="manualEmailTo">Recipient Email</label>
                   <input id="manualEmailTo" class="input-base" type="email" placeholder="user@example.com" />
                 </div>
                 <div class="field">
+                  <label for="manualEmailMode">Send Mode</label>
+                  <select id="manualEmailMode" class="input-base">
+                    <option value="template">Existing template</option>
+                    <option value="custom">Custom email</option>
+                  </select>
+                </div>
+                <div class="field" id="manualEmailTemplateField">
                   <label for="manualEmailTemplate">Template</label>
                   <select id="manualEmailTemplate" class="input-base"></select>
                 </div>
-              </div>
-              <div class="actions-inline" style="margin-top:.9rem;">
-                <button type="submit" class="btn btn-primary">Send Default Email</button>
+                <div class="field hidden" id="manualEmailSubjectField" style="grid-column:1 / -1;">
+                  <label for="manualEmailSubject">Subject</label>
+                  <input id="manualEmailSubject" class="input-base" type="text" placeholder="Account update from admin" />
+                </div>
+                <div class="field hidden" id="manualEmailTitleField">
+                  <label for="manualEmailTitle">Email Heading</label>
+                  <input id="manualEmailTitle" class="input-base" type="text" placeholder="Important account update" />
+                </div>
+                <div class="field hidden" id="manualEmailPreheaderField">
+                  <label for="manualEmailPreheader">Preview Text</label>
+                  <input id="manualEmailPreheader" class="input-base" type="text" placeholder="Shown in email preview inbox text" />
+                </div>
+                <div class="field hidden" id="manualEmailBodyField" style="grid-column:1 / -1;">
+                  <label for="manualEmailBody">Message</label>
+                  <textarea id="manualEmailBody" style="min-height:180px;" placeholder="Write the message you want the user to receive."></textarea>
+                </div>
+                    <div class="field hidden" id="manualEmailTemplateKeyField">
+                      <label for="manualEmailTemplateKey">Template Key</label>
+                      <input id="manualEmailTemplateKey" class="input-base" type="text" placeholder="accountUpdate" />
+                    </div>
+                    <div class="field hidden" id="manualEmailTemplateNameField">
+                      <label for="manualEmailTemplateName">Template Label</label>
+                      <input id="manualEmailTemplateName" class="input-base" type="text" placeholder="Account update" />
+                    </div>
+                  </div>
+                  <div id="manualEmailHelp" class="helper-text" style="margin-top:.55rem;">Choose an existing template to send the standard version of that email.</div>
+                  <div id="manualEmailTemplateStatus" class="status-line"></div>
+                  <div class="actions-inline" style="margin-top:.9rem;">
+                    <button id="manualEmailSubmitBtn" type="submit" class="btn btn-primary">Send Default Email</button>
+                    <button id="manualEmailSaveTemplateBtn" type="button" class="btn-outline hidden">Save As Template</button>
+                  </div>
+                </div>
+                <div class="template-preview-pane hidden" id="manualEmailPreviewPane">
+                  <h3 style="margin:0;">Custom Email Preview</h3>
+                  <div class="panel-sub">Preview uses the selected user so placeholders and branding match what will be sent.</div>
+                  <div class="template-preview-stack" style="margin-top:.85rem;">
+                    <div class="template-preview-card">
+                      <div class="template-preview-label">Subject</div>
+                      <div id="manualEmailPreviewSubject" class="template-preview-value"></div>
+                    </div>
+                    <div class="template-preview-card">
+                      <div class="template-preview-label">Preheader</div>
+                      <div id="manualEmailPreviewPreheader" class="template-preview-value"></div>
+                    </div>
+                    <div class="template-preview-card">
+                      <div class="template-preview-label">Plain Text</div>
+                      <div id="manualEmailPreviewText" class="template-preview-value template-preview-text"></div>
+                    </div>
+                    <div class="template-preview-card">
+                      <div class="template-preview-label">Branded Email</div>
+                      <div id="manualEmailPreviewHtml" class="template-preview-value template-preview-html"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </form>
             <div id="userEditorStatus" class="status-line"></div>
@@ -1082,7 +1142,30 @@
       adjustDescription: document.getElementById("adjustDescription"),
       manualEmailForm: document.getElementById("manualEmailForm"),
       manualEmailTo: document.getElementById("manualEmailTo"),
+      manualEmailMode: document.getElementById("manualEmailMode"),
+      manualEmailTemplateField: document.getElementById("manualEmailTemplateField"),
       manualEmailTemplate: document.getElementById("manualEmailTemplate"),
+      manualEmailSubjectField: document.getElementById("manualEmailSubjectField"),
+      manualEmailSubject: document.getElementById("manualEmailSubject"),
+      manualEmailTitleField: document.getElementById("manualEmailTitleField"),
+      manualEmailTitle: document.getElementById("manualEmailTitle"),
+      manualEmailPreheaderField: document.getElementById("manualEmailPreheaderField"),
+      manualEmailPreheader: document.getElementById("manualEmailPreheader"),
+      manualEmailBodyField: document.getElementById("manualEmailBodyField"),
+      manualEmailBody: document.getElementById("manualEmailBody"),
+      manualEmailTemplateKeyField: document.getElementById("manualEmailTemplateKeyField"),
+      manualEmailTemplateKey: document.getElementById("manualEmailTemplateKey"),
+      manualEmailTemplateNameField: document.getElementById("manualEmailTemplateNameField"),
+      manualEmailTemplateName: document.getElementById("manualEmailTemplateName"),
+      manualEmailHelp: document.getElementById("manualEmailHelp"),
+      manualEmailTemplateStatus: document.getElementById("manualEmailTemplateStatus"),
+      manualEmailSubmitBtn: document.getElementById("manualEmailSubmitBtn"),
+      manualEmailSaveTemplateBtn: document.getElementById("manualEmailSaveTemplateBtn"),
+      manualEmailPreviewPane: document.getElementById("manualEmailPreviewPane"),
+      manualEmailPreviewSubject: document.getElementById("manualEmailPreviewSubject"),
+      manualEmailPreviewPreheader: document.getElementById("manualEmailPreviewPreheader"),
+      manualEmailPreviewText: document.getElementById("manualEmailPreviewText"),
+      manualEmailPreviewHtml: document.getElementById("manualEmailPreviewHtml"),
       selectedUserName: document.getElementById("selectedUserName"),
       selectedUserState: document.getElementById("selectedUserState"),
       selectedUserMeta: document.getElementById("selectedUserMeta"),
@@ -1451,6 +1534,7 @@
       if (user?.user_email) {
         els.adjustDescription.value = els.adjustDescription.value || `Admin manual balance adjustment for ${user.user_email}`;
       }
+      renderManualEmailPreview();
     }
 
     function renderManualTemplateOptions() {
@@ -1465,6 +1549,176 @@
         .join("");
       if (templates.includes(current)) {
         els.manualEmailTemplate.value = current;
+      }
+    }
+
+    function getManualEmailPreviewData() {
+      return {
+        ...TEMPLATE_PREVIEW_DATA.default,
+        fullname: state.selectedUser?.fullname || TEMPLATE_PREVIEW_DATA.default.fullname,
+        borrower_name: state.selectedUser?.fullname || TEMPLATE_PREVIEW_DATA.default.borrower_name,
+        recipient_name: state.selectedUser?.fullname || TEMPLATE_PREVIEW_DATA.default.recipient_name,
+        account_name: state.selectedUser?.accountname || TEMPLATE_PREVIEW_DATA.default.account_name,
+        email: state.selectedUser?.user_email || els.manualEmailTo.value.trim() || TEMPLATE_PREVIEW_DATA.default.email,
+      };
+    }
+
+    function manualEmailHtmlFromText(text) {
+      const normalized = String(text || "").trim();
+      if (!normalized) return "";
+
+      return normalized
+        .split(/\n{2,}/)
+        .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`)
+        .join("");
+    }
+
+    function buildManualEmailPreviewHtml({ title, preheader, bodyHtml }) {
+      return `
+        <div style="background:#f6f8fb;border:1px solid var(--border);border-radius:12px;padding:14px;">
+          <div style="background:#ffffff;border:1px solid #e6edf5;border-radius:12px;overflow:hidden;">
+            <div style="padding:14px 16px;border-bottom:1px solid #e6edf5;">
+              <strong style="font-size:16px;color:#0f172a;">Base Credit</strong>
+            </div>
+            <div style="padding:16px;">
+              <div style="font-size:12px;color:#64748b;margin-bottom:8px;">${escapeHtml(preheader || "")}</div>
+              <h4 style="margin:0 0 10px;font-size:18px;color:#0f172a;">${escapeHtml(title || "")}</h4>
+              <div style="font-size:14px;line-height:1.6;color:#334155;">${bodyHtml || `<p>${escapeHtml(title || "")}</p>`}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderManualEmailPreview() {
+      const isCustom = els.manualEmailMode.value === "custom";
+      els.manualEmailPreviewPane.classList.toggle("hidden", !isCustom);
+
+      if (!isCustom) {
+        els.manualEmailPreviewSubject.textContent = "";
+        els.manualEmailPreviewPreheader.textContent = "";
+        els.manualEmailPreviewText.textContent = "";
+        els.manualEmailPreviewHtml.innerHTML = "";
+        return;
+      }
+
+      const previewData = getManualEmailPreviewData();
+      const subject = replaceTemplateTokens(els.manualEmailSubject.value.trim(), previewData);
+      const title = replaceTemplateTokens((els.manualEmailTitle.value.trim() || els.manualEmailSubject.value.trim()), previewData);
+      const preheader = replaceTemplateTokens(els.manualEmailPreheader.value.trim(), previewData);
+      const text = replaceTemplateTokens(els.manualEmailBody.value, previewData);
+      const bodyHtml = manualEmailHtmlFromText(text);
+
+      els.manualEmailPreviewSubject.textContent = subject || "Add a subject to preview this email.";
+      els.manualEmailPreviewPreheader.textContent = preheader || "Optional preview text appears here.";
+      els.manualEmailPreviewText.textContent = text || "Write your message body to preview the plain text email.";
+      els.manualEmailPreviewHtml.innerHTML = sanitizePreviewHtml(buildManualEmailPreviewHtml({
+        title: title || "Email heading",
+        preheader,
+        bodyHtml,
+      }));
+    }
+
+    function normalizeTemplateKey(value) {
+      return String(value || "")
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]+/g, " ")
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((segment, index) => {
+          const lower = segment.toLowerCase();
+          if (index === 0) return lower;
+          return lower.charAt(0).toUpperCase() + lower.slice(1);
+        })
+        .join("");
+    }
+
+    function renderManualEmailMode() {
+      const mode = els.manualEmailMode.value === "custom" ? "custom" : "template";
+      const isCustom = mode === "custom";
+
+      els.manualEmailTemplateField.classList.toggle("hidden", isCustom);
+      els.manualEmailSubjectField.classList.toggle("hidden", !isCustom);
+      els.manualEmailTitleField.classList.toggle("hidden", !isCustom);
+      els.manualEmailPreheaderField.classList.toggle("hidden", !isCustom);
+      els.manualEmailBodyField.classList.toggle("hidden", !isCustom);
+      els.manualEmailTemplateKeyField.classList.toggle("hidden", !isCustom);
+      els.manualEmailTemplateNameField.classList.toggle("hidden", !isCustom);
+      els.manualEmailSaveTemplateBtn.classList.toggle("hidden", !isCustom);
+
+      els.manualEmailTemplate.disabled = isCustom;
+      els.manualEmailSubject.disabled = !isCustom;
+      els.manualEmailTitle.disabled = !isCustom;
+      els.manualEmailPreheader.disabled = !isCustom;
+      els.manualEmailBody.disabled = !isCustom;
+      els.manualEmailTemplateKey.disabled = !isCustom;
+      els.manualEmailTemplateName.disabled = !isCustom;
+
+      els.manualEmailHelp.textContent = isCustom
+        ? "Write a one-off branded email, preview it live, and optionally save it as a reusable template."
+        : "Choose an existing template to send the standard version of that email.";
+      els.manualEmailSubmitBtn.textContent = isCustom ? "Send Custom Email" : "Send Default Email";
+      if (!isCustom) {
+        showStatus(els.manualEmailTemplateStatus, "", "info");
+      }
+      renderManualEmailPreview();
+    }
+
+    async function handleManualTemplateSave() {
+      const templateKey = normalizeTemplateKey(els.manualEmailTemplateKey.value);
+      const subject = els.manualEmailSubject.value.trim();
+      const titleInput = els.manualEmailTitle.value.trim();
+      const preheader = els.manualEmailPreheader.value.trim();
+      const text = els.manualEmailBody.value.trim();
+
+      if (!templateKey) {
+        showStatus(els.manualEmailTemplateStatus, "Enter a template key to save this custom email.", "error");
+        return;
+      }
+
+      if (!subject || !text) {
+        showStatus(els.manualEmailTemplateStatus, "Custom templates require at least a subject and message body.", "error");
+        return;
+      }
+
+      const existing = state.templates?.[templateKey];
+      const templateLabel = els.manualEmailTemplateName.value.trim() || templateKey;
+      const confirmed = window.confirm(existing
+        ? `Replace the existing template ${templateKey}?`
+        : `Save a new template named ${templateKey}?`);
+
+      if (!confirmed) {
+        showStatus(els.manualEmailTemplateStatus, "Template save cancelled.", "info");
+        return;
+      }
+
+      showStatus(els.manualEmailTemplateStatus, "Saving custom template…");
+      try {
+        const nextTemplates = {
+          ...(state.templates || {}),
+          [templateKey]: {
+            subject,
+            title: titleInput || templateLabel || subject,
+            preheader: preheader || subject,
+            text,
+          },
+        };
+
+        const templates = await api(`${window.API_BASE}/admin/email-templates`, {
+          method: "PUT",
+          body: JSON.stringify(nextTemplates),
+        });
+
+        state.templates = templates;
+        state.selectedTemplateKey = templateKey;
+        els.manualEmailTemplateKey.value = templateKey;
+        renderTemplateEditor();
+        renderManualTemplateOptions();
+        els.manualEmailTemplate.value = templateKey;
+        showStatus(els.manualEmailTemplateStatus, `Template ${templateKey} saved.`, "success");
+        showStatus(els.settingsStatus, `Template ${templateKey} saved.`, "success");
+      } catch (err) {
+        showStatus(els.manualEmailTemplateStatus, err.message || "Failed to save template", "error");
       }
     }
 
@@ -1670,6 +1924,7 @@
       els.paymentsEnabled.checked = settings.paymentsEnabled !== false;
       renderTemplateEditor();
       renderManualTemplateOptions();
+      renderManualEmailPreview();
     }
 
     function renderAll() {
@@ -1880,6 +2135,46 @@
       }
 
       const to = els.manualEmailTo.value.trim().toLowerCase() || state.selectedUser.user_email;
+      const mode = els.manualEmailMode.value === "custom" ? "custom" : "template";
+
+      if (mode === "custom") {
+        const subject = els.manualEmailSubject.value.trim();
+        const text = els.manualEmailBody.value.trim();
+
+        if (!subject) {
+          showStatus(els.userEditorStatus, "Custom emails require a subject.", "error");
+          return;
+        }
+
+        if (!text) {
+          showStatus(els.userEditorStatus, "Custom emails require a message body.", "error");
+          return;
+        }
+
+        showStatus(els.userEditorStatus, "Sending custom email…");
+        try {
+          await api(`${window.API_BASE}/admin/users/${encodeURIComponent(state.selectedUser.user_email)}/send-default-email`, {
+            method: "POST",
+            body: JSON.stringify({
+              mode: "custom",
+              to,
+              subject,
+              title: els.manualEmailTitle.value.trim(),
+              preheader: els.manualEmailPreheader.value.trim(),
+              text,
+            }),
+          });
+          await loadDashboard();
+          els.manualEmailBody.value = "";
+          els.manualEmailPreheader.value = "";
+          renderManualEmailPreview();
+          showStatus(els.userEditorStatus, "Custom email sent successfully.", "success");
+        } catch (err) {
+          showStatus(els.userEditorStatus, err.message || "Failed to send email", "error");
+        }
+        return;
+      }
+
       const templateKey = els.manualEmailTemplate.value || "registrationReceived";
 
       showStatus(els.userEditorStatus, "Sending default email…");
@@ -1997,6 +2292,8 @@
     els.userEditorForm.addEventListener("submit", handleUserSave);
     els.balanceAdjustForm.addEventListener("submit", handleBalanceAdjust);
     els.manualEmailForm.addEventListener("submit", handleManualEmailSend);
+    els.manualEmailMode.addEventListener("change", renderManualEmailMode);
+    els.manualEmailSaveTemplateBtn.addEventListener("click", handleManualTemplateSave);
     els.settingsForm.addEventListener("submit", handleSettingsSave);
     els.templatesForm.addEventListener("submit", handleTemplatesSave);
     els.templateEditorSelect.addEventListener("change", () => {
@@ -2007,6 +2304,19 @@
     els.templateTitle.addEventListener("input", () => updateSelectedTemplateField("title", els.templateTitle.value));
     els.templatePreheader.addEventListener("input", () => updateSelectedTemplateField("preheader", els.templatePreheader.value));
     els.templateText.addEventListener("input", () => updateSelectedTemplateField("text", els.templateText.value));
+    [
+      els.manualEmailSubject,
+      els.manualEmailTitle,
+      els.manualEmailPreheader,
+      els.manualEmailBody,
+      els.manualEmailTo,
+    ].forEach((field) => field.addEventListener("input", renderManualEmailPreview));
+    els.manualEmailTemplateKey.addEventListener("blur", () => {
+      const normalized = normalizeTemplateKey(els.manualEmailTemplateKey.value);
+      if (normalized !== els.manualEmailTemplateKey.value) {
+        els.manualEmailTemplateKey.value = normalized;
+      }
+    });
     els.userSearch.addEventListener("input", renderUsers);
     els.refreshBtn.addEventListener("click", () => loadDashboard().catch((err) => showStatus(els.globalStatus, err.message || "Refresh failed", "error")));
     els.logoutBtn.addEventListener("click", () => {
@@ -2018,6 +2328,7 @@
     document.body.addEventListener("click", handleTableClick);
 
     boot();
+    renderManualEmailMode();
   </script>
 </body>
 </html>

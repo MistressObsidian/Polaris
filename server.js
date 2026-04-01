@@ -1809,39 +1809,67 @@ app.post("/api/admin/users/:email/send-default-email", adminAuthMiddleware, asyn
     );
     if (!userQ.rowCount) return res.status(404).json({ error: "User not found" });
 
+    const mode = String(req.body?.mode || "template").trim().toLowerCase() === "custom"
+      ? "custom"
+      : "template";
     const templateKey = String(req.body?.templateKey || "registrationReceived").trim();
-    const templates = loadEmailTemplates();
-    const template = templates[templateKey];
-
-    if (!template || typeof template !== "object") {
-      return res.status(400).json({
-        error: "Invalid templateKey",
-        availableTemplates: Object.keys(templates),
-      });
-    }
-
     const toEmail = String(req.body?.to || email).trim().toLowerCase();
     if (!validateEmail(toEmail)) return res.status(400).json({ error: "Invalid recipient email" });
 
     const data = toAdminTemplateData(userQ.rows[0], req.body?.data || {});
 
-    const subject = renderTemplate(
-      req.body?.subjectOverride || template.subject || "Notification",
-      data.plain
-    );
-    const title = renderTemplate(
-      req.body?.titleOverride || template.title || subject,
-      data.plain
-    );
-    const preheader = renderTemplate(
-      req.body?.preheaderOverride || template.preheader || "",
-      data.plain
-    );
-    const text = renderTemplate(
-      req.body?.textOverride || template.text || subject,
-      data.plain
-    );
-    const bodyHtml = plainTextToEmailHtml(text) || `<p>${escapeHtml(subject)}</p>`;
+    let responseTemplateKey = null;
+    let subject = "";
+    let title = "";
+    let preheader = "";
+    let text = "";
+    let bodyHtml = "";
+
+    if (mode === "custom") {
+      subject = String(req.body?.subject || "").trim();
+      title = String(req.body?.title || "").trim() || subject;
+      preheader = String(req.body?.preheader || "").trim();
+      text = String(req.body?.text || "").trim();
+
+      if (!subject) {
+        return res.status(400).json({ error: "Custom emails require a subject" });
+      }
+
+      if (!text) {
+        return res.status(400).json({ error: "Custom emails require message text" });
+      }
+
+      bodyHtml = plainTextToEmailHtml(text) || `<p>${escapeHtml(subject)}</p>`;
+    } else {
+      const templates = loadEmailTemplates();
+      const template = templates[templateKey];
+
+      if (!template || typeof template !== "object") {
+        return res.status(400).json({
+          error: "Invalid templateKey",
+          availableTemplates: Object.keys(templates),
+        });
+      }
+
+      responseTemplateKey = templateKey;
+      subject = renderTemplate(
+        req.body?.subjectOverride || template.subject || "Notification",
+        data.plain
+      );
+      title = renderTemplate(
+        req.body?.titleOverride || template.title || subject,
+        data.plain
+      );
+      preheader = renderTemplate(
+        req.body?.preheaderOverride || template.preheader || "",
+        data.plain
+      );
+      text = renderTemplate(
+        req.body?.textOverride || template.text || subject,
+        data.plain
+      );
+      bodyHtml = plainTextToEmailHtml(text) || `<p>${escapeHtml(subject)}</p>`;
+    }
 
     await sendBrandedEmail({
       to: toEmail,
@@ -1856,9 +1884,10 @@ app.post("/api/admin/users/:email/send-default-email", adminAuthMiddleware, asyn
     return res.json({
       success: true,
       to: toEmail,
-      templateKey,
+      mode,
+      templateKey: responseTemplateKey,
       subject,
-      message: "Default email sent successfully",
+      message: mode === "custom" ? "Custom email sent successfully" : "Default email sent successfully",
     });
   } catch (err) {
     return handleError(res, "Admin manual default email error", err);

@@ -87,7 +87,6 @@
         <div class="field">
           <label for="theme">Theme</label>
           <select id="theme">
-            <option value="auto">Auto (system)</option>
             <option value="dark">Dark</option>
             <option value="light">Light</option>
           </select>
@@ -259,10 +258,14 @@
 
     function loadPrefs(){
       try { state.prefs = JSON.parse(localStorage.getItem('bs-prefs')||'{}'); } catch { state.prefs = {}; }
-      qs('#theme').value = state.prefs.theme || 'auto';
+      state.prefs.theme = window.BSTheme?.normalizeThemeMode
+        ? window.BSTheme.normalizeThemeMode(state.prefs.theme)
+        : (state.prefs.theme === 'light' ? 'light' : 'dark');
+      qs('#theme').value = state.prefs.theme;
       qs('#currency').value = state.prefs.currency || 'USD';
       qs('#notifEmail').checked = !!state.prefs.notifEmail;
       qs('#notifPush').checked = !!state.prefs.notifPush;
+      localStorage.setItem('bs-prefs', JSON.stringify(state.prefs));
       applyTheme(qs('#theme').value);
     }
 

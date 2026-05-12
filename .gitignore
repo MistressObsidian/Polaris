@@ -5,6 +5,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+sendgrid.env
 
 # Data files
 data/*.json

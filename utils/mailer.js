@@ -1,12 +1,23 @@
 // utils/mailer.js
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import path from 'path';
 import fs from 'fs';
 
 let mailer = null;
+let lastMailerError = null;
 const DEFAULT_FROM = {
   email: 'support@basecrypto.help',
   name: 'Base Credit',
+};
+const MIME_TYPES = {
+  '.gif': 'image/gif',
+  '.jpeg': 'image/jpeg',
+  '.jpg': 'image/jpeg',
+  '.pdf': 'application/pdf',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.txt': 'text/plain',
+  '.webp': 'image/webp',
 };
 
 // Optional logo for emails
@@ -15,53 +26,44 @@ const BRAND_LOGO_PATH = process.env.BRAND_LOGO_PATH || path.join(process.cwd(), 
 const BRAND_LOGO_CID = 'basecreditlogo';
 
 /**
- * Initialize SMTP mailer
+ * Initialize SendGrid Web API mailer
  */
 export async function initMailer() {
-  const host = process.env.SMTP_HOST || 'smtp.sendgrid.net';
-  const configuredPort = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const sendGridApiKey = String(process.env.SENDGRID_API_KEY || '').trim();
   const from = normalizeFromOption(process.env.MAIL_FROM || DEFAULT_FROM);
 
-  if (!host || !user || !pass || !from) {
-    console.warn("✉️  Mailer disabled: missing SMTP env vars (SMTP_USER, SMTP_PASS, MAIL_FROM required)");
+  if (!from) {
+    mailer = null;
+    lastMailerError = 'Missing mailer sender configuration';
+    console.warn('✉️  Mailer disabled: missing sender configuration');
     return;
   }
 
-  const candidatePorts = [configuredPort, 465, 587, 2525].filter((p, i, arr) => Number.isFinite(p) && arr.indexOf(p) === i);
-
-  for (const port of candidatePorts) {
-    try {
-      const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: {
-          user,
-          pass,
-        },
-        connectionTimeout: 8000,
-        greetingTimeout: 8000,
-        socketTimeout: 10000,
-      });
-
-      await transporter.verify();
-      transporter.from = from;
-      mailer = transporter;
-      console.log(`✉️  Mailer ready: ${user} via ${host}:${port}`);
-      return;
-    } catch (e) {
-      console.warn(`⚠️ Mailer port ${port} failed:`, e.message);
-    }
+  if (!sendGridApiKey) {
+    mailer = null;
+    lastMailerError = 'Missing SENDGRID_API_KEY';
+    console.warn('✉️  Mailer disabled: missing SENDGRID_API_KEY');
+    return;
   }
 
-  mailer = null;
-  console.warn("❌ Mailer init failed: all SMTP ports failed");
+  try {
+    mailer = createSendGridMailer({ apiKey: sendGridApiKey, from });
+    lastMailerError = null;
+    console.log('✉️  Mailer ready: SendGrid API');
+    return;
+  } catch (e) {
+    mailer = null;
+    lastMailerError = e?.message || 'SendGrid mailer initialization failed';
+    console.warn('⚠️ SendGrid mailer init failed:', e?.message || e);
+  }
 }
 
 export function isMailerReady() {
   return !!mailer;
+}
+
+export function getMailerError() {
+  return lastMailerError;
 }
 
 /**
@@ -104,6 +106,159 @@ export async function sendEmail(to, subject, html, opts = {}) {
     console.warn('sendEmail failed:', e.message);
     throw e;
   }
+}
+
+function createSendGridMailer({ apiKey, from }) {
+  sgMail.setApiKey(apiKey);
+
+  return {
+    from,
+    async sendMail(mailOptions) {
+      const payload = await toSendGridMessage({
+        ...mailOptions,
+        from: normalizeFromOption(mailOptions.from || from),
+      });
+
+      const [response, body] = await sgMail.send(payload);
+      return {
+        messageId: getSendGridMessageId(response?.headers),
+        response: response?.statusCode ? `SendGrid ${response.statusCode}` : 'SendGrid accepted',
+        body,
+      };
+    },
+  };
+}
+
+async function toSendGridMessage(mailOptions) {
+  const message = {
+    to: normalizeSendGridRecipients(mailOptions.to),
+    from: toSendGridAddress(mailOptions.from),
+    subject: mailOptions.subject,
+  };
+
+  if (!message.to) throw new Error('SendGrid message missing "to" address');
+  if (!message.from) throw new Error('SendGrid message missing "from" address');
+
+  if (typeof mailOptions.text === 'string' && mailOptions.text.trim()) {
+    message.text = mailOptions.text;
+  }
+
+  if (typeof mailOptions.html === 'string' && mailOptions.html.trim()) {
+    message.html = mailOptions.html;
+  }
+
+  const replyTo = toSendGridAddress(mailOptions.replyTo);
+  if (replyTo) {
+    message.replyTo = replyTo;
+  }
+
+  const cc = normalizeSendGridRecipients(mailOptions.cc);
+  if (cc) {
+    message.cc = cc;
+  }
+
+  const bcc = normalizeSendGridRecipients(mailOptions.bcc);
+  if (bcc) {
+    message.bcc = bcc;
+  }
+
+  const attachments = await toSendGridAttachments(mailOptions.attachments);
+  if (attachments.length) {
+    message.attachments = attachments;
+  }
+
+  return message;
+}
+
+function normalizeSendGridRecipients(value) {
+  if (!value) return null;
+  if (Array.isArray(value)) {
+    const recipients = value.map((entry) => toSendGridAddress(entry)).filter(Boolean);
+    return recipients.length ? recipients : null;
+  }
+  return toSendGridAddress(value);
+}
+
+function toSendGridAddress(value) {
+  if (!value) return null;
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const match = trimmed.match(/^(.*)<([^>]+)>$/);
+    if (match) {
+      const name = String(match[1] || '').trim().replace(/^"|"$/g, '');
+      const email = String(match[2] || '').trim();
+      if (!email) return null;
+      return name ? { email, name } : { email };
+    }
+
+    return { email: trimmed };
+  }
+
+  const email = String(value.email || value.address || '').trim();
+  const name = String(value.name || '').trim();
+  if (!email) return null;
+  return name ? { email, name } : { email };
+}
+
+async function toSendGridAttachments(attachments = []) {
+  const resolvedAttachments = await Promise.all(
+    attachments.map(async (attachment) => {
+      if (!attachment) return null;
+
+      const content = await resolveAttachmentContent(attachment);
+      if (!content) return null;
+
+      const filePath = String(attachment.path || '').trim();
+      const filename = String(attachment.filename || path.basename(filePath) || 'attachment').trim();
+
+      return {
+        filename,
+        type: String(attachment.contentType || guessContentType(filename || filePath)).trim(),
+        disposition: attachment.contentDisposition || (attachment.cid ? 'inline' : 'attachment'),
+        content_id: attachment.cid || undefined,
+        content: content.toString('base64'),
+      };
+    })
+  );
+
+  return resolvedAttachments.filter(Boolean);
+}
+
+async function resolveAttachmentContent(attachment) {
+  const filePath = String(attachment.path || '').trim();
+  if (filePath) {
+    return fs.promises.readFile(filePath);
+  }
+
+  const content = attachment.content;
+  if (content == null) return null;
+  if (Buffer.isBuffer(content)) return content;
+  if (ArrayBuffer.isView(content)) {
+    return Buffer.from(content.buffer, content.byteOffset, content.byteLength);
+  }
+  if (typeof content === 'string') {
+    const encoding = String(attachment.encoding || 'utf8').trim().toLowerCase();
+    return Buffer.from(content, encoding === 'base64' ? 'base64' : 'utf8');
+  }
+
+  return Buffer.from(content);
+}
+
+function guessContentType(filenameOrPath) {
+  const ext = path.extname(String(filenameOrPath || '').trim()).toLowerCase();
+  return MIME_TYPES[ext] || 'application/octet-stream';
+}
+
+function getSendGridMessageId(headers) {
+  if (!headers) return null;
+  if (typeof headers.get === 'function') {
+    return headers.get('x-message-id') || headers.get('X-Message-Id') || null;
+  }
+
+  return headers['x-message-id'] || headers['X-Message-Id'] || null;
 }
 
 function normalizeFromOption(from) {

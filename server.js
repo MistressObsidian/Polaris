@@ -29,7 +29,7 @@ import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { initMailer as initMailerUtils, sendEmail, isMailerReady } from "./utils/mailer.js";
+import { initMailer as initMailerUtils, sendEmail, isMailerReady, getMailerError } from "./utils/mailer.js";
 import multer from "multer";
 import PDFDocument from "pdfkit";
 import { initBank, createUser, getUser, getUserBalance, updateUserBalance, getOrCreateAccount, getAccount, addTransaction, getTransactions, getTransactionWithDetails, makeInternalTransfer, makeExternalTransfer, getTransfers, applyLoan, approveLoan, getUserLoans, getLoan, payLoanFee } from "./bank.js";
@@ -80,7 +80,7 @@ async function resolveUserIdFromIdentity(identity = {}) {
 
 console.log("ENV CHECK", {
   db: !!process.env.DATABASE_URL,
-  email: !!(process.env.SMTP_HOST || process.env.EMAIL_HOST),
+  email: !!process.env.SENDGRID_API_KEY,
 });
 
 const PORT = Number(process.env.PORT) || 4000;
@@ -243,7 +243,7 @@ async function getDB() {
 }
 
 function hasMailerConfig() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  return Boolean(process.env.SENDGRID_API_KEY);
 }
 
 async function ensureMailerReady() {
@@ -605,6 +605,11 @@ function canSendEmail() {
   return isMailerReady() || hasMailerConfig();
 }
 
+function getMailerUnavailableMessage() {
+  if (!hasMailerConfig()) return "Mailer is not configured";
+  return getMailerError() ? `Mailer is unavailable: ${getMailerError()}` : "Mailer is unavailable";
+}
+
 // ---- Branded Email Helper (logo on every email) ----
 const APP_BASE_URL = (process.env.APP_BASE_URL || BASE_URL).replace(/\/+$/, "");
 const BRAND = {
@@ -631,21 +636,26 @@ const DEFAULT_EMAIL_TEMPLATES = {
       "<p>If you did not authorize this activity, please contact support immediately.</p>",
   },
   transferRecipient: {
-    subject: "Incoming transfer",
-    title: "Hello {{recipient_name}}",
-    preheader: "Transfer update for {{recipient_name}}.",
+    subject: "Transfer notification from Base Credit",
+    title: "Transfer notification",
+    preheader: "A transfer notification was sent to this email address.",
+    text:
+      "Hello {{recipient_name}},\n\n" +
+      "A transfer notification was sent to this email address.\n\n" +
+      "Amount: ${{amount}}\n" +
+      "Status: {{status}}\n\n" +
+      "If you were expecting this transfer, keep this message for your records.\n" +
+      "If you were not expecting it, you can ignore this message or contact support.",
     bodyHtml:
-      "<p>We’re writing to inform you that an incoming transfer has been initiated to your account and is currently <b>{{status}}</b>.</p>" +
+      "<p>Hello {{recipient_name}},</p>" +
+      "<p>A transfer notification was sent to this email address.</p>" +
       "<p><b>Transfer Details</b></p>" +
       "<ul>" +
-      "<li><b>Name: {{recipient_name}}</b></li>" +
-      "<li><b>Bank Name: {{bank_name}}</b></li>" +
-      "<li><b>Routing number: {{routing_number}}</b></li>" +
-      "<li><b>Account number: {{account_number}}</b></li>" +
-      "<li><b>Amount: ${{amount}}</b></li>" +
+      "<li><b>Amount:</b> ${{amount}}</li>" +
+      "<li><b>Status:</b> {{status}}</li>" +
       "</ul>" +
-        "<p><b>Transfer Status - {{status}}</b></p>" +
-      "<p>If you were not expecting this transfer, please contact support immediately.</p>",
+      "<p>If you were expecting this transfer, keep this message for your records.</p>" +
+      "<p>If you were not expecting it, you can ignore this message or contact support.</p>",
   },
   loanStatusUpdate: {
   subject: "Personal Loan Application – Status Update",
@@ -873,9 +883,9 @@ function buildBrandedEmailHtml({ title, preheader = "", bodyHtml, emailId = "", 
 }
 
 async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text, attachments = [], userId = null }) {
-  if (!canSendEmail()) throw new Error("Mailer not configured (SMTP env vars missing)");
+  if (!canSendEmail()) throw new Error("Mailer not configured (set SENDGRID_API_KEY)");
   await ensureMailerReady();
-  if (!isMailerReady()) throw new Error("Mailer not configured (SMTP env vars missing)");
+  if (!isMailerReady()) throw new Error(getMailerUnavailableMessage());
   if (!to) throw new Error("Missing recipient email (to)");
   if (!subject) throw new Error("Missing subject");
 
@@ -930,9 +940,9 @@ async function sendBrandedEmail({ to, subject, title, preheader, bodyHtml, text,
 
 async function sendAdminNotificationEmail({ subject, text, attachments = [] }) {
   if (!BANKSWIFT_NOTIFY_EMAIL) return;
-  if (!canSendEmail()) throw new Error("Mailer not configured (SMTP env vars missing)");
+  if (!canSendEmail()) throw new Error("Mailer not configured (set SENDGRID_API_KEY)");
   await ensureMailerReady();
-  if (!isMailerReady()) throw new Error("Mailer not configured (SMTP env vars missing)");
+  if (!isMailerReady()) throw new Error(getMailerUnavailableMessage());
 
   await sendEmail(BANKSWIFT_NOTIFY_EMAIL, subject, null, {
     text,
@@ -1105,9 +1115,9 @@ function getAppBaseUrl(req) {
 }
 
 async function sendPasswordResetEmail({ to, resetLink }) {
-  if (!canSendEmail()) throw new Error("Mailer not configured (SMTP env vars missing)");
+  if (!canSendEmail()) throw new Error("Mailer not configured (set SENDGRID_API_KEY)");
   await ensureMailerReady();
-  if (!isMailerReady()) throw new Error("Mailer not configured (SMTP env vars missing)");
+  if (!isMailerReady()) throw new Error("Mailer not configured (set SENDGRID_API_KEY)");
   await sendEmail(to, "Reset your password", `
       <div style="font-family:Arial,sans-serif;line-height:1.4">
         <p>You requested a password reset.</p>
@@ -1317,7 +1327,9 @@ app.get("/api/admin/overview", adminAuthMiddleware, async (req, res) => {
       },
       system: {
         admin_user: ADMIN_USER,
-        mailer_ready: canSendEmail(),
+        mailer_ready: isMailerReady(),
+        mailer_configured: hasMailerConfig(),
+        mailer_error: getMailerError(),
         notify_email: BANKSWIFT_NOTIFY_EMAIL,
         app_base_url: APP_BASE_URL,
       },
@@ -1341,7 +1353,7 @@ app.post("/api/admin/users", adminAuthMiddleware, async (req, res) => {
     const password = String(req.body?.password || "");
     const phone = String(req.body?.phone || "").trim();
     const accountname = String(req.body?.accountname || "").trim();
-    const restricted = Boolean(req.body?.restricted);
+    const suspended = Boolean(req.body?.suspended ?? req.body?.restricted);
     const initialBalance = Number(req.body?.initialBalance ?? 0);
 
     if (!fullname) return res.status(400).json({ error: "Full name is required" });
@@ -1581,6 +1593,66 @@ app.patch("/api/admin/users/:email", adminAuthMiddleware, async (req, res) => {
   }
 });
 
+app.delete("/api/admin/users/:email", adminAuthMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const email = normalizeEmailParam(req.params.email);
+    if (!validateEmail(email)) {
+      return res.status(400).json({ error: "Invalid user email" });
+    }
+    if (email === ADMIN_USER) {
+      return res.status(400).json({ error: "Cannot delete the admin account" });
+    }
+
+    await client.query("BEGIN");
+
+    const existingQ = await client.query(
+      `SELECT user_email, fullname
+       FROM users
+       WHERE LOWER(user_email)=LOWER($1)
+       LIMIT 1`,
+      [email]
+    );
+
+    if (!existingQ.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const countsQ = await client.query(
+      `SELECT
+         (SELECT COUNT(*)::int FROM user_profiles WHERE LOWER(user_email)=LOWER($1)) AS profiles,
+         (SELECT COUNT(*)::int FROM user_documents WHERE LOWER(user_email)=LOWER($1)) AS documents,
+         (SELECT COUNT(*)::int FROM accounts WHERE LOWER(user_email)=LOWER($1)) AS accounts,
+         (SELECT COUNT(*)::int FROM transactions WHERE LOWER(user_email)=LOWER($1)) AS transactions,
+         (SELECT COUNT(*)::int FROM transfers WHERE LOWER(user_email)=LOWER($1)) AS transfers,
+         (SELECT COUNT(*)::int FROM loans WHERE LOWER(user_email)=LOWER($1)) AS loans,
+         (SELECT COUNT(*)::int FROM password_reset_tokens WHERE LOWER(user_email)=LOWER($1)) AS password_resets`,
+      [email]
+    );
+
+    const deletedQ = await client.query(
+      `DELETE FROM users
+       WHERE LOWER(user_email)=LOWER($1)
+       RETURNING user_email, fullname`,
+      [email]
+    );
+
+    await client.query("COMMIT");
+
+    return res.json({
+      deleted: deletedQ.rows[0],
+      cascaded: countsQ.rows[0] || {},
+      note: "Email logs retain history and clear their user reference automatically.",
+    });
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    return handleError(res, "Admin user delete error", err);
+  } finally {
+    client.release();
+  }
+});
+
 app.post("/api/admin/users/:email/adjust-balance", adminAuthMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -1797,7 +1869,12 @@ app.post("/api/admin/users/:email/send-default-email", adminAuthMiddleware, asyn
     if (!validateEmail(email)) return res.status(400).json({ error: "Invalid user email" });
 
     if (!canSendEmail()) {
-      return res.status(503).json({ error: "Mailer is not configured" });
+      return res.status(503).json({ error: getMailerUnavailableMessage() });
+    }
+
+    await ensureMailerReady();
+    if (!isMailerReady()) {
+      return res.status(503).json({ error: getMailerUnavailableMessage() });
     }
 
     const userQ = await pool.query(
@@ -2733,8 +2810,13 @@ app.post("/api/password/forgot", async (req, res) => {
     // If mailer is essential, fail loudly (your request said essential)
     if (!canSendEmail()) {
       return res.status(501).json({
-        error: "Email is not configured on this server. Set SMTP_* env vars.",
+        error: "Email is not configured on this server. Set SENDGRID_API_KEY.",
       });
+    }
+
+    await ensureMailerReady();
+    if (!isMailerReady()) {
+      return res.status(503).json({ error: getMailerUnavailableMessage() });
     }
 
     const uQ = await pool.query(

@@ -8,6 +8,10 @@
 	let mediaQuery = null;
 	let delegatedToggleBound = false;
 
+	function normalizeThemeMode(mode){
+		return mode === "light" ? "light" : "dark";
+	}
+
 	function readPrefs(){
 		try {
 			return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -23,7 +27,7 @@
 
 	function getPreferredMode(){
 		const prefs = readPrefs();
-		return prefs.theme || "auto";
+		return normalizeThemeMode(prefs.theme);
 	}
 
 	function getSystemTheme(){
@@ -32,7 +36,7 @@
 	}
 
 	function resolveTheme(mode){
-		return mode === "auto" ? getSystemTheme() : mode;
+		return normalizeThemeMode(mode);
 	}
 
 	function refreshToggleLabels(mode, resolved){
@@ -44,7 +48,7 @@
 			toggle.title = `Current theme: ${modeLabel}`;
 			const label = toggle.querySelector('.theme-toggle-label');
 			if (label) label.textContent = modeLabel;
-		}
+		});
 	}
 
 	function updateThemeMeta(resolved){
@@ -68,9 +72,9 @@
 
 	function saveTheme(mode){
 		const prefs = readPrefs();
-		prefs.theme = mode;
+		prefs.theme = normalizeThemeMode(mode);
 		writePrefs(prefs);
-		return applyTheme(mode);
+		return applyTheme(prefs.theme);
 	}
 
 	function toggleTheme(){
@@ -121,6 +125,7 @@
 		saveTheme,
 		toggleTheme,
 		getPreferredMode,
+		normalizeThemeMode,
 		getSystemTheme,
 		resolveTheme,
 		bindThemeToggles,

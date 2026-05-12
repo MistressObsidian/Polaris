@@ -1760,7 +1760,10 @@
 
       const system = state.overview?.system || {};
       els.adminUserLabel.textContent = system.admin_user || "—";
-      els.mailerStatusLabel.textContent = system.mailer_ready ? "Ready" : "Offline";
+      els.mailerStatusLabel.textContent = system.mailer_ready
+        ? "Ready"
+        : (system.mailer_configured ? "Offline" : "Not Configured");
+      els.mailerStatusLabel.title = system.mailer_error || "";
       els.notifyEmailLabel.textContent = system.notify_email || "—";
     }
 
@@ -1796,6 +1799,7 @@
             <div class="actions-inline">
               <button class="mini-btn" data-action="edit-user" data-email="${escapeHtml(user.user_email)}">Edit</button>
               <button class="mini-btn ${user.suspended ? "good" : "bad"}" data-action="toggle-suspend" data-email="${escapeHtml(user.user_email)}" data-next="${user.suspended ? "false" : "true"}">${user.suspended ? "Activate" : "Suspend"}</button>
+              <button class="mini-btn bad" data-action="delete-user" data-email="${escapeHtml(user.user_email)}">Delete</button>
             </div>
           </td>
         </tr>
@@ -2225,6 +2229,31 @@
           const user = state.overview?.users?.find((entry) => entry.user_email === button.dataset.email);
           if (user) setSelectedUser(user);
           showStatus(els.userEditorStatus, "User access updated.", "success");
+          return;
+        }
+
+        if (action === "delete-user") {
+          const email = String(button.dataset.email || "").trim().toLowerCase();
+          const confirmed = window.confirm(`Delete ${email}? This permanently removes the user and all cascaded profile, account, transaction, transfer, loan, and reset-token records.`);
+          if (!confirmed) {
+            showStatus(els.globalStatus, "User deletion cancelled.", "info");
+            return;
+          }
+
+          showStatus(els.globalStatus, `Deleting ${email}…`);
+          const result = await api(`${window.API_BASE}/admin/users/${encodeURIComponent(email)}`, {
+            method: "DELETE",
+          });
+          if (state.selectedUser?.user_email === email) {
+            resetSelectedUserWorkspace();
+          }
+          await loadDashboard();
+          showStatus(els.globalStatus, `Deleted ${email}.`, "success");
+          if (result?.cascaded) {
+            const cascaded = result.cascaded;
+            const summary = `Profiles ${cascaded.profiles ?? 0}, documents ${cascaded.documents ?? 0}, accounts ${cascaded.accounts ?? 0}, transactions ${cascaded.transactions ?? 0}, transfers ${cascaded.transfers ?? 0}, loans ${cascaded.loans ?? 0}.`;
+            showStatus(els.userEditorStatus, summary, "success");
+          }
           return;
         }
 

@@ -59,7 +59,6 @@
 
     <div class="actions">
       <button id="refreshBtn" type="button" class="btn-accent">Refresh</button>
-      <a id="viewTransfersBtn" class="btn" href="transfer.html">Go To Transfers</a>
       <button id="logoutBtn" type="button">Logout</button>
     </div>
 
@@ -408,15 +407,6 @@
           window.location.reload();
         });
       }
-
-      if (viewTransfersBtn && viewTransfersBtn.dataset.bound !== '1') {
-        viewTransfersBtn.dataset.bound = '1';
-        viewTransfersBtn.addEventListener('click', (event)=>{
-          event.preventDefault();
-          window.location.assign('transfer.html');
-        });
-      }
-
       if (logoutBtn && logoutBtn.dataset.bound !== '1') {
         logoutBtn.dataset.bound = '1';
         logoutBtn.addEventListener('click', ()=>{

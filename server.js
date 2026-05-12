@@ -12,7 +12,7 @@
  *   window.API_BASE = "/api";
  *
  * DB:
- * - Works with users + accounts + transactions + transfers schema
+ * - Works with users + accounts + transactions schema
  * - SSL auto-detected via ?sslmode=... in DATABASE_URL (default: NO SSL)
  *
  * API:
@@ -31,7 +31,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { initMailer as initMailerUtils, sendEmail, isMailerReady, getMailerError } from "./utils/mailer.js";
 import PDFDocument from "pdfkit";
-import { initBank, createUser, getUser, getUserBalance, updateUserBalance, getOrCreateAccount, getAccount, addTransaction, getTransactions, getTransactionWithDetails, makeInternalTransfer, makeExternalTransfer, getTransfers, applyLoan, approveLoan, getUserLoans, getLoan, payLoanFee } from "./bank.js";
+import { initBank, createUser, getUser, getUserBalance, updateUserBalance, getOrCreateAccount, getAccount, addTransaction, getTransactions, getTransactionWithDetails } from "./bank.js";
 
 
 dotenv.config();
@@ -321,20 +321,14 @@ function toTrimmedOrNull(value) {
 function toAdminTemplateData(user = {}, extraData = {}) {
   const base = {
     fullname: user.fullname || "there",
-    borrower_name: user.fullname || "there",
-    recipient_name: user.fullname || "there",
     account_name: user.accountname || "",
     email: user.user_email || "",
     status: "pending",
     amount: "0.00",
-    term: "N/A",
-    apr_estimate: "N/A",
-    monthly_payment_estimate: "N/A",
-    bank_name: "N/A",
-    routing_number: "N/A",
-    account_number: "N/A",
-    fee: "0.00",
-    expires_at: new Date(Date.now() + (48 * 60 * 60 * 1000)).toLocaleString(),
+    reference: "N/A",
+    note: "",
+    review_deadline: new Date(Date.now() + (48 * 60 * 60 * 1000)).toLocaleString(),
+    support_email: BRAND.supportEmail || BANKSWIFT_NOTIFY_EMAIL || "",
   };
 
   const normalizedExtra = Object.fromEntries(
@@ -446,95 +440,6 @@ async function ensureAvailableAccount(client, userEmail) {
   return accountQ.rows[0];
 }
 
-async function adminApproveLoanRecord(loanId) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    const loanQ = await client.query(
-      `SELECT id, user_email, amount, term_months, status, fee_paid, locked
-       FROM loans
-       WHERE id=$1
-       LIMIT 1
-       FOR UPDATE`,
-      [loanId]
-    );
-
-    if (!loanQ.rowCount) {
-      await client.query("ROLLBACK");
-      return null;
-    }
-
-    const loan = loanQ.rows[0];
-    if (String(loan.status || "").toLowerCase() === "approved") {
-      await client.query("COMMIT");
-      return loan;
-    }
-
-    const amount = Number(loan.amount || 0);
-    const account = await ensureAvailableAccount(client, loan.user_email);
-    const nextBalance = Number(account.balance || 0) + amount;
-    const nextAvailable = Number(account.available || 0) + amount;
-
-    await client.query(
-      `UPDATE loans
-       SET status='approved',
-           locked=false,
-           updated_at=NOW()
-       WHERE id=$1`,
-      [loanId]
-    );
-
-    await client.query(
-      `UPDATE accounts
-       SET balance=$1,
-           available=$2,
-           updated_at=NOW()
-       WHERE id=$3`,
-      [nextBalance, nextAvailable, account.id]
-    );
-
-    await client.query(
-      `UPDATE users
-       SET available_balance=available_balance+$1,
-           updated_at=NOW()
-       WHERE user_email=$2`,
-      [amount, loan.user_email]
-    );
-
-    const reference = `ADMLOAN-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-    await client.query(
-      `INSERT INTO transactions
-        (user_email, account_id, direction, amount, description, reference, status, balance_after, created_at)
-       VALUES ($1,$2,'credit',$3,$4,$5,'completed',$6,NOW())`,
-      [
-        loan.user_email,
-        account.id,
-        amount,
-        `Admin approved loan ${loan.id}`,
-        reference,
-        nextAvailable,
-      ]
-    );
-
-    const updatedLoanQ = await client.query(
-      `SELECT id, user_email, amount, term_months, status, fee_paid, locked, created_at, updated_at
-       FROM loans
-       WHERE id=$1
-       LIMIT 1`,
-      [loanId]
-    );
-
-    await client.query("COMMIT");
-    return updatedLoanQ.rows[0] || loan;
-  } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
-    throw err;
-  } finally {
-    client.release();
-  }
-}
-
 function canSendEmail() {
   return isMailerReady() || hasMailerConfig();
 }
@@ -542,6 +447,14 @@ function canSendEmail() {
 function getMailerUnavailableMessage() {
   if (!hasMailerConfig()) return "Mailer is not configured";
   return getMailerError() ? `Mailer is unavailable: ${getMailerError()}` : "Mailer is unavailable";
+}
+
+function sendDisabledPublicFlow(res) {
+  const payload = { error: "This public workflow is unavailable." };
+  if (BRAND.supportEmail) {
+    payload.supportEmail = BRAND.supportEmail;
+  }
+  return res.status(410).json(payload);
 }
 
 // ---- Branded Email Helper (logo on every email) ----
@@ -558,113 +471,62 @@ const GS_LOG_ENDPOINT = process.env.GS_LOG_ENDPOINT || "";
 const GS_LOG_SECRET = process.env.GS_LOG_SECRET || process.env.SHEETS_SECRET || "";
 
 const EMAIL_TEMPLATES_PATH = path.join(process.cwd(), "data", "email-templates.json");
-const APP_SETTINGS_PATH = path.join(process.cwd(), "data", "app-settings.json");
 const DEFAULT_EMAIL_TEMPLATES = {
-  transferSender: {
-    subject: "Transfer update",
-    title: "Transfer update",
-    preheader: "Your transfer of ${{amount}} is {{status}}.",
-    text: "Your transfer of ${{amount}} is {{status}}.",
-    bodyHtml:
-      "<p>Your transfer of <b>${{amount}}</b> has been <b>{{status}}</b>.</p>" +
-      "<p>If you did not authorize this activity, please contact support immediately.</p>",
-  },
-  transferRecipient: {
-    subject: "Transfer notification from Base Credit",
-    title: "Transfer notification",
-    preheader: "A transfer notification was sent to this email address.",
+  accountActivityUpdate: {
+    subject: "Account activity update",
+    title: "Account activity update",
+    preheader: "There is an update related to recent activity on your account.",
     text:
-      "Hello {{recipient_name}},\n\n" +
-      "A transfer notification was sent to this email address.\n\n" +
+      "Hello {{fullname}},\n\n" +
+      "There is an update related to recent activity on your account.\n\n" +
+      "Status: {{status}}\n" +
       "Amount: ${{amount}}\n" +
-      "Status: {{status}}\n\n" +
-      "If you were expecting this transfer, keep this message for your records.\n" +
-      "If you were not expecting it, you can ignore this message or contact support.",
+      "Reference: {{reference}}\n\n" +
+      "If you were not expecting this message, please contact support.",
     bodyHtml:
-      "<p>Hello {{recipient_name}},</p>" +
-      "<p>A transfer notification was sent to this email address.</p>" +
-      "<p><b>Transfer Details</b></p>" +
+      "<p>Hello {{fullname}},</p>" +
+      "<p>There is an update related to recent activity on your account.</p>" +
       "<ul>" +
-      "<li><b>Amount:</b> ${{amount}}</li>" +
       "<li><b>Status:</b> {{status}}</li>" +
+      "<li><b>Amount:</b> ${{amount}}</li>" +
+      "<li><b>Reference:</b> {{reference}}</li>" +
       "</ul>" +
-      "<p>If you were expecting this transfer, keep this message for your records.</p>" +
-      "<p>If you were not expecting it, you can ignore this message or contact support.</p>",
+      "<p>If you were not expecting this message, please contact support.</p>",
   },
-  loanStatusUpdate: {
-  subject: "Personal Loan Application – Status Update",
-  title: "Loan Application Status",
-  preheader:
-    "Update regarding your personal loan request of ${{amount}}.",
-  text:
-    "This message is to provide an update on your personal loan application.\n\n" +
-    "Applicant: {{borrower_name}}\n" +
-    "Loan Type: Personal Loan\n" +
-    "Requested Amount: ${{amount}}\n" +
-    "Repayment Term: {{term}}\n" +
-    "Current Status: Pending Compliance Review\n\n" +
-    "Estimated Terms (for informational purposes only):\n" +
-    "Estimated APR Range: {{apr_estimate}}\n" +
-    "Estimated Monthly Payment: {{monthly_payment_estimate}}\n\n" +
-    "Designated Disbursement Account (on file):\n" +
-    "Financial Institution: {{bank_name}}\n" +
-    "Routing Number: {{routing_number}}\n" +
-    "Account Number: {{account_number}}\n\n" +
-    "Final approval, loan terms, and funding are subject to completion of all required identity verification, compliance review, and internal processing by our fintech platform and partner financial institution.\n\n" +
-    "If you did not submit this application or believe this notice was sent in error, please contact customer support immediately.",
-  bodyHtml:
-    "<p>This notice provides a status update on your <b>personal loan application</b>.</p>" +
-    "<p><b>Application Summary</b></p>" +
-    "<ul>" +
-    "<li>Applicant Name: {{borrower_name}}</li>" +
-    "<li>Loan Type: Personal Loan</li>" +
-    "<li>Requested Amount: ${{amount}}</li>" +
-    "<li>Repayment Term: {{term}}</li>" +
-    "<li>Status: <b>Pending Compliance Review</b></li>" +
-    "</ul>" +
-    "<p><b>Estimated Terms (Non-Binding)</b></p>" +
-    "<ul>" +
-    "<li>Estimated APR Range: {{apr_estimate}}</li>" +
-    "<li>Estimated Monthly Payment: {{monthly_payment_estimate}}</li>" +
-    "</ul>" +
-    "<p><b>Disbursement Account on Record</b></p>" +
-    "<ul>" +
-    "<li>Financial Institution: {{bank_name}}</li>" +
-    "<li>Routing Number: {{routing_number}}</li>" +
-    "<li>Account Number: {{account_number}}</li>" +
-    "</ul>" +
-    "<p>Loan approval and funding are contingent upon successful completion of all verification, compliance, and internal review requirements in accordance with applicable U.S. banking regulations.</p>" +
-    "<hr />" +
-    "<p><b>Regulatory Notice</b></p>" +
-    "<p>This service is offered through a financial technology platform in partnership with an FDIC-insured financial institution. We comply with the Equal Credit Opportunity Act (ECOA) and applicable federal and state lending laws.</p>" +
-    "<p>If you believe you have been discriminated against, you may contact the Consumer Financial Protection Bureau (CFPB).</p>"
-},
-  processingFeeNotice: {
-  subject: "Loan Processing Requirement Notification",
-  title: "Processing Requirement",
-  preheader:
-    "Action may be required to complete compliance review.",
-  text:
-    "This notice relates to your personal loan application currently under compliance review.\n\n" +
-    "Applicant: {{borrower_name}}\n" +
-    "Loan Amount Requested: ${{amount}}\n" +
-    "Application Status: Pending Compliance Review\n\n" +
-    "As part of final verification and compliance processing, a one-time processing fee of ${{fee}} may be required.\n\n" +
-    "This fee, if applicable, covers regulatory verification, payment processing, and administrative review conducted by our platform and partner financial institution.\n\n" +
-    "You will receive confirmation before any payment is required. No loan funds will be disbursed unless all compliance requirements are satisfied.\n\n" +
-    "If you did not submit this application or believe this message was sent in error, please contact customer support immediately.",
-  bodyHtml:
-    "<p>This notice concerns your <b>personal loan application</b>, which is currently <b>Pending Compliance Review</b>.</p>" +
-    "<p><b>Processing Requirement</b></p>" +
-    "<p>A one-time <b>processing fee of ${{fee}}</b> may be required to complete identity verification, compliance checks, and internal processing.</p>" +
-    "<p><b>Invoice Valid Until:</b> {{expires_at}}</p>" +
-    "<p>Any required fee will be clearly disclosed prior to payment. Submission of a fee does not guarantee final loan approval or funding.</p>" +
-    "<p>Loan disbursement is subject to successful completion of all verification, compliance, and partner bank approval requirements.</p>" +
-    "<hr />" +
-    "<p><b>Regulatory Disclosure</b></p>" +
-    "<p>This service is provided by a financial technology company in partnership with an FDIC-insured bank. We comply with the Equal Credit Opportunity Act (ECOA) and all applicable U.S. lending regulations.</p>" +
-    "<p>If you do not recognize this application or believe this communication was sent in error, please contact customer support immediately.</p>"
-},
+  accountReviewNotice: {
+    subject: "Account review notice",
+    title: "Account review notice",
+    preheader: "We have an update regarding your account review.",
+    text:
+      "Hello {{fullname}},\n\n" +
+      "We have an update regarding your account review.\n\n" +
+      "Current status: {{status}}\n" +
+      "Review deadline: {{review_deadline}}\n\n" +
+      "If additional information is needed, our team will contact you directly.",
+    bodyHtml:
+      "<p>Hello {{fullname}},</p>" +
+      "<p>We have an update regarding your account review.</p>" +
+      "<ul>" +
+      "<li><b>Current status:</b> {{status}}</li>" +
+      "<li><b>Review deadline:</b> {{review_deadline}}</li>" +
+      "</ul>" +
+      "<p>If additional information is needed, our team will contact you directly.</p>",
+  },
+  supportFollowUp: {
+    subject: "Support follow-up",
+    title: "Support follow-up",
+    preheader: "A member of our team sent a follow-up message.",
+    text:
+      "Hello {{fullname}},\n\n" +
+      "A member of our team sent a follow-up message regarding your account.\n\n" +
+      "Note: {{note}}\n\n" +
+      "If you need assistance, reply to this email or contact support.",
+    bodyHtml:
+      "<p>Hello {{fullname}},</p>" +
+      "<p>A member of our team sent a follow-up message regarding your account.</p>" +
+      "<p><b>Note:</b> {{note}}</p>" +
+      "<p>If you need assistance, reply to this email or contact support.</p>",
+  },
   registrationReceived: {
     subject: "Registration received",
     title: "We received your registration",
@@ -674,7 +536,7 @@ const DEFAULT_EMAIL_TEMPLATES = {
       "<p>Hi {{fullname}},</p>" +
       "<p>We received your registration details. Our next step is verification of your information.</p>" +
       "<p><b>What to expect next:</b></p>" +
-      "<ul><li>We may request additional documentation.</li><li>You’ll receive email updates as your status changes.</li></ul>" +
+      "<ul><li>We may contact you if additional information is needed.</li><li>You’ll receive email updates as your status changes.</li></ul>" +
       "<p>If you did not initiate this registration, contact support immediately.</p>",
   },
 };
@@ -730,39 +592,6 @@ function renderTemplate(str, data) {
   return String(str).replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
     return Object.prototype.hasOwnProperty.call(data, key) ? String(data[key]) : "";
   });
-}
-
-function defaultAppSettings() {
-  return {
-    transfersEnabled: true,
-    paymentsEnabled: true,
-  };
-}
-
-function parseBooleanSetting(value, fieldName) {
-  if (typeof value === "boolean") return value;
-  const raw = String(value ?? "").trim().toLowerCase();
-  if (raw === "true") return true;
-  if (raw === "false") return false;
-  throw new Error(`${fieldName} must be boolean`);
-}
-
-function loadAppSettings() {
-  try {
-    if (fs.existsSync(APP_SETTINGS_PATH)) {
-      const raw = fs.readFileSync(APP_SETTINGS_PATH, "utf8");
-      const parsed = JSON.parse(raw || "{}");
-      return { ...defaultAppSettings(), ...parsed };
-    }
-  } catch (e) {
-    console.warn("App settings load failed:", e.message);
-  }
-  return defaultAppSettings();
-}
-
-function saveAppSettings(settings) {
-  ensureDataDir();
-  fs.writeFileSync(APP_SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf8");
 }
 
 function escapeHtml(s = "") {
@@ -881,46 +710,6 @@ async function sendAdminNotificationEmail({ subject, text, attachments = [] }) {
   await sendEmail(BANKSWIFT_NOTIFY_EMAIL, subject, null, {
     text,
     attachments,
-  });
-}
-
-// Generate processing fee invoice PDF
-function generateFeeInvoicePDF({ borrowerEmail, amount, fee, expiresAt }) {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ margin: 50 });
-      const chunks = [];
-
-      doc.on("data", (c) => chunks.push(c));
-      doc.on("end", () => resolve(Buffer.concat(chunks)));
-
-      doc
-        .fontSize(18)
-        .text("Processing Fee Invoice", { align: "center" })
-        .moveDown();
-
-      doc.fontSize(12);
-      doc.text(`Borrower Email: ${borrowerEmail}`);
-      doc.text(`Loan Amount Requested: $${amount}`);
-      doc.text(`Processing Fee: $${fee}`);
-      doc.moveDown();
-
-      doc.text(`Issued On: ${new Date().toLocaleString()}`);
-      doc.text(`Valid Until: ${new Date(expiresAt).toLocaleString()}`);
-      doc.moveDown();
-
-      doc.text(
-        "This invoice is issued as part of loan compliance and verification requirements. " +
-        "Payment of the processing fee does not guarantee loan approval or disbursement."
-      );
-
-      doc.moveDown(2);
-      doc.text(`© ${new Date().getFullYear()} ${BRAND.name}`);
-
-      doc.end();
-    } catch (e) {
-      reject(e);
-    }
   });
 }
 
@@ -1115,13 +904,9 @@ app.get("/api/admin/overview", adminAuthMiddleware, async (req, res) => {
     const [
       userStatsQ,
       accountStatsQ,
-      transferStatsQ,
-      loanStatsQ,
       emailStatsQ,
       usersQ,
       transactionsQ,
-      transfersQ,
-      loansQ,
       emailLogsQ,
     ] = await Promise.all([
       pool.query(
@@ -1137,22 +922,6 @@ app.get("/api/admin/overview", adminAuthMiddleware, async (req, res) => {
            COALESCE(SUM(balance),0)::numeric AS total_balance,
            COALESCE(SUM(available),0)::numeric AS total_available
          FROM accounts`
-      ),
-      pool.query(
-        `SELECT
-           COUNT(*)::int AS total_transfers,
-           COUNT(*) FILTER (WHERE status='pending')::int AS pending_transfers,
-           COUNT(*) FILTER (WHERE status='completed')::int AS completed_transfers,
-           COALESCE(SUM(amount),0)::numeric AS transfer_volume
-         FROM transfers`
-      ),
-      pool.query(
-        `SELECT
-           COUNT(*)::int AS total_loans,
-           COUNT(*) FILTER (WHERE status='pending')::int AS pending_loans,
-           COUNT(*) FILTER (WHERE status='approved')::int AS approved_loans,
-           COALESCE(SUM(amount) FILTER (WHERE status='approved'),0)::numeric AS approved_amount
-         FROM loans`
       ),
       pool.query(
         `SELECT
@@ -1208,48 +977,6 @@ app.get("/api/admin/overview", adminAuthMiddleware, async (req, res) => {
       ),
       pool.query(
         `SELECT
-           tr.id,
-           tr.user_email,
-           u.fullname,
-           tr.recipient_name,
-           tr.recipient_email,
-           tr.method,
-           tr.amount,
-           tr.description,
-           tr.status,
-           tr.bank_name,
-           tr.routing_number,
-           tr.account_number,
-           tr.created_at,
-           tr.updated_at
-         FROM transfers tr
-         LEFT JOIN users u ON u.user_email = tr.user_email
-         ORDER BY tr.created_at DESC
-         LIMIT $1`,
-        [limit]
-      ),
-      pool.query(
-        `SELECT
-           l.id,
-           l.user_email,
-           u.fullname,
-           l.amount,
-           l.term_months,
-           l.apr_estimate,
-           l.monthly_payment_estimate,
-           l.status,
-           l.fee_paid,
-           l.locked,
-           l.created_at,
-           l.updated_at
-         FROM loans l
-         LEFT JOIN users u ON u.user_email = l.user_email
-         ORDER BY l.created_at DESC
-         LIMIT $1`,
-        [limit]
-      ),
-      pool.query(
-        `SELECT
            id,
            user_email,
            to_email,
@@ -1269,8 +996,6 @@ app.get("/api/admin/overview", adminAuthMiddleware, async (req, res) => {
       stats: {
         ...(userStatsQ.rows[0] || {}),
         ...(accountStatsQ.rows[0] || {}),
-        ...(transferStatsQ.rows[0] || {}),
-        ...(loanStatsQ.rows[0] || {}),
         ...(emailStatsQ.rows[0] || {}),
       },
       system: {
@@ -1281,11 +1006,8 @@ app.get("/api/admin/overview", adminAuthMiddleware, async (req, res) => {
         notify_email: BANKSWIFT_NOTIFY_EMAIL,
         app_base_url: APP_BASE_URL,
       },
-      settings: loadAppSettings(),
       users: usersQ.rows,
       transactions: transactionsQ.rows,
-      transfers: transfersQ.rows,
-      loans: loansQ.rows,
       email_logs: emailLogsQ.rows,
     });
   } catch (err) {
@@ -1573,8 +1295,6 @@ app.delete("/api/admin/users/:email", adminAuthMiddleware, async (req, res) => {
          (SELECT COUNT(*)::int FROM user_documents WHERE LOWER(user_email)=LOWER($1)) AS documents,
          (SELECT COUNT(*)::int FROM accounts WHERE LOWER(user_email)=LOWER($1)) AS accounts,
          (SELECT COUNT(*)::int FROM transactions WHERE LOWER(user_email)=LOWER($1)) AS transactions,
-         (SELECT COUNT(*)::int FROM transfers WHERE LOWER(user_email)=LOWER($1)) AS transfers,
-         (SELECT COUNT(*)::int FROM loans WHERE LOWER(user_email)=LOWER($1)) AS loans,
          (SELECT COUNT(*)::int FROM password_reset_tokens WHERE LOWER(user_email)=LOWER($1)) AS password_resets`,
       [email]
     );
@@ -1919,197 +1639,6 @@ app.post("/api/admin/users/:email/send-default-email", adminAuthMiddleware, asyn
   }
 });
 
-app.patch("/api/admin/transfers/:id", adminAuthMiddleware, async (req, res) => {
-  try {
-    const transferId = String(req.params.id || "").trim();
-    const status = String(req.body?.status || "").trim().toLowerCase();
-    if (!transferId) return res.status(400).json({ error: "Transfer id is required" });
-    if (!["pending", "completed", "failed", "cancelled"].includes(status)) {
-      return res.status(400).json({ error: "Invalid transfer status" });
-    }
-
-    const updateQ = await pool.query(
-      `UPDATE transfers
-       SET status=$1,
-           updated_at=NOW()
-       WHERE id=$2
-       RETURNING id, user_email, recipient_name, recipient_email, method, amount, description, status, created_at, updated_at`,
-      [status, transferId]
-    );
-
-    if (!updateQ.rowCount) {
-      return res.status(404).json({ error: "Transfer not found" });
-    }
-
-    return res.json(updateQ.rows[0]);
-  } catch (err) {
-    return handleError(res, "Admin transfer update error", err);
-  }
-});
-
-app.patch("/api/admin/loans/:id", adminAuthMiddleware, async (req, res) => {
-  try {
-    const loanId = String(req.params.id || "").trim();
-    const status = String(req.body?.status || "").trim().toLowerCase();
-    if (!loanId) return res.status(400).json({ error: "Loan id is required" });
-    if (!["pending", "approved", "rejected", "completed", "cancelled"].includes(status)) {
-      return res.status(400).json({ error: "Invalid loan status" });
-    }
-
-    if (status === "approved") {
-      const approvedLoan = await adminApproveLoanRecord(loanId);
-      if (!approvedLoan) return res.status(404).json({ error: "Loan not found" });
-
-      if (canSendEmail() && approvedLoan.user_email) {
-        try {
-          const userQ = await pool.query(
-            "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
-            [approvedLoan.user_email]
-          );
-          const accountUser = userQ.rows?.[0] || {};
-          const recipientEmail = accountUser.email || approvedLoan.user_email;
-
-          if (recipientEmail) {
-            await sendBrandedEmail({
-              to: recipientEmail,
-              subject: "Notice regarding your loan application",
-              title: "Loan Application Approval Notice",
-              preheader: `Notice regarding the approval of your loan application for $${Number(approvedLoan.amount || 0).toFixed(2)}.`,
-              text:
-                `Dear ${accountUser.fullname || "Applicant"},\n\n` +
-                `This notice is to inform you that the review of your loan application has been completed and your application has been approved.\n\n` +
-                `Application Details:\n` +
-                `Loan ID: ${approvedLoan.id}\n` +
-                `Approved Amount: $${Number(approvedLoan.amount || 0).toFixed(2)}\n` +
-                `Repayment Term: ${Number(approvedLoan.term_months || 0)} months\n` +
-                `Status: Approved\n\n` +
-                `Loan proceeds have been posted to your designated account in accordance with platform processing and account availability. If you believe this notice was sent in error or require additional information, please contact customer support.`,
-              bodyHtml: `
-                <p>Dear ${escapeHtml(accountUser.fullname || "Applicant")},</p>
-                <p>This notice is to inform you that the review of your loan application has been completed and your application has been <b>approved</b>.</p>
-                <p><b>Application Details</b></p>
-                <ul>
-                  <li><b>Loan ID:</b> ${escapeHtml(String(approvedLoan.id || ""))}</li>
-                  <li><b>Approved Amount:</b> $${escapeHtml(Number(approvedLoan.amount || 0).toFixed(2))}</li>
-                  <li><b>Repayment Term:</b> ${escapeHtml(String(Number(approvedLoan.term_months || 0)))} months</li>
-                  <li><b>Status:</b> Approved</li>
-                </ul>
-                <p>Loan proceeds have been posted to your designated account in accordance with platform processing and account availability.</p>
-                <p>If you believe this notice was sent in error or require additional information, please contact customer support.</p>
-              `,
-            });
-          }
-        } catch (emailErr) {
-          console.warn("Loan approval email failed:", emailErr.message);
-        }
-      }
-
-      return res.json(approvedLoan);
-    }
-
-    const updateQ = await pool.query(
-      `UPDATE loans
-       SET status=$1,
-           locked=CASE WHEN $1 IN ('rejected','cancelled','completed') THEN false ELSE locked END,
-           updated_at=NOW()
-       WHERE id=$2
-       RETURNING id, user_email, amount, term_months, apr_estimate, monthly_payment_estimate, status, fee_paid, locked, created_at, updated_at`,
-      [status, loanId]
-    );
-
-    if (!updateQ.rowCount) {
-      return res.status(404).json({ error: "Loan not found" });
-    }
-
-    const updatedLoan = updateQ.rows[0];
-
-    if (status === "rejected" && canSendEmail() && updatedLoan.user_email) {
-      try {
-        const userQ = await pool.query(
-          "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
-          [updatedLoan.user_email]
-        );
-        const accountUser = userQ.rows?.[0] || {};
-        const recipientEmail = accountUser.email || updatedLoan.user_email;
-
-        if (recipientEmail) {
-          await sendBrandedEmail({
-            to: recipientEmail,
-            subject: "Notice regarding your loan application",
-            title: "Loan Application Review Notice",
-            preheader: `Notice regarding the review of your loan application for $${Number(updatedLoan.amount || 0).toFixed(2)}.`,
-            text:
-              `Dear ${accountUser.fullname || "Applicant"},\n\n` +
-              `This notice is to inform you that the review of your loan application has been completed. ` +
-              `At this time, your application has not been approved.\n\n` +
-              `Application Details:\n` +
-              `Loan ID: ${updatedLoan.id}\n` +
-              `Requested Amount: $${Number(updatedLoan.amount || 0).toFixed(2)}\n` +
-              `Repayment Term: ${Number(updatedLoan.term_months || 0)} months\n` +
-              `Status: Rejected\n\n` +
-              `If you believe this notice was sent in error or require additional information, please contact customer support.`,
-            bodyHtml: `
-              <p>Dear ${escapeHtml(accountUser.fullname || "Applicant")},</p>
-              <p>This notice is to inform you that the review of your loan application has been completed.</p>
-              <p>At this time, your application has <b>not been approved</b>.</p>
-              <p><b>Application Details</b></p>
-              <ul>
-                <li><b>Loan ID:</b> ${escapeHtml(String(updatedLoan.id || ""))}</li>
-                <li><b>Requested Amount:</b> $${escapeHtml(Number(updatedLoan.amount || 0).toFixed(2))}</li>
-                <li><b>Repayment Term:</b> ${escapeHtml(String(Number(updatedLoan.term_months || 0)))} months</li>
-                <li><b>Status:</b> Rejected</li>
-              </ul>
-              <p>If you believe this notice was sent in error or require additional information, please contact customer support.</p>
-            `,
-          });
-        }
-      } catch (emailErr) {
-        console.warn("Loan rejection email failed:", emailErr.message);
-      }
-    }
-
-    return res.json(updatedLoan);
-  } catch (err) {
-    return handleError(res, "Admin loan update error", err);
-  }
-});
-
-app.get("/api/admin/app-settings", adminAuthMiddleware, async (req, res) => {
-  try {
-    return res.json(loadAppSettings());
-  } catch (err) {
-    return handleError(res, "Admin settings fetch error", err);
-  }
-});
-
-app.put("/api/admin/app-settings", adminAuthMiddleware, async (req, res) => {
-  try {
-    let transfersEnabled = loadAppSettings().transfersEnabled;
-    let paymentsEnabled = loadAppSettings().paymentsEnabled;
-
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, "transfersEnabled")) {
-      transfersEnabled = parseBooleanSetting(req.body?.transfersEnabled, "transfersEnabled");
-    }
-
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, "paymentsEnabled")) {
-      paymentsEnabled = parseBooleanSetting(req.body?.paymentsEnabled, "paymentsEnabled");
-    }
-
-    const nextSettings = {
-      ...loadAppSettings(),
-      transfersEnabled,
-      paymentsEnabled,
-    };
-    saveAppSettings(nextSettings);
-    return res.json(nextSettings);
-  } catch (err) {
-    if (/must be boolean/i.test(String(err?.message || ""))) {
-      return res.status(400).json({ error: err.message });
-    }
-    return handleError(res, "Admin settings update error", err);
-  }
-});
-
 app.get("/api/admin/email-templates", adminAuthMiddleware, async (req, res) => {
   try {
     return res.json(stripTemplateHtmlFields(loadEmailTemplates()));
@@ -2145,19 +1674,6 @@ app.get("/emails/:id", async (req, res) => {
   );
   if (!q.rowCount) return res.status(404).send("Email not found");
   return res.send(q.rows[0].html_body);
-});
-
-// Public settings
-app.get("/api/settings", async (req, res) => {
-  try {
-    const settings = loadAppSettings();
-    return res.json({
-      transfersEnabled: settings.transfersEnabled !== false,
-      paymentsEnabled: settings.paymentsEnabled !== false,
-    });
-  } catch (err) {
-    return handleError(res, "Settings fetch", err);
-  }
 });
 
 // Register
@@ -2856,545 +2372,28 @@ app.get("/api/transactions/:id/receipt", authMiddleware, async (req, res) => {
 });
 
 app.get("/api/payments", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.userId || DEFAULT_USER_UUID;
-
-    const q = await pool.query(
-      `SELECT
-          id,
-          method,
-          amount,
-          recipient_name AS payee_name,
-          recipient_email AS payee_email,
-          description,
-          status,
-          created_at,
-          bank_name,
-          routing_number,
-          account_number
-       FROM transfers
-       WHERE user_email=$1
-         AND description LIKE '[PAYMENT%'
-       ORDER BY created_at DESC
-       LIMIT 100`,
-      [userId]
-    );
-
-    return res.json(
-      q.rows.map((row) => {
-        const marker = String(row.description || "").match(/^\[PAYMENT:([a-z]+)\]/i);
-        return {
-          ...row,
-          method: marker?.[1]?.toLowerCase() || row.method,
-          reference: `PAY-${String(row.id || "").slice(0, 8).toUpperCase()}`,
-        };
-      })
-    );
-  } catch (err) {
-    return handleError(res, "Payments fetch error", err);
-  }
+  return sendDisabledPublicFlow(res);
 });
 
 app.post("/api/payments", authMiddleware, async (req, res) => {
-  const client = await pool.connect();
-
-  try {
-    const settings = loadAppSettings();
-    if (settings.paymentsEnabled === false) {
-      return res.status(403).json({ error: "Payments are currently disabled by admin" });
-    }
-
-    const userId = req.userId || normalizeDbUserId(req.user?.sub);
-    const {
-      method = "billpay",
-      from_account_type = "available",
-      schedule_date = null,
-      payee_name,
-      payee_email = null,
-      amount,
-      description = null,
-      bank_name = null,
-      routing_number = null,
-      account_number = null,
-      reference = null,
-    } = req.body || {};
-
-    const cleanedPayeeName = String(payee_name || "").trim();
-    const cleanedPayeeEmail = payee_email ? String(payee_email).trim().toLowerCase() : null;
-    const cleanedMethod = String(method || "billpay").trim().toLowerCase();
-    const methodForDb = cleanedMethod === "billpay" ? "ach" : cleanedMethod;
-    const paymentStatus = "completed";
-    const cleanedAccountType = String(from_account_type || "available").trim().toLowerCase();
-    const cleanedDescription = String(description || "").trim();
-    const cleanedReference = String(reference || "").trim();
-
-    if (!cleanedPayeeName) {
-      return res.status(400).json({ error: "Payee name is required" });
-    }
-
-    if (cleanedPayeeEmail && !validateEmail(cleanedPayeeEmail)) {
-      return res.status(400).json({ error: "Payee email is invalid" });
-    }
-
-    if (!["billpay", "ach", "wire"].includes(cleanedMethod)) {
-      return res.status(400).json({ error: "Invalid payment method" });
-    }
-
-    const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt <= 0) {
-      return res.status(400).json({ error: "Invalid payment amount" });
-    }
-
-    if (["ach", "wire"].includes(cleanedMethod) && (!bank_name || !routing_number || !account_number)) {
-      return res.status(400).json({ error: "Bank details required for ACH/Wire payments" });
-    }
-
-    await client.query("BEGIN");
-
-    const senderQ = await client.query(
-      `SELECT id, user_email, balance, available, type
-       FROM accounts
-       WHERE user_email=$1
-       ORDER BY available DESC
-       LIMIT 1
-       FOR UPDATE`,
-      [userId]
-    );
-
-    if (!senderQ.rowCount) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ error: "Funding account not found" });
-    }
-
-    const senderAcc = senderQ.rows[0];
-    if (Number(senderAcc.available) < amt) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Insufficient available balance" });
-    }
-
-    const senderNewBalance = Number(senderAcc.balance) - amt;
-    await client.query(
-      `UPDATE accounts
-       SET balance=$1,
-           available=available-$2,
-           updated_at=now()
-       WHERE id=$3`,
-      [senderNewBalance, amt, senderAcc.id]
-    );
-
-    const paymentReference = `PAY-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-    const txDescription = cleanedDescription || `Payment to ${cleanedPayeeName}`;
-    await client.query(
-      `INSERT INTO transactions
-        (user_email, account_id, direction, amount, description, reference, status, balance_after, created_at)
-       VALUES ($1,$2,'debit',$3,$4,$5,$6,$7,NOW())`,
-      [userId, senderAcc.id, amt, txDescription, paymentReference, paymentStatus, senderNewBalance]
-    );
-
-    const transferDescription = `[PAYMENT:${cleanedMethod}] ${txDescription}${cleanedReference ? ` (Ref: ${cleanedReference})` : ""}${schedule_date ? ` [Scheduled: ${schedule_date}]` : ""}`;
-
-    const paymentQ = await client.query(
-      `INSERT INTO transfers
-        (
-          user_email,
-          sender_account_type,
-          recipient_name,
-          recipient_email,
-          bank_name,
-          routing_number,
-          account_number,
-          btc_address,
-          method,
-          amount,
-          description,
-          status,
-          created_at
-        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())
-       RETURNING id, method, amount, recipient_name, recipient_email, status, created_at`,
-      [
-        userId,
-        cleanedAccountType || senderAcc.type || "available",
-        cleanedPayeeName,
-        cleanedPayeeEmail,
-        bank_name,
-        routing_number,
-        account_number,
-        null,
-        methodForDb,
-        amt,
-        transferDescription,
-        paymentStatus,
-      ]
-    );
-
-    await client.query("COMMIT");
-
-    const created = paymentQ.rows[0];
-
-    try {
-      if (canSendEmail()) {
-        const userQ = await pool.query(
-          "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
-          [userId]
-        );
-        const payer = userQ.rows?.[0] || {};
-
-        if (payer.email) {
-          await sendBrandedEmail({
-            to: payer.email,
-            subject: "Payment successful",
-            title: "Your payment was processed",
-            preheader: `${cleanedMethod.toUpperCase()} payment to ${cleanedPayeeName} completed.`,
-            text: `Payment successful.\n\nPayee: ${cleanedPayeeName}\nMethod: ${cleanedMethod.toUpperCase()}\nAmount: $${amt.toFixed(2)}\nReference: ${paymentReference}`,
-            bodyHtml: `
-              <p>Your payment was processed successfully.</p>
-              <ul>
-                <li><b>Payee:</b> ${escapeHtml(cleanedPayeeName)}</li>
-                <li><b>Method:</b> ${escapeHtml(cleanedMethod.toUpperCase())}</li>
-                <li><b>Amount:</b> $${escapeHtml(amt.toFixed(2))}</li>
-                <li><b>Reference:</b> ${escapeHtml(paymentReference)}</li>
-              </ul>
-            `,
-          });
-        }
-
-        if (cleanedPayeeEmail) {
-          await sendBrandedEmail({
-            to: cleanedPayeeEmail,
-            subject: "Incoming payment notification",
-            title: "A payment has been sent to you",
-            preheader: `${payer.fullname || "A sender"} sent you a payment.`,
-            text: `${payer.fullname || "A sender"} sent a ${cleanedMethod.toUpperCase()} payment of $${amt.toFixed(2)}.`,
-            bodyHtml: `
-              <p>${escapeHtml(payer.fullname || "A sender")} sent you a payment.</p>
-              <ul>
-                <li><b>Amount:</b> $${escapeHtml(amt.toFixed(2))}</li>
-                <li><b>Method:</b> ${escapeHtml(cleanedMethod.toUpperCase())}</li>
-              </ul>
-            `,
-          });
-        }
-
-        if (BANKSWIFT_NOTIFY_EMAIL) {
-          await sendAdminNotificationEmail({
-            subject: "Payment activity alert",
-            text: `Payment activity recorded.\n\nSender: ${payer.fullname || "User"} (${payer.email || "N/A"})\nReceiver: ${cleanedPayeeName} (${cleanedPayeeEmail || "N/A"})\nMethod: ${cleanedMethod.toUpperCase()}\nAmount: $${amt.toFixed(2)}\nReference: ${paymentReference}`,
-          });
-        }
-      }
-    } catch (e) {
-      console.warn("Payment notification email failed:", e.message);
-    }
-
-    return res.status(201).json({
-      success: true,
-      payment: {
-        id: created.id,
-        method: cleanedMethod,
-        amount: created.amount,
-        payee_name: created.recipient_name,
-        payee_email: created.recipient_email,
-        status: paymentStatus,
-        created_at: created.created_at,
-        schedule_date,
-        reference: paymentReference,
-      },
-      available_balance: Number(senderAcc.available) - amt,
-    });
-  } catch (err) {
-    try {
-      await client.query("ROLLBACK");
-    } catch {}
-    return handleError(res, "Payments create error", err);
-  } finally {
-    client.release();
-  }
+  return sendDisabledPublicFlow(res);
 });
 
-// Transfers (final, safe, audited)
+// Disabled public flow routes
 app.post("/api/transfers", authMiddleware, async (req, res) => {
-  const client = await pool.connect();
-
-  try {
-    const settings = loadAppSettings();
-    if (settings.transfersEnabled === false) {
-      return res.status(403).json({ error: "Transfers are currently disabled" });
-    }
-
-    const userId = req.userId || normalizeDbUserId(req.user?.sub);
-
-    const {
-      recipient_email,            // optional (internal lookup)
-      recipient_name,             // required for external
-      amount,
-      method = "wire",
-      description = null,
-      bank_name = null,
-      account_number = null,
-      routing_number = null,
-      btc_address = null,
-    } = req.body || {};
-
-    /* ---------- VALIDATION ---------- */
-
-    if (amount == null) {
-      return res.status(400).json({
-        error: "Missing required field: amount",
-      });
-    }
-
-    if (!recipient_email || !validateEmail(recipient_email)) {
-      return res.status(400).json({ error: "Valid recipient_email is required" });
-    }
-
-    const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt <= 0) {
-      return res.status(400).json({ error: "Invalid amount" });
-    }
-
-    await client.query("BEGIN");
-
-    /* ---------- LOCK SENDER ACCOUNT ---------- */
-
-    const senderQ = await client.query(
-      `SELECT id, user_email, balance, available, type
-       FROM accounts
-       WHERE user_email = $1
-       ORDER BY available DESC
-       LIMIT 1
-       FOR UPDATE`,
-      [userId]
-    );
-
-    if (!senderQ.rowCount) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ error: "Sender account not found" });
-    }
-
-    const senderAcc = senderQ.rows[0];
-
-    if (Number(senderAcc.available) < amt) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        error: "Insufficient available balance",
-      });
-    }
-
-    /* ---------- RESOLVE RECIPIENT (INTERNAL VS EXTERNAL) ---------- */
-
-    let isInternal = false;
-    let recipientAcc = null;
-
-    if (recipient_email) {
-      const uQ = await client.query(
-        `SELECT user_email FROM users WHERE user_email = $1 LIMIT 1`,
-        [String(recipient_email).toLowerCase()]
-      );
-
-      if (uQ.rowCount) {
-        const recUserEmail = uQ.rows[0].user_email;
-        const accQ = await client.query(
-          `SELECT id, user_email, balance, available, type
-           FROM accounts
-           WHERE user_email = $1
-           ORDER BY available DESC
-           LIMIT 1
-           FOR UPDATE`,
-          [recUserEmail]
-        );
-
-        if (accQ.rowCount) {
-          recipientAcc = accQ.rows[0];
-          isInternal = true;
-        }
-      }
-    }
-
-    const transferStatus = "completed";
-
-    /* ---------- DEBIT SENDER ---------- */
-
-    const senderNewBalance = Number(senderAcc.balance) - amt;
-
-    await client.query(
-      `UPDATE accounts
-       SET balance = $1,
-           available = available - $2,
-           updated_at = now()
-       WHERE id = $3`,
-      [senderNewBalance, amt, senderAcc.id]
-    );
-
-    /* ---------- TRANSACTION (DEBIT) ---------- */
-
-    const senderDesc =
-      description ||
-      (isInternal
-        ? `Transfer to ${recipientAcc?.type || "account"}`
-        : `External transfer to ${recipient_name || recipient_email || "recipient"}`);
-
-    await client.query(
-      `INSERT INTO transactions
-        (user_email, account_id, direction, amount, description, balance_after, created_at)
-       VALUES ($1,$2,'debit',$3,$4,$5,NOW())`,
-      [userId, senderAcc.id, amt, senderDesc, senderNewBalance]
-    );
-
-    /* ---------- CREDIT RECIPIENT (INTERNAL ONLY) ---------- */
-
-    if (isInternal && recipientAcc) {
-      const recNewBalance = Number(recipientAcc.balance) + amt;
-
-      await client.query(
-        `UPDATE accounts
-         SET balance = $1,
-             available = available + $2,
-             updated_at = now()
-         WHERE id = $3`,
-        [recNewBalance, amt, recipientAcc.id]
-      );
-
-      const recDesc = description || "Received transfer";
-
-      await client.query(
-        `INSERT INTO transactions
-          (user_email, account_id, direction, amount, description, balance_after, created_at)
-         VALUES ($1,$2,'credit',$3,$4,$5,NOW())`,
-        [recipientAcc.user_email, recipientAcc.id, amt, recDesc, recNewBalance]
-      );
-    }
-
-    /* ---------- RECORD TRANSFER ---------- */
-
-    const transferQ = await client.query(
-      `INSERT INTO transfers
-        (
-          user_email,
-          sender_account_type,
-          recipient_name,
-          recipient_email,
-          bank_name,
-          routing_number,
-          account_number,
-          btc_address,
-          method,
-          amount,
-          description,
-          status,
-          created_at
-        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())
-       RETURNING id, status, created_at`,
-      [
-        userId,
-        senderAcc.type || "available",
-        recipient_name || "External Recipient",
-        recipient_email ? String(recipient_email).toLowerCase() : null,
-        bank_name,
-        routing_number,
-        account_number,
-        btc_address,
-        method,
-        amt,
-        description,
-        transferStatus,
-      ]
-    );
-
-    await client.query("COMMIT");
-
-    /* ---------- EMAIL NOTIFICATIONS (NON-BLOCKING) ---------- */
-
-    try {
-      if (canSendEmail()) {
-        // sender
-        const templates = loadEmailTemplates();
-        const transferSenderTpl = templates.transferSender || {};
-        const senderDataPlain = {
-          amount: amt.toFixed(2),
-          status: transferStatus,
-        };
-        const senderText = renderTemplate(transferSenderTpl.text, senderDataPlain);
-
-        await sendBrandedEmail({
-          to: req.user.email,
-          subject: renderTemplate(transferSenderTpl.subject || "Transfer update", senderDataPlain),
-          title: renderTemplate(transferSenderTpl.title || "Transfer update", senderDataPlain),
-          preheader: renderTemplate(transferSenderTpl.preheader, senderDataPlain),
-          text: senderText,
-          bodyHtml: plainTextToEmailHtml(senderText),
-        });
-
-        // recipient (send whenever an email is provided)
-        if (recipient_email) {
-          const recipientStatusLabel = "completed";
-          const recipientSubject = "You received a transfer";
-          const recipientTitle = "Incoming transfer";
-          const recipientNameText = recipient_name || "Recipient";
-          const recipientBankText = bank_name || "—";
-          const recipientRoutingText = routing_number || "—";
-          const recipientAccountText = account_number || "—";
-
-          const transferRecipientTpl = templates.transferRecipient || {};
-          const dataPlain = {
-            amount: amt.toFixed(2),
-            status: recipientStatusLabel,
-            recipient_name: recipientNameText,
-            bank_name: recipientBankText,
-            routing_number: recipientRoutingText,
-            account_number: recipientAccountText,
-          };
-          const recipientText = renderTemplate(transferRecipientTpl.text, dataPlain);
-
-          await sendBrandedEmail({
-            to: recipient_email,
-            subject: renderTemplate(transferRecipientTpl.subject || recipientSubject, dataPlain),
-            title: renderTemplate(transferRecipientTpl.title || recipientTitle, dataPlain),
-            preheader: renderTemplate(transferRecipientTpl.preheader, dataPlain),
-            text: recipientText,
-            bodyHtml: plainTextToEmailHtml(recipientText),
-          });
-        }
-
-        if (BANKSWIFT_NOTIFY_EMAIL) {
-          await sendAdminNotificationEmail({
-            subject: "Transfer activity alert",
-            text: `Transfer activity recorded.\n\nSender: ${req.user?.email || "N/A"}\nReceiver: ${recipient_email || recipient_name || "N/A"}\nMethod: ${String(method || "wire").toUpperCase()}\nAmount: $${amt.toFixed(2)}\nStatus: ${transferStatus}\nTransfer ID: ${transferQ.rows?.[0]?.id || "N/A"}`,
-          });
-        }
-      }
-    } catch (e) {
-      console.warn("Transfer email failed:", e.message);
-    }
-
-    return res.status(201).json({
-      success: true,
-      transfer: transferQ.rows[0],
-    });
-  } catch (err) {
-    try {
-      await client.query("ROLLBACK");
-    } catch {}
-    console.error("Transfer error:", err);
-    return res.status(500).json({ error: "Transfer failed" });
-  } finally {
-    client.release();
-  }
+  return sendDisabledPublicFlow(res);
 });
 
-// Apply for Loan
 app.post("/api/loans", authMiddleware, async (req, res) => {
-  return res.status(410).json({ error: "Online loan applications are unavailable." });
+  return sendDisabledPublicFlow(res);
 });
 
-// Get User Loans
 app.get("/api/loans", authMiddleware, async (req, res) => {
-  return res.status(410).json({ error: "Online loan applications are unavailable." });
+  return sendDisabledPublicFlow(res);
 });
 
 app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
-  return res.status(410).json({ error: "Loan fee payments are unavailable." });
+  return sendDisabledPublicFlow(res);
 });
 
 // --- Static hosting (frontend) ---

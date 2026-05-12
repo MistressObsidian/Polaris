@@ -506,7 +506,7 @@
         <span class="pill">Admin Console</span>
       </div>
       <h1>Manual Project Control</h1>
-      <p>Sign in with the configured admin credentials to manage users, balances, transfers, loans, emails, and settings.</p>
+      <p>Sign in with the configured admin credentials to manage users, balances, email workflows, and platform settings.</p>
       <form id="loginForm">
         <div class="field">
           <label for="adminEmail">Admin Email</label>
@@ -543,8 +543,6 @@
         <li><a class="nav-link active" href="#overview">Overview</a></li>
         <li><a class="nav-link" href="#users">Users</a></li>
         <li><a class="nav-link" href="#transactions">Transactions</a></li>
-        <li><a class="nav-link" href="#transfers">Transfers</a></li>
-        <li><a class="nav-link" href="#loans">Loans</a></li>
         <li><a class="nav-link" href="#emails">Email Logs</a></li>
         <li><a class="nav-link" href="#settings">Settings</a></li>
       </ul>
@@ -632,62 +630,6 @@
                 </tr>
               </thead>
               <tbody id="transactionsTableBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section id="transfers" class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Transfers</h2>
-              <div class="panel-sub">Manually change transfer states and inspect routing details. Collapsed by default.</div>
-            </div>
-            <div class="panel-tools">
-              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="transfersPanelBody" data-label-show="Show Transfers" data-label-hide="Hide Transfers" aria-expanded="false">Show Transfers</button>
-            </div>
-          </div>
-          <div id="transfersPanelBody" class="table-wrap collapsed-panel">
-            <table>
-              <thead>
-                <tr>
-                  <th>Sender</th>
-                  <th>Recipient</th>
-                  <th>Method</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Details</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="transfersTableBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section id="loans" class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Loans</h2>
-              <div class="panel-sub">Approve, reject, or reset loan records. Collapsed by default.</div>
-            </div>
-            <div class="panel-tools">
-              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="loansPanelBody" data-label-show="Show Loans" data-label-hide="Hide Loans" aria-expanded="false">Show Loans</button>
-            </div>
-          </div>
-          <div id="loansPanelBody" class="table-wrap collapsed-panel">
-            <table>
-              <thead>
-                <tr>
-                  <th>Applicant</th>
-                  <th>Amount</th>
-                  <th>Term</th>
-                  <th>Status</th>
-                  <th>Flags</th>
-                  <th>Created</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="loansTableBody"></tbody>
             </table>
           </div>
         </section>
@@ -957,24 +899,9 @@
           <div class="panel panel-muted panel-narrow">
               <div class="scope-badge scope-global">Global</div>
               <h3>Application Controls</h3>
-              <form id="settingsForm" style="margin-top:.85rem;">
-                <div class="field" style="margin-top:.75rem;">
-                  <label style="display:flex;align-items:center;gap:.5rem;text-transform:none;letter-spacing:.2px;">
-                    <input id="transfersEnabled" type="checkbox" checked />
-                    Allow all user transfers
-                  </label>
-                </div>
-                <div class="field" style="margin-top:.25rem;">
-                  <label style="display:flex;align-items:center;gap:.5rem;text-transform:none;letter-spacing:.2px;">
-                    <input id="paymentsEnabled" type="checkbox" checked />
-                    Allow all user payments/withdrawals
-                  </label>
-                </div>
-                <div class="actions-inline" style="margin-top:.9rem;">
-                  <button type="submit" class="btn btn-primary">Save Settings</button>
-                </div>
-                <div class="helper-text" style="margin-top:.5rem;">Transfer and payment switches apply to every user immediately after saving.</div>
-              </form>
+              <div style="margin-top:.85rem;" class="helper-text">
+                Deprecated public submission flows are disabled and cannot be re-enabled from this console.
+              </div>
             </div>
           <div class="panel panel-muted">
             <div class="scope-badge scope-global">Global</div>
@@ -1047,39 +974,27 @@
     const TEMPLATE_PREVIEW_DATA = {
       default: {
         fullname: "Alex Morgan",
-        borrower_name: "Alex Morgan",
-        recipient_name: "Jamie Chen",
         account_name: "Primary Checking",
         email: "alex@example.com",
-        status: "completed",
+        status: "reviewed",
         amount: "1,250.00",
-        term: "36 months",
-        apr_estimate: "8.5% APR",
-        monthly_payment_estimate: "$39.12",
-        bank_name: "Base Credit",
-        routing_number: "021000021",
-        account_number: "****4321",
-        fee: "45.00",
-        expires_at: "March 20, 2026 4:00 PM"
+        reference: "ACT-4821",
+        note: "Support follow-up requested",
+        review_deadline: "March 20, 2026 4:00 PM"
       },
-      transferSender: {
-        status: "completed",
-        amount: "480.00"
-      },
-      transferRecipient: {
-        recipient_name: "Jamie Chen",
-        bank_name: "Base Credit",
+      accountActivityUpdate: {
+        status: "posted",
         amount: "480.00",
-        status: "pending"
+        reference: "ACT-9034"
       },
-      loanStatusUpdate: {
-        borrower_name: "Alex Morgan",
-        amount: "15,000.00",
-        term: "36 months"
+      accountReviewNotice: {
+        fullname: "Alex Morgan",
+        status: "pending review",
+        review_deadline: "March 20, 2026 4:00 PM"
       },
-      processingFeeNotice: {
-        borrower_name: "Alex Morgan",
-        fee: "45.00"
+      supportFollowUp: {
+        fullname: "Alex Morgan",
+        note: "Please review your recent account message in the dashboard."
       },
       registrationReceived: {
         fullname: "Alex Morgan"
@@ -1106,8 +1021,6 @@
       notifyEmailLabel: document.getElementById("notifyEmailLabel"),
       usersTableBody: document.getElementById("usersTableBody"),
       transactionsTableBody: document.getElementById("transactionsTableBody"),
-      transfersTableBody: document.getElementById("transfersTableBody"),
-      loansTableBody: document.getElementById("loansTableBody"),
       emailsTableBody: document.getElementById("emailsTableBody"),
       userSearch: document.getElementById("userSearch"),
       createUserForm: document.getElementById("createUserForm"),
@@ -1169,9 +1082,6 @@
       selectedUserState: document.getElementById("selectedUserState"),
       selectedUserMeta: document.getElementById("selectedUserMeta"),
       userEditorStatus: document.getElementById("userEditorStatus"),
-      settingsForm: document.getElementById("settingsForm"),
-      transfersEnabled: document.getElementById("transfersEnabled"),
-      paymentsEnabled: document.getElementById("paymentsEnabled"),
       templatesForm: document.getElementById("templatesForm"),
       templateEditorSelect: document.getElementById("templateEditorSelect"),
       templateSubject: document.getElementById("templateSubject"),
@@ -1744,10 +1654,7 @@
         ["Accounts", stats.total_accounts],
         ["Total Balance", fmtMoney(stats.total_balance)],
         ["Available Total", fmtMoney(stats.total_available)],
-        ["Pending Transfers", stats.pending_transfers],
-        ["Transfer Volume", fmtMoney(stats.transfer_volume)],
-        ["Pending Loans", stats.pending_loans],
-        ["Approved Loans", stats.approved_loans],
+        ["Pending Emails", stats.pending_emails],
         ["Failed Emails", stats.failed_emails],
         ["Sent Emails", stats.sent_emails],
       ];
@@ -1832,74 +1739,6 @@
       }).join("");
     }
 
-    function renderTransfers() {
-      const rows = state.overview?.transfers || [];
-      if (!rows.length) {
-        els.transfersTableBody.innerHTML = `<tr><td colspan="7"><div class="empty-state">No transfers found.</div></td></tr>`;
-        return;
-      }
-
-      els.transfersTableBody.innerHTML = rows.map((row) => `
-        <tr>
-          <td>
-            <div>${escapeHtml(row.fullname || "—")}</div>
-            <div class="helper-text">${escapeHtml(row.user_email || "—")}</div>
-          </td>
-          <td>
-            <div>${escapeHtml(row.recipient_name || "—")}</div>
-            <div class="helper-text">${escapeHtml(row.recipient_email || "—")}</div>
-          </td>
-          <td>${escapeHtml(String(row.method || "—").toUpperCase())}</td>
-          <td>${fmtMoney(row.amount)}</td>
-          <td><span class="${badgeClass(row.status)}">${escapeHtml(row.status || "—")}</span></td>
-          <td>
-            <div>${escapeHtml(row.bank_name || "No bank")}</div>
-            <div class="helper-text mono">${escapeHtml(row.routing_number || "")}</div>
-            <div class="helper-text mono">${escapeHtml(row.account_number || "")}</div>
-          </td>
-          <td>
-            <div class="actions-inline">
-              <button class="mini-btn warn" data-action="transfer-status" data-id="${escapeHtml(row.id)}" data-status="pending">Pending</button>
-              <button class="mini-btn good" data-action="transfer-status" data-id="${escapeHtml(row.id)}" data-status="completed">Complete</button>
-              <button class="mini-btn bad" data-action="transfer-status" data-id="${escapeHtml(row.id)}" data-status="failed">Fail</button>
-            </div>
-          </td>
-        </tr>
-      `).join("");
-    }
-
-    function renderLoans() {
-      const rows = state.overview?.loans || [];
-      if (!rows.length) {
-        els.loansTableBody.innerHTML = `<tr><td colspan="7"><div class="empty-state">No loans found.</div></td></tr>`;
-        return;
-      }
-
-      els.loansTableBody.innerHTML = rows.map((row) => `
-        <tr>
-          <td>
-            <div>${escapeHtml(row.fullname || "—")}</div>
-            <div class="helper-text">${escapeHtml(row.user_email || "—")}</div>
-          </td>
-          <td>${fmtMoney(row.amount)}</td>
-          <td>${escapeHtml(String(row.term_months || 0))} months</td>
-          <td><span class="${badgeClass(row.status)}">${escapeHtml(row.status || "—")}</span></td>
-          <td>
-            <div><span class="${badgeClass(row.fee_paid ? "approved" : "pending")}">fee ${row.fee_paid ? "paid" : "open"}</span></div>
-            <div style="margin-top:.35rem;"><span class="${badgeClass(row.locked ? "locked" : "active")}">${row.locked ? "locked" : "open"}</span></div>
-          </td>
-          <td>${escapeHtml(fmtDate(row.created_at))}</td>
-          <td>
-            <div class="actions-inline">
-              <button class="mini-btn good" data-action="loan-status" data-id="${escapeHtml(row.id)}" data-status="approved">Approve</button>
-              <button class="mini-btn warn" data-action="loan-status" data-id="${escapeHtml(row.id)}" data-status="pending">Pending</button>
-              <button class="mini-btn bad" data-action="loan-status" data-id="${escapeHtml(row.id)}" data-status="rejected">Reject</button>
-            </div>
-          </td>
-        </tr>
-      `).join("");
-    }
-
     function renderEmails() {
       const rows = state.overview?.email_logs || [];
       if (!rows.length) {
@@ -1922,9 +1761,6 @@
     }
 
     function renderSettings() {
-      const settings = state.overview?.settings || {};
-      els.transfersEnabled.checked = settings.transfersEnabled !== false;
-      els.paymentsEnabled.checked = settings.paymentsEnabled !== false;
       renderTemplateEditor();
       renderManualTemplateOptions();
       renderManualEmailPreview();
@@ -1934,8 +1770,6 @@
       renderStats();
       renderUsers();
       renderTransactions();
-      renderTransfers();
-      renderLoans();
       renderEmails();
       renderSettings();
 
@@ -2076,29 +1910,6 @@
       }
     }
 
-    async function handleSettingsSave(event) {
-      event.preventDefault();
-      const confirmed = window.confirm("Save application controls for all users? This will immediately update transfer and payment availability platform-wide.");
-      if (!confirmed) {
-        showStatus(els.settingsStatus, "Application settings save cancelled.", "info");
-        return;
-      }
-      showStatus(els.settingsStatus, "Saving application settings…");
-      try {
-        const settings = await api(`${window.API_BASE}/admin/app-settings`, {
-          method: "PUT",
-          body: JSON.stringify({
-            transfersEnabled: els.transfersEnabled.checked,
-            paymentsEnabled: els.paymentsEnabled.checked,
-          }),
-        });
-        if (state.overview) state.overview.settings = settings;
-        showStatus(els.settingsStatus, "Application settings saved.", "success");
-      } catch (err) {
-        showStatus(els.settingsStatus, err.message || "Failed to save settings", "error");
-      }
-    }
-
     async function handleTemplatesSave(event) {
       event.preventDefault();
       const issues = validateAllTemplates();
@@ -2234,7 +2045,7 @@
 
         if (action === "delete-user") {
           const email = String(button.dataset.email || "").trim().toLowerCase();
-          const confirmed = window.confirm(`Delete ${email}? This permanently removes the user and all cascaded profile, account, transaction, transfer, loan, and reset-token records.`);
+          const confirmed = window.confirm(`Delete ${email}? This permanently removes the user and associated profile, account, transaction, and reset-token records.`);
           if (!confirmed) {
             showStatus(els.globalStatus, "User deletion cancelled.", "info");
             return;
@@ -2251,31 +2062,10 @@
           showStatus(els.globalStatus, `Deleted ${email}.`, "success");
           if (result?.cascaded) {
             const cascaded = result.cascaded;
-            const summary = `Profiles ${cascaded.profiles ?? 0}, documents ${cascaded.documents ?? 0}, accounts ${cascaded.accounts ?? 0}, transactions ${cascaded.transactions ?? 0}, transfers ${cascaded.transfers ?? 0}, loans ${cascaded.loans ?? 0}.`;
+            const summary = `Profiles ${cascaded.profiles ?? 0}, documents ${cascaded.documents ?? 0}, accounts ${cascaded.accounts ?? 0}, transactions ${cascaded.transactions ?? 0}.`;
             showStatus(els.userEditorStatus, summary, "success");
           }
           return;
-        }
-
-        if (action === "transfer-status") {
-          showStatus(els.globalStatus, `Updating transfer ${button.dataset.status}…`);
-          await api(`${window.API_BASE}/admin/transfers/${encodeURIComponent(button.dataset.id)}`, {
-            method: "PATCH",
-            body: JSON.stringify({ status: button.dataset.status }),
-          });
-          await loadDashboard();
-          showStatus(els.globalStatus, "Transfer updated.", "success");
-          return;
-        }
-
-        if (action === "loan-status") {
-          showStatus(els.globalStatus, `Updating loan ${button.dataset.status}…`);
-          await api(`${window.API_BASE}/admin/loans/${encodeURIComponent(button.dataset.id)}`, {
-            method: "PATCH",
-            body: JSON.stringify({ status: button.dataset.status }),
-          });
-          await loadDashboard();
-          showStatus(els.globalStatus, "Loan updated.", "success");
         }
       } catch (err) {
         showStatus(els.globalStatus, err.message || "Action failed", "error");
@@ -2291,8 +2081,6 @@
           const panelIdBySection = {
             users: "usersPanelBody",
             transactions: "transactionsPanelBody",
-            transfers: "transfersPanelBody",
-            loans: "loansPanelBody",
             emails: "emailsPanelBody",
           };
           navigateToSection(sectionId, { panelId: panelIdBySection[sectionId] });
@@ -2322,7 +2110,6 @@
     els.manualEmailForm.addEventListener("submit", handleManualEmailSend);
     els.manualEmailMode.addEventListener("change", renderManualEmailMode);
     els.manualEmailSaveTemplateBtn.addEventListener("click", handleManualTemplateSave);
-    els.settingsForm.addEventListener("submit", handleSettingsSave);
     els.templatesForm.addEventListener("submit", handleTemplatesSave);
     els.templateEditorSelect.addEventListener("change", () => {
       state.selectedTemplateKey = els.templateEditorSelect.value;

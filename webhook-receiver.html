@@ -3,102 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Webhook Receiver Simulator</title>
+  <title>Feature Notice | Base Credit</title>
   <link rel="stylesheet" href="ui.css" />
   <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
   <style>
-    .layout { width:min(100% - 2rem, 720px); }
-    .simulator-panel { padding:1rem; }
-    .row { display: grid; grid-template-columns: 160px 1fr; gap: 10px; margin-bottom: 10px; }
-    .row label { font-size:var(--text-sm); color:var(--color-text-muted); font-weight:600; align-self:center; }
-    .log { font-family: var(--font-mono); background: var(--color-surface-muted); color: var(--color-text); padding: 10px; border-radius: 8px; max-height: 280px; overflow: auto; }
-    .webhook-brand { display:flex; align-items:center; gap:.75rem; }
-    .webhook-brand h1 { font-size:1.2rem; margin:0; font-weight:800; }
-    .webhook-icon { height:42px; width:42px; display:inline-flex; }
-    @media (max-width: 640px) {
-      .row { grid-template-columns: 1fr; }
-    }
+    .notice-shell { display:grid; gap:1rem; }
+    .notice-card { display:grid; gap:.9rem; }
+    .notice-copy { max-width:62ch; color:var(--color-text-soft); }
   </style>
-  <script src="config.js"></script>
   <script src="common.js"></script>
-<script>
-// Simulate webhook event (manual trigger)
-async function sendWebhookTest() {
-  try {
-    const reference = (document.getElementById('ref')?.value || '').trim() || 'TXN-DEMO-123';
-    const status = (document.getElementById('status')?.value || '').trim() || 'completed';
-    const res = await fetch(`/api/transfers/confirm`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        reference,
-        status
-      })
-    });
-
-    if (!res.ok) throw new Error("Webhook send failed");
-    const data = await res.json();
-    document.getElementById("webhookResult").textContent =
-      JSON.stringify(data, null, 2);
-  } catch (err) {
-    document.getElementById("webhookResult").textContent =
-      "Error: " + err.message;
-  }
-}
-</script>
 </head>
 <body>
   <header class="page-header">
-    <div class="webhook-brand">
-    <span class="webhook-icon">
-      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#667eea"/>
-            <stop offset="60%" stop-color="#764ba2"/>
-            <stop offset="100%" stop-color="#8b5cf6"/>
-          </linearGradient>
-          <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#06b6d4"/>
-            <stop offset="100%" stop-color="#4facfe"/>
-          </linearGradient>
-          <linearGradient id="logoGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#f093fb" stop-opacity="0.8"/>
-            <stop offset="100%" stop-color="#f5576c" stop-opacity="0.8"/>
-          </linearGradient>
-        </defs>
-        <path fill="url(#logoGrad1)" d="M6 10 L34 32 L6 54 Z"/>
-        <path fill="url(#logoGrad2)" d="M34 10 L58 32 L34 54 L22 44 L34 32 L22 20 Z"/>
-        <path fill="url(#logoGrad3)" d="M6 10 L34 32 L22 44 L6 54 Z" opacity="0.35"/>
-      </svg>
-    </span>
-    <h1 class="page-title">Base Webhook Simulator</h1>
-    </div>
+    <h1 class="page-title">Feature Notice</h1>
     <nav class="page-header-nav">
       <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
       <a class="back-link" href="dashboard.html">← Back to Home</a>
     </nav>
   </header>
-  <main class="layout layout-narrow">
-    <section class="panel simulator-panel">
-    <h2>Webhook Receiver Simulator</h2>
-    <div class="row">
-      <label for="ref">Reference</label>
-      <input class="input-base" id="ref" placeholder="e.g., TXN12345678" />
-    </div>
-    <div class="row">
-      <label for="status">Status</label>
-      <input class="input-base" id="status" placeholder="Completed or Pending" />
-    </div>
-    <div class="row">
-      <label for="secret">Shared Secret</label>
-      <input class="input-base" id="secret" placeholder="WEBHOOK_SECRET (default change-me)" />
-    </div>
-    <div class="actions">
-      <button class="btn btn-primary" onclick="sendWebhookTest()">Send Webhook</button>
-    </div>
-    <h3>Response</h3>
-    <pre id="webhookResult" class="log"></pre>
+  <main class="layout layout-narrow notice-shell">
+    <section class="panel notice-card">
+      <h2>Webhook simulator is unavailable</h2>
+      <p class="notice-copy">This website no longer exposes public pages for transfer confirmation, webhook simulation, or similar money-movement tooling.</p>
+      <p class="notice-copy">If you need an internal testing workflow, move it behind authenticated administrative tooling instead of a public static page.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="dashboard.html">Return to Dashboard</a>
+        <a class="btn btn-outline" href="contact.html">Contact Support</a>
+      </div>
     </section>
   </main>
 </body>

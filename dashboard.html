@@ -159,9 +159,7 @@
     <h2>Navigation</h2>
     <ul class="nav-menu">
   <li><a href="#" class="nav-link active">Home</a></li>
-      <li><a href="transfer.html" class="nav-link">Transfers</a></li>
       <li><a href="transactions.html" class="nav-link">Transactions</a></li>
-      <li><a href="payment.html" class="nav-link">Payments</a></li>
       <li><a href="settings.html" class="nav-link">⚙️ Settings</a></li>
     </ul>
   </aside>
@@ -496,13 +494,6 @@ function wireActions(){
     });
   }
 
-  const makeTransferBtn = document.getElementById("makeTransferBtn");
-  if (makeTransferBtn && makeTransferBtn.dataset.bound !== '1') {
-    makeTransferBtn.dataset.bound = '1';
-    makeTransferBtn.addEventListener("click", () => {
-      window.location.href = "transfer.html";
-    });
-  }
 }
 
 /* -------------------- SSE -------------------- */

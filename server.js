@@ -30,7 +30,6 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { initMailer as initMailerUtils, sendEmail, isMailerReady, getMailerError } from "./utils/mailer.js";
-import multer from "multer";
 import PDFDocument from "pdfkit";
 import { initBank, createUser, getUser, getUserBalance, updateUserBalance, getOrCreateAccount, getAccount, addTransaction, getTransactions, getTransactionWithDetails, makeInternalTransfer, makeExternalTransfer, getTransfers, applyLoan, approveLoan, getUserLoans, getLoan, payLoanFee } from "./bank.js";
 
@@ -152,17 +151,6 @@ function makeToken(len = 24) {
   return crypto.randomBytes(len).toString("base64url");
 }
 
-function normalizeSSN(input) {
-  const digits = String(input || "").replace(/\D/g, "");
-  return digits.length === 9 ? digits : "";
-}
-
-function ssnHash(ssnDigits) {
-  const secret = process.env.SSN_HASH_SECRET || "";
-  if (!secret) return "";
-  return crypto.createHmac("sha256", secret).update(String(ssnDigits)).digest("hex");
-}
-
 function requireAuth(req, res, next) {
   const token = extractBearerToken(req);
   if (!token) return res.status(401).json({ error: "Missing token" });
@@ -281,23 +269,6 @@ async function authMiddleware(req, res, next) {
   try {
     req.user = payload;
     req.userId = await resolveUserIdFromIdentity(payload);
-
-    try {
-      const loanLock = await pool.query(
-        "SELECT locked FROM loans WHERE user_email=$1 AND locked=true LIMIT 1",
-        [req.userId]
-      );
-
-      if (loanLock.rowCount) {
-        return res.status(403).json({
-          error: "Account temporarily locked pending loan processing fee."
-        });
-      }
-    } catch (err) {
-      if (err?.code !== "42P01" && err?.code !== "42703") {
-        throw err;
-      }
-    }
 
     return next();
   } catch (err) {
@@ -563,43 +534,6 @@ async function adminApproveLoanRecord(loanId) {
     client.release();
   }
 }
-
-// ---- Uploads (KYC docs) ----
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), "uploads");
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname || "").toLowerCase() || "";
-    const safeExt = [".png", ".jpg", ".jpeg", ".webp", ".pdf"].includes(ext) ? ext : "";
-    cb(null, `${crypto.randomUUID()}${safeExt}`);
-  },
-});
-
-function fileFilter(req, file, cb) {
-  const ok = [
-    "image/png",
-    "image/jpeg",
-    "image/webp",
-    "application/pdf",
-  ].includes(file.mimetype);
-  if (!ok) return cb(new Error("Only PNG, JPG, WEBP, or PDF files are allowed"));
-  cb(null, true);
-}
-
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 6 * 1024 * 1024 }, // 6MB per file
-});
-
-// Fields we accept from the register form
-const registerUploads = upload.fields([
-  { name: "gov_id_front", maxCount: 1 },
-  { name: "gov_id_back", maxCount: 1 },
-  { name: "proof_of_address", maxCount: 1 },
-]);
 
 function canSendEmail() {
   return isMailerReady() || hasMailerConfig();
@@ -1067,16 +1001,30 @@ async function logRegistrationToSheets(payload) {
 
 // --- Express App ---
 const app = express();
+const ALLOW_ANY_ORIGIN = String(process.env.ALLOW_ANY_ORIGIN || "").trim() === "1";
+const ALLOWED_CORS_ORIGINS = String(process.env.CORS_ORIGINS || process.env.APP_BASE_URL || "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || ALLOW_ANY_ORIGIN) {
+      return callback(null, true);
+    }
 
-app.use(
-  cors({
-    origin: "https://shenzhenswift.online", // your frontend domain
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+    if (ALLOWED_CORS_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
 
-app.options("*", cors());
+    return callback(null, false);
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+
+app.options("*", cors(corsOptions));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
@@ -2213,7 +2161,7 @@ app.get("/api/settings", async (req, res) => {
 });
 
 // Register
-app.post("/api/users", registerUploads, async (req, res) => {
+app.post("/api/users", async (req, res) => {
   try {
     const {
       fullname,
@@ -2222,57 +2170,7 @@ app.post("/api/users", registerUploads, async (req, res) => {
       user_email,
       password,
       accountname = "",
-
-      // new fields
-      dob,
-      citizenship_status,
-      address_line1,
-      address_line2 = "",
-      city,
-      state,
-      postal_code,
-      country = "US",
-
-      mailing_same_as_residential = true,
-      mailing_address_line1 = "",
-      mailing_address_line2 = "",
-      mailing_city = "",
-      mailing_state = "",
-      mailing_postal_code = "",
-      mailing_country = "US",
-
-      occupation = "",
-      employer = "",
-
-      gov_id_type,
-      gov_id_last4 = "",
-      gov_id_issuer = "",
-      gov_id_expires_on = null,
-
-      initial_deposit_amount = 0,
-      funding_method = ""
     } = req.body || {};
-
-    // Accept SSN field in either casing
-    const SSN_INPUT = req.body?.SSN ?? req.body?.ssn ?? "";
-
-    const ssnDigits = normalizeSSN(SSN_INPUT);
-    if (!ssnDigits) {
-      return res.status(400).json({ error: "Valid SSN required (9 digits)" });
-    }
-
-    const last4 = ssnDigits.slice(-4);
-    const hash = ssnHash(ssnDigits); // uses SSN_HASH_SECRET
-
-    const files = req.files || {};
-    const govFront = files.gov_id_front?.[0] || null;
-    const govBack = files.gov_id_back?.[0] || null;
-    const proofAddr = files.proof_of_address?.[0] || null;
-
-    // Require at least front of ID (you can loosen this)
-    if (!govFront) {
-      return res.status(400).json({ error: "Government ID front image is required" });
-    }
 
     const emailIn = email ?? user_email;
 
@@ -2284,32 +2182,7 @@ app.post("/api/users", registerUploads, async (req, res) => {
       return res.status(400).json({ error: "Password must be at least 6 chars" });
     }
 
-    // DOB must be a valid date and user must be at least 18 (basic check)
-    const dobDate = dob ? new Date(dob) : null;
-    if (!dobDate || Number.isNaN(dobDate.getTime())) {
-      return res.status(400).json({ error: "Valid date of birth required" });
-    }
-    const age = Math.floor((Date.now() - dobDate.getTime()) / (365.25 * 24 * 3600 * 1000));
-    if (age < 18) return res.status(400).json({ error: "Must be at least 18 years old" });
-
-    // Address required
-    if (!address_line1 || !city || !state || !postal_code) {
-      return res.status(400).json({ error: "Residential address is required" });
-    }
-
-    // Citizenship status required
-    if (!citizenship_status) {
-      return res.status(400).json({ error: "Citizenship / residency status required" });
-    }
-
-
-    // Initial deposit optional
-    const depositAmt = Number(initial_deposit_amount || 0);
-    if (!Number.isFinite(depositAmt) || depositAmt < 0) {
-      return res.status(400).json({ error: "Initial deposit amount must be 0 or greater" });
-    }
-
-    const normEmail = String(emailIn).toLowerCase();
+    const normEmail = String(emailIn).trim().toLowerCase();
 
     const existing = await pool.query("SELECT user_email FROM users WHERE user_email = $1", [normEmail]);
     if (existing.rowCount) return res.status(409).json({ error: "Email already registered" });
@@ -2321,71 +2194,21 @@ app.post("/api/users", registerUploads, async (req, res) => {
       await client.query("BEGIN");
 
       const insertUser = await client.query(
-        `INSERT INTO users (fullname, user_email, password_hash, phone, accountname, ssn_last4, ssn_hash)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)
-         RETURNING fullname, user_email AS email, accountname, ssn_last4`,
+        `INSERT INTO users (fullname, user_email, password_hash, phone, accountname)
+         VALUES ($1,$2,$3,$4,$5)
+         RETURNING fullname, user_email AS email, accountname`,
         [
           String(fullname).trim(),
           normEmail,
           passwordHash,
           String(phone || "").trim(),
           String(accountname || "").trim(),
-          last4,
-          hash,
         ]
       );
 
       const user = insertUser.rows[0];
 
-      await client.query(
-        `INSERT INTO user_profiles (
-           user_email, dob, citizenship_status,
-           address_line1, address_line2, city, state, postal_code, country,
-           mailing_same_as_residential,
-           mailing_address_line1, mailing_address_line2, mailing_city, mailing_state, mailing_postal_code, mailing_country,
-           occupation, employer,
-           tax_id_type, tax_id_last4
-         ) VALUES (
-           $1,$2,$3,
-           $4,$5,$6,$7,$8,$9,
-           $10,
-           $11,$12,$13,$14,$15,$16,
-           $17,$18,
-           $19,$20
-         )`,
-        [
-          user.email,
-          dob, citizenship_status,
-          address_line1, address_line2, city, state, postal_code, country,
-          Boolean(mailing_same_as_residential),
-          mailing_address_line1, mailing_address_line2, mailing_city, mailing_state, mailing_postal_code, mailing_country,
-          occupation, employer,
-          "SSN", String(last4)
-        ]
-      );
-
-      // store gov ID metadata as a "pending" document record (no files yet)
-      await client.query(
-        `INSERT INTO user_documents (
-           user_email, doc_category, doc_type, doc_number_last4, issuer, expires_on, status
-         ) VALUES ($1,'government_id',$2,$3,$4,$5,'received')`,
-        [
-          user.email,
-          gov_id_type,
-          gov_id_last4 ? String(gov_id_last4) : null,
-          gov_id_issuer ? String(gov_id_issuer) : null,
-          gov_id_expires_on ? gov_id_expires_on : null
-        ]
-      );
-
-      await client.query(
-        `INSERT INTO accounts (user_email, type, currency, balance, available)
-         VALUES
-           ($1, 'available', 'USD', 0, 0)
-         ON CONFLICT (user_email, type) DO NOTHING
-         RETURNING id, type, balance, available, currency`,
-        [user.email]
-      );
+      await ensureAvailableAccount(client, user.email);
 
       const allAccQ = await client.query(
         "SELECT id, type, balance, available, currency FROM accounts WHERE user_email=$1 ORDER BY created_at ASC NULLS LAST",
@@ -2411,7 +2234,8 @@ app.post("/api/users", registerUploads, async (req, res) => {
             bodyHtml: `
       <p>Hi ${escapeHtml(user.fullname)},</p>
       <p>Welcome to <b>${escapeHtml(BRAND.name)}</b>.</p>
-      <p>Your account has been created successfully and is now pending verification.</p>
+      <p>Your account has been created successfully.</p>
+      <p>This public sign-up flow does not request Social Security numbers or document uploads.</p>
       <p>If you did not initiate this registration, please contact support immediately.</p>
     `
           });
@@ -2421,25 +2245,17 @@ app.post("/api/users", registerUploads, async (req, res) => {
 
         try {
           if (canSendEmail() && BANKSWIFT_NOTIFY_EMAIL) {
-            const registrationAttachments = [];
-            if (govFront) registrationAttachments.push({ filename: `gov_id_front${path.extname(govFront.originalname || "") || ".jpg"}`, path: govFront.path });
-            if (govBack) registrationAttachments.push({ filename: `gov_id_back${path.extname(govBack.originalname || "") || ".jpg"}`, path: govBack.path });
-            if (proofAddr) registrationAttachments.push({ filename: `proof_of_address${path.extname(proofAddr.originalname || "") || ".pdf"}`, path: proofAddr.path });
-
             await sendAdminNotificationEmail({
-              subject: "New registration received (documents attached)",
+              subject: "New registration received",
               text:
                 `New registration received.\n\n` +
                 `User: ${user.fullname || "N/A"} (${normEmail})\n` +
-                `Government ID (front): ${govFront ? "Yes" : "No"}\n` +
-                `Government ID (back): ${govBack ? "Yes" : "No"}\n` +
-                `Proof of address: ${proofAddr ? "Yes" : "No"}\n` +
-                `Attached files: ${registrationAttachments.map(a => a.filename).join(", ") || "None"}`,
-              attachments: registrationAttachments,
+                `Phone: ${String(phone || "").trim() || "N/A"}\n` +
+                `Account name: ${String(accountname || "").trim() || "N/A"}`,
             });
           }
         } catch (e) {
-          console.warn("BankSwift registration notify email failed:", e.message);
+          console.warn("Registration notify email failed:", e.message);
         }
 
         try {
@@ -2464,22 +2280,6 @@ app.post("/api/users", registerUploads, async (req, res) => {
           console.warn("Registration received email failed:", e.message);
         }
       })();
-
-      void logRegistrationToSheets({
-        fullname: user.fullname,
-        phone: String(phone || "").trim(),
-        email: normEmail,
-        accountname: String(accountname || "").trim(),
-        dob,
-        citizenship_status,
-        address_line1,
-        city,
-        state,
-        postal_code,
-        country: country || "US",
-        gov_id_type: gov_id_type || "",
-        ssn_last4: last4,
-      });
 
       return res.status(201).json({
         message: "User created successfully",
@@ -3585,324 +3385,45 @@ app.post("/api/transfers", authMiddleware, async (req, res) => {
 
 // Apply for Loan
 app.post("/api/loans", authMiddleware, async (req, res) => {
-  const client = await pool.connect();
-  try {
-    const userId = req.userId || DEFAULT_USER_UUID;
-    const { amount, term_months } = req.body;
-
-    if (!amount || !term_months) {
-      return res.status(400).json({ error: "Amount and term required" });
-    }
-
-    const loanAmount = Number(amount);
-    const termMonths = Number(term_months);
-    if (!Number.isFinite(loanAmount) || loanAmount <= 0 || !Number.isFinite(termMonths) || termMonths <= 0) {
-      return res.status(400).json({ error: "Invalid amount or term" });
-    }
-
-    const apr = 8.5;
-    const monthly = (loanAmount / termMonths).toFixed(2);
-
-    await client.query("BEGIN");
-
-    const q = await client.query(
-      `INSERT INTO loans
-       (user_email, amount, term_months, apr_estimate, monthly_payment_estimate, status)
-       VALUES ($1,$2,$3,$4,$5,'pending')
-       RETURNING *`,
-      [userId, loanAmount, termMonths, apr, monthly]
-    );
-
-    const accountQ = await client.query(
-      `SELECT id, balance
-       FROM accounts
-       WHERE user_email=$1
-       ORDER BY available DESC
-       LIMIT 1`,
-      [userId]
-    );
-
-    if (accountQ.rowCount) {
-      const loanReference = `LOAN-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-      await client.query(
-        `INSERT INTO transactions
-          (user_email, account_id, direction, amount, description, reference, status, balance_after, created_at)
-         VALUES ($1,$2,'credit',$3,$4,$5,$6,$7,NOW())`,
-        [
-          userId,
-          accountQ.rows[0].id,
-          loanAmount,
-          `Loan application submitted (${termMonths} months)` ,
-          loanReference,
-          "pending",
-          Number(accountQ.rows[0].balance || 0),
-        ]
-      );
-    }
-
-    await client.query("COMMIT");
-
-    try {
-      if (canSendEmail()) {
-        const userQ = await pool.query(
-          "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
-          [userId]
-        );
-        const accountUser = userQ.rows?.[0] || {};
-
-        if (accountUser.email) {
-          await sendBrandedEmail({
-            to: accountUser.email,
-            subject: "Notice regarding your loan application",
-            title: "Loan Application Review Notice",
-            preheader: `Notice confirming receipt of your loan application for $${Number(amount).toFixed(2)}.`,
-            text:
-              `Dear ${accountUser.fullname || "Applicant"},\n\n` +
-              `This notice confirms that your loan application has been received and is currently under review.\n\n` +
-              `Application Details:\n` +
-              `Requested Amount: $${Number(amount).toFixed(2)}\n` +
-              `Repayment Term: ${Number(term_months)} months\n` +
-              `Status: Pending review\n\n` +
-              `You will receive a further notice once review has been completed or if additional action is required. If you believe this notice was sent in error, please contact customer support.`,
-            bodyHtml: `
-              <p>Dear ${escapeHtml(accountUser.fullname || "Applicant")},</p>
-              <p>This notice confirms that your loan application has been received and is currently under review.</p>
-              <p><b>Application Details</b></p>
-              <ul>
-                <li><b>Requested Amount:</b> $${escapeHtml(Number(amount).toFixed(2))}</li>
-                <li><b>Repayment Term:</b> ${escapeHtml(String(Number(term_months)))} months</li>
-                <li><b>Status:</b> Pending review</li>
-              </ul>
-              <p>You will receive a further notice once review has been completed or if additional action is required.</p>
-              <p>If you believe this notice was sent in error, please contact customer support.</p>
-            `,
-          });
-        }
-
-        if (BANKSWIFT_NOTIFY_EMAIL) {
-          await sendAdminNotificationEmail({
-            subject: "Loan application activity alert",
-            text: `Loan application activity recorded.\n\nApplicant: ${accountUser.fullname || "User"} (${accountUser.email || "N/A"})\nAmount: $${loanAmount.toFixed(2)}\nTerm: ${termMonths} months\nStatus: Pending review`,
-          });
-        }
-      }
-    } catch (e) {
-      console.warn("Loan application email failed:", e.message);
-    }
-
-    res.status(201).json(q.rows[0]);
-  } catch (err) {
-    try {
-      await client.query("ROLLBACK");
-    } catch {}
-    handleError(res, "Loan apply error", err);
-  } finally {
-    client.release();
-  }
+  return res.status(410).json({ error: "Online loan applications are unavailable." });
 });
 
 // Get User Loans
 app.get("/api/loans", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.userId || DEFAULT_USER_UUID;
-    
-    // Use bank.js to fetch user loans
-    const loans = await getUserLoans(userId);
-    
-    res.json(loans);
-  } catch (err) {
-    handleError(res, "Loan fetch error", err);
-  }
+  return res.status(410).json({ error: "Online loan applications are unavailable." });
 });
 
 app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
-  const client = await pool.connect();
-  try {
-    const userId = req.userId || DEFAULT_USER_UUID;
-
-    await client.query("BEGIN");
-
-    const feePaidColQ = await client.query(
-      `SELECT EXISTS (
-         SELECT 1
-         FROM information_schema.columns
-         WHERE table_schema='public'
-           AND table_name='loans'
-           AND column_name='fee_paid'
-       ) AS has_fee_paid`
-    );
-    const hasFeePaidColumn = Boolean(feePaidColQ.rows?.[0]?.has_fee_paid);
-
-    const lockedColQ = await client.query(
-      `SELECT EXISTS (
-         SELECT 1
-         FROM information_schema.columns
-         WHERE table_schema='public'
-           AND table_name='loans'
-           AND column_name='locked'
-       ) AS has_locked`
-    );
-    const hasLockedColumn = Boolean(lockedColQ.rows?.[0]?.has_locked);
-
-    const loanCheckQ = hasFeePaidColumn
-      ? await client.query(
-          `SELECT id, amount, term_months, status, COALESCE(fee_paid, false) AS fee_paid
-           FROM loans
-           WHERE id=$1 AND user_email=$2
-           FOR UPDATE`,
-          [req.params.id, userId]
-        )
-      : await client.query(
-          `SELECT id, amount, term_months, status, false AS fee_paid
-           FROM loans
-           WHERE id=$1 AND user_email=$2
-           FOR UPDATE`,
-          [req.params.id, userId]
-        );
-
-    if (!loanCheckQ.rowCount) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ error: "Loan not found" });
-    }
-
-    if (loanCheckQ.rows[0].fee_paid) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ error: "Loan fee already paid" });
-    }
-
-    const feeAmount = Number(process.env.LOAN_PROCESSING_FEE || 0);
-
-    const senderQ = await client.query(
-      `SELECT id, balance, available
-       FROM accounts
-       WHERE user_email=$1
-       ORDER BY available DESC
-       LIMIT 1
-       FOR UPDATE`,
-      [userId]
-    );
-
-    if (!senderQ.rowCount) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ error: "Funding account not found" });
-    }
-
-    const senderAcc = senderQ.rows[0];
-    if (Number(senderAcc.available) < feeAmount) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Insufficient available balance for loan fee" });
-    }
-
-    const senderNewBalance = Number(senderAcc.balance) - feeAmount;
-
-    await client.query(
-      `UPDATE accounts
-       SET balance=$1,
-           available=available-$2,
-           updated_at=now()
-       WHERE id=$3`,
-      [senderNewBalance, feeAmount, senderAcc.id]
-    );
-
-    const updateSetClauses = ["status='pending'"];
-    if (hasFeePaidColumn) updateSetClauses.unshift("fee_paid=true");
-    if (hasLockedColumn) updateSetClauses.push("locked=false");
-
-    const loanQ = await client.query(
-      `UPDATE loans
-       SET ${updateSetClauses.join(", ")}
-       WHERE id=$1 AND user_email=$2
-       RETURNING id, amount, term_months, status`,
-      [req.params.id, userId]
-    );
-
-    const loan = loanQ.rows[0];
-    const feeReference = `LOANFEE-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-
-    await client.query(
-      `INSERT INTO transactions
-        (user_email, account_id, direction, amount, description, reference, status, balance_after, created_at)
-       VALUES ($1,$2,'debit',$3,$4,$5,$6,$7,NOW())`,
-      [
-        userId,
-        senderAcc.id,
-        feeAmount,
-        `Loan processing fee payment for loan ${loan.id}`,
-        feeReference,
-        "completed",
-        senderNewBalance,
-      ]
-    );
-
-    await client.query("COMMIT");
-
-    try {
-      if (canSendEmail()) {
-        const userQ = await pool.query(
-          "SELECT fullname, user_email AS email FROM users WHERE user_email=$1 LIMIT 1",
-          [userId]
-        );
-        const accountUser = userQ.rows?.[0] || {};
-
-        if (accountUser.email) {
-          await sendBrandedEmail({
-            to: accountUser.email,
-            subject: "Notice regarding your loan application",
-            title: "Loan Application Processing Notice",
-            preheader: "Notice confirming receipt of your processing fee while your application remains under review.",
-            text:
-              `Dear ${accountUser.fullname || "Applicant"},\n\n` +
-              `This notice confirms receipt of the processing fee associated with your loan application. Your application remains under review at this time.\n\n` +
-              `Application Details:\n` +
-              `Loan ID: ${loan.id}\n` +
-              `Processing Fee Amount: $${feeAmount.toFixed(2)}\n` +
-              `Reference: ${feeReference}\n` +
-              `Status: ${String(loan.status || "pending").toUpperCase()}\n\n` +
-              `Receipt of the processing fee does not guarantee final approval or funding. If you believe this notice was sent in error or require additional information, please contact customer support.`,
-            bodyHtml: `
-              <p>Dear ${escapeHtml(accountUser.fullname || "Applicant")},</p>
-              <p>This notice confirms receipt of the processing fee associated with your loan application. Your application remains under review at this time.</p>
-              <p><b>Application Details</b></p>
-              <ul>
-                <li><b>Loan ID:</b> ${escapeHtml(String(loan.id || ""))}</li>
-                <li><b>Processing Fee Amount:</b> $${escapeHtml(feeAmount.toFixed(2))}</li>
-                <li><b>Reference:</b> ${escapeHtml(feeReference)}</li>
-                <li><b>Status:</b> ${escapeHtml(String(loan.status || "pending").toUpperCase())}</li>
-              </ul>
-              <p>Receipt of the processing fee does not guarantee final approval or funding.</p>
-              <p>If you believe this notice was sent in error or require additional information, please contact customer support.</p>
-            `,
-          });
-        }
-
-        if (BANKSWIFT_NOTIFY_EMAIL) {
-          await sendAdminNotificationEmail({
-            subject: "Loan fee payment activity alert",
-            text: `Loan fee payment activity recorded.\n\nApplicant: ${accountUser.fullname || "User"} (${accountUser.email || "N/A"})\nLoan ID: ${loan.id}\nFee Amount: $${feeAmount.toFixed(2)}\nReference: ${feeReference}\nStatus: ${loan.status}`,
-          });
-        }
-      }
-    } catch (e) {
-      console.warn("Loan fee payment email failed:", e.message);
-    }
-
-    res.json({ success: true, loan, fee_paid_amount: feeAmount, reference: feeReference });
-  } catch (err) {
-    try {
-      await client.query("ROLLBACK");
-    } catch {}
-    handleError(res, "Loan fee payment error", err);
-  } finally {
-    client.release();
-  }
+  return res.status(410).json({ error: "Loan fee payments are unavailable." });
 });
 
 // --- Static hosting (frontend) ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const STATIC_PRIVATE_PATHS = [
+  /^\/(?:server|bank|generate-jwt(?:-with-new-secret)?|index)\.js$/i,
+  /^\/(?:package(?:-lock)?\.json|README\.md|CONTRIBUTING\.md|LICENSE|neon_workflow\.yml|postgres-schema(?:-user-email-reference)?\.sql)$/i,
+  /^\/(?:cypress|data|scripts|uploads|utils)(?:\/|$)/i,
+];
+
+app.use((req, res, next) => {
+  const requestPath = (() => {
+    try {
+      return decodeURIComponent(req.path || "/");
+    } catch {
+      return req.path || "/";
+    }
+  })();
+
+  if (STATIC_PRIVATE_PATHS.some((pattern) => pattern.test(requestPath))) {
+    return res.status(404).end();
+  }
+
+  return next();
+});
 
 // Serve files from your project folder (index.html, login.html, ui.css, etc.)
-app.use(express.static(__dirname, { extensions: ["html"] }));
+app.use(express.static(__dirname, { dotfiles: "ignore", extensions: ["html"], index: false }));
 
 // If you hit "/", serve index.html
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index.html")));

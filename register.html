@@ -41,7 +41,7 @@
           </svg>
         </div>
         <h1 class="auth-title" id="regTitle">Create your account</h1>
-        <p class="auth-sub">Join the future of digital banking in seconds</p>
+        <p class="auth-sub">Create your account with basic contact details only.</p>
       </div>
 
       <div id="regAlert" class="alert-auth" role="alert"></div>
@@ -69,94 +69,9 @@
           <input class="input-base" type="email" id="email" name="email" placeholder="you@example.com" required />
         </div>
 
-        <!-- Personal information -->
         <div class="field" style="margin-top:6px;">
-          <label style="font-weight:700;">Personal information</label>
-          <p class="auth-sub" style="margin:6px 0 0 0;">Enter details as they appear on your documents.</p>
-        </div>
-
-        <div class="form-row-2">
-          <div class="field">
-            <label for="dob">Date of birth</label>
-            <input class="input-base" type="date" id="dob" name="dob" required />
-          </div>
-          <div class="field">
-            <label for="citizenshipStatus">Citizenship / residency</label>
-            <select class="input-base" id="citizenshipStatus" name="citizenship_status" required>
-              <option value="">Select…</option>
-              <option value="US Citizen">US Citizen</option>
-              <option value="Permanent Resident">Permanent Resident</option>
-              <option value="Non-resident">Non-resident</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-           <div class="field">
-          <label for="ssn">SSN</label>
-          <input class="input-base" id="ssn" name="ssn" placeholder="123-45-6789" required />
-        </div>
-        </div>
-
-        <!-- Residential address -->
-        <div class="field" style="margin-top:6px;">
-          <label style="font-weight:700;">Residential address</label>
-        </div>
-
-        <div class="field">
-          <label for="addressLine1">Address line 1</label>
-          <input class="input-base" id="addressLine1" name="address_line1" placeholder="123 Main St" required />
-        </div>
-
-        <div class="form-row-2">
-          <div class="field">
-            <label for="city">City</label>
-            <input class="input-base" id="city" name="city" required />
-          </div>
-          <div class="field">
-            <label for="state">State</label>
-            <input class="input-base" id="state" name="state" placeholder="CO" required />
-          </div>
-        </div>
-
-        <div class="form-row-2">
-          <div class="field">
-            <label for="postalCode">ZIP / Postal code</label>
-            <input class="input-base" id="postalCode" name="postal_code" inputmode="numeric" required />
-          </div>
-          <div class="field">
-            <label for="country">Country</label>
-            <input class="input-base" id="country" name="country" value="US" required />
-          </div>
-        </div>
-
-        <!-- Government ID -->
-        <div class="field" style="margin-top:6px;">
-          <label style="font-weight:700;">Government ID</label>
-          <p class="auth-sub" style="margin:6px 0 0 0;">We’ll verify your identity using your documents.</p>
-        </div>
-
-        <div class="field">
-          <label for="govIdType">ID type</label>
-          <select class="input-base" id="govIdType" name="gov_id_type" required>
-            <option value="">Select…</option>
-            <option value="drivers_license">Driver’s license / State ID</option>
-            <option value="passport">Passport</option>
-            <option value="permanent_resident_card">Permanent resident card</option>
-          </select>
-        </div>
-
-        <div class="field" style="margin-top:6px;">
-          <label style="font-weight:700;">Upload documents</label>
-          <p class="auth-sub" style="margin:6px 0 0 0;">Accepted: PNG, JPG, WEBP, or PDF (max 6MB)</p>
-        </div>
-
-        <div class="field">
-          <label for="govIdFront">Government ID (front)</label>
-          <input class="input-base" id="govIdFront" type="file" accept="image/*,application/pdf" required />
-        </div>
-
-        <div class="field">
-          <label for="govIdBack">Government ID (back)</label>
-          <input class="input-base" id="govIdBack" type="file" accept="image/*,application/pdf" required />
+          <label style="font-weight:700;">Registration notice</label>
+          <p class="auth-sub" style="margin:6px 0 0 0;">This public sign-up form only collects the basics needed to open an account profile. If additional verification is ever required, it will be handled separately after sign-in.</p>
         </div>
 
         <!-- Password -->
@@ -245,19 +160,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!phone) return showError('Phone number is required.');
     if (!email) return showError('Email is required.');
     if (!accountName) return showError('Account name is required.');
-    if (!getVal('dob')) return showError('Date of birth is required.');
-    if (!getVal('ssn')) return showError('Social Security Number is required.');
-    if (!getVal('citizenshipStatus')) return showError('Citizenship / residency is required.');
-    if (!getVal('addressLine1')) return showError('Residential address is required.');
-    if (!getVal('city')) return showError('City is required.');
-    if (!getVal('state')) return showError('State is required.');
-    if (!getVal('postalCode')) return showError('ZIP / postal code is required.');
-    if (!getVal('country')) return showError('Country is required.');
-    if (!getVal('govIdType')) return showError('Government ID type is required.');
-
-    const fFront = document.getElementById("govIdFront")?.files?.[0];
-    if (!fFront) return showError("Government ID (front) is required.");
-
     if (password.length < 6) return showError('Password must be at least 6 characters.');
     if (password !== confirm) return showError('Passwords do not match.');
 
@@ -267,31 +169,18 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.textContent = 'Creating...';
 
     try {
-      const fd = new FormData();
-
-      fd.append("fullname", fullname);
-      fd.append("phone", phone);
-      fd.append("accountname", accountName);
-      fd.append("email", email);
-      fd.append("password", password);
-
-      fd.append("dob", getVal("dob"));
-      fd.append("citizenship_status", getVal("citizenshipStatus"));
-      fd.append("ssn", getVal("ssn"));
-
-      fd.append("address_line1", getVal("addressLine1"));
-      fd.append("city", getVal("city"));
-      fd.append("state", getVal("state"));
-      fd.append("postal_code", getVal("postalCode"));
-      fd.append("country", getVal("country") || "US");
-
-      fd.append("gov_id_type", getVal("govIdType"));
-
-      fd.append("gov_id_front", fFront);
-
       const registerRes = await fetch(`/api/users`, {
         method: "POST",
-        body: fd,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fullname,
+          phone,
+          accountname: accountName,
+          email,
+          password,
+        }),
       });
 
       const registerText = await registerRes.text();

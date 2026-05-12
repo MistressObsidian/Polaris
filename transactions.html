@@ -339,20 +339,9 @@
       } else if (txStatus === "processing_fee_required") {
         statusBanner.style.display = "flex";
         statusBanner.className = "banner warn";
-        statusBanner.innerHTML = `<div class="icon">⏱</div><div>Pending — Payment of required fee is needed to complete this transaction</div>`;
+        statusBanner.innerHTML = `<div class="icon">⏱</div><div>Pending review — This transaction is awaiting manual review by support</div>`;
         statusPill.className = "status-pill pending";
-        statusPill.textContent = "Pending (Fee Required)";
-
-        const payBtn = document.createElement("button");
-        payBtn.className = "btn btn-primary";
-        payBtn.textContent = feeAmount > 0
-          ? `Pay Fee ($${feeAmount.toFixed(2)})`
-          : "Pay Processing Fee";
-        payBtn.onclick = () => {
-          localStorage.setItem("pending-fee", JSON.stringify({ amount: feeAmount, originalTx: tx }));
-          window.location.href = "pay-fee.html";
-        };
-        actionsDiv.appendChild(payBtn);
+        statusPill.textContent = "Pending Review";
       } else {
         statusBanner.style.display = "flex";
         statusBanner.className = "banner warn";

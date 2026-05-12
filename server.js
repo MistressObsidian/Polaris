@@ -327,6 +327,14 @@ function toAdminTemplateData(user = {}, extraData = {}) {
     amount: "0.00",
     reference: "N/A",
     note: "",
+    action_label: "activity posted",
+    account_balance: "0.00",
+    changed_fields: "",
+    method: "wire",
+    recipient_name: "",
+    sender_name: "",
+    reset_link: "",
+    expiry_window: "1 hour",
     review_deadline: new Date(Date.now() + (48 * 60 * 60 * 1000)).toLocaleString(),
     support_email: BRAND.supportEmail || BANKSWIFT_NOTIFY_EMAIL || "",
   };
@@ -472,26 +480,190 @@ const GS_LOG_SECRET = process.env.GS_LOG_SECRET || process.env.SHEETS_SECRET || 
 
 const EMAIL_TEMPLATES_PATH = path.join(process.cwd(), "data", "email-templates.json");
 const DEFAULT_EMAIL_TEMPLATES = {
-  accountActivityUpdate: {
-    subject: "Account activity update",
-    title: "Account activity update",
-    preheader: "There is an update related to recent activity on your account.",
+  accountOpened: {
+    subject: "Your account is ready",
+    title: "Your account is ready",
+    preheader: "Welcome to Base Credit. Your account access is now available.",
     text:
       "Hello {{fullname}},\n\n" +
-      "There is an update related to recent activity on your account.\n\n" +
-      "Status: {{status}}\n" +
-      "Amount: ${{amount}}\n" +
-      "Reference: {{reference}}\n\n" +
-      "If you were not expecting this message, please contact support.",
+      "Your {{account_name}} account is now set up and ready to use.\n\n" +
+      "Current status: {{status}}\n" +
+      "Available balance: ${{account_balance}}\n\n" +
+      "{{note}}\n\n" +
+      "If you did not expect this account activity, contact {{support_email}} immediately.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
-      "<p>There is an update related to recent activity on your account.</p>" +
+      "<p>Your <b>{{account_name}}</b> account is now set up and ready to use.</p>" +
+      "<ul>" +
+      "<li><b>Current status:</b> {{status}}</li>" +
+      "<li><b>Available balance:</b> ${{account_balance}}</li>" +
+      "</ul>" +
+      "<p>{{note}}</p>" +
+      "<p>If you did not expect this account activity, contact {{support_email}} immediately.</p>",
+  },
+  accountActivityUpdate: {
+    subject: "{{action_label}} on your account",
+    title: "{{action_label}} on your account",
+    preheader: "We recorded a recent account activity and updated your available balance.",
+    text:
+      "Hello {{fullname}},\n\n" +
+      "We recorded a recent account activity on your account.\n\n" +
+      "Activity: {{action_label}}\n" +
+      "Status: {{status}}\n" +
+      "Amount: ${{amount}}\n" +
+      "Reference: {{reference}}\n" +
+      "Available balance: ${{account_balance}}\n" +
+      "Note: {{note}}\n\n" +
+      "If you were not expecting this message, please contact {{support_email}}.",
+    bodyHtml:
+      "<p>Hello {{fullname}},</p>" +
+      "<p>We recorded a recent account activity on your account.</p>" +
+      "<ul>" +
+      "<li><b>Activity:</b> {{action_label}}</li>" +
+      "<li><b>Status:</b> {{status}}</li>" +
+      "<li><b>Amount:</b> ${{amount}}</li>" +
+      "<li><b>Reference:</b> {{reference}}</li>" +
+      "<li><b>Available balance:</b> ${{account_balance}}</li>" +
+      "</ul>" +
+      "<p>{{note}}</p>" +
+      "<p>If you were not expecting this message, please contact {{support_email}}.</p>",
+  },
+  accountProfileUpdated: {
+    subject: "Profile details updated",
+    title: "Your profile details were updated",
+    preheader: "We detected changes to your account profile details.",
+    text:
+      "Hello {{fullname}},\n\n" +
+      "We updated the following profile details on your account: {{changed_fields}}.\n\n" +
+      "Current status: {{status}}\n\n" +
+      "If you did not make this change, contact {{support_email}} immediately.",
+    bodyHtml:
+      "<p>Hello {{fullname}},</p>" +
+      "<p>We updated the following profile details on your account: <b>{{changed_fields}}</b>.</p>" +
+      "<p><b>Current status:</b> {{status}}</p>" +
+      "<p>If you did not make this change, contact {{support_email}} immediately.</p>",
+  },
+  passwordChanged: {
+    subject: "Password changed",
+    title: "Your password was changed",
+    preheader: "A password update was completed for your account.",
+    text:
+      "Hello {{fullname}},\n\n" +
+      "Your account password was changed successfully.\n\n" +
+      "If you did not make this change, reset your password immediately and contact {{support_email}}.",
+    bodyHtml:
+      "<p>Hello {{fullname}},</p>" +
+      "<p>Your account password was changed successfully.</p>" +
+      "<p>If you did not make this change, reset your password immediately and contact {{support_email}}.</p>",
+  },
+  passwordResetRequested: {
+    subject: "Reset your password",
+    title: "Reset your password",
+    preheader: "Use this secure link to reset your password.",
+    text:
+      "Hello {{fullname}},\n\n" +
+      "We received a request to reset your password. Use the secure link below within {{expiry_window}}:\n\n" +
+      "{{reset_link}}\n\n" +
+      "If you did not request this, you can ignore this email.",
+    bodyHtml:
+      "<p>Hello {{fullname}},</p>" +
+      "<p>We received a request to reset your password.</p>" +
+      "<p style=\"margin:16px 0;\">" +
+      "<a href=\"{{reset_link}}\" style=\"display:inline-block;padding:10px 14px;border-radius:8px;text-decoration:none;background:#0b5fff;color:#ffffff;\">Reset password</a>" +
+      "</p>" +
+      "<p>This link expires in <b>{{expiry_window}}</b>. If you did not request this, you can ignore this email.</p>",
+  },
+  passwordResetCompleted: {
+    subject: "Password reset successful",
+    title: "Your password has been reset",
+    preheader: "Your password reset was completed successfully.",
+    text:
+      "Hello {{fullname}},\n\n" +
+      "Your password reset was completed successfully.\n\n" +
+      "If this was not you, contact {{support_email}} immediately.",
+    bodyHtml:
+      "<p>Hello {{fullname}},</p>" +
+      "<p>Your password reset was completed successfully.</p>" +
+      "<p>If this was not you, contact {{support_email}} immediately.</p>",
+  },
+  balanceAdjustmentPosted: {
+    subject: "Balance adjustment posted",
+    title: "A balance adjustment was posted",
+    preheader: "Your available balance changed due to a manual adjustment.",
+    text:
+      "Hello {{fullname}},\n\n" +
+      "A balance adjustment was posted to your account.\n\n" +
+      "Status: {{status}}\n" +
+      "Amount: ${{amount}}\n" +
+      "Reference: {{reference}}\n" +
+      "Available balance: ${{account_balance}}\n" +
+      "Note: {{note}}\n\n" +
+      "If you were not expecting this change, contact {{support_email}}.",
+    bodyHtml:
+      "<p>Hello {{fullname}},</p>" +
+      "<p>A balance adjustment was posted to your account.</p>" +
       "<ul>" +
       "<li><b>Status:</b> {{status}}</li>" +
       "<li><b>Amount:</b> ${{amount}}</li>" +
       "<li><b>Reference:</b> {{reference}}</li>" +
+      "<li><b>Available balance:</b> ${{account_balance}}</li>" +
       "</ul>" +
-      "<p>If you were not expecting this message, please contact support.</p>",
+      "<p>{{note}}</p>" +
+      "<p>If you were not expecting this change, contact {{support_email}}.</p>",
+  },
+  transferSent: {
+    subject: "Transfer sent",
+    title: "Your transfer was sent",
+    preheader: "A transfer was posted from your account.",
+    text:
+      "Hello {{fullname}},\n\n" +
+      "Your transfer has been sent successfully.\n\n" +
+      "Recipient: {{recipient_name}}\n" +
+      "Method: {{method}}\n" +
+      "Amount: ${{amount}}\n" +
+      "Reference: {{reference}}\n" +
+      "Available balance: ${{account_balance}}\n" +
+      "Note: {{note}}\n\n" +
+      "If you did not authorize this transfer, contact {{support_email}} immediately.",
+    bodyHtml:
+      "<p>Hello {{fullname}},</p>" +
+      "<p>Your transfer has been sent successfully.</p>" +
+      "<ul>" +
+      "<li><b>Recipient:</b> {{recipient_name}}</li>" +
+      "<li><b>Method:</b> {{method}}</li>" +
+      "<li><b>Amount:</b> ${{amount}}</li>" +
+      "<li><b>Reference:</b> {{reference}}</li>" +
+      "<li><b>Available balance:</b> ${{account_balance}}</li>" +
+      "</ul>" +
+      "<p>{{note}}</p>" +
+      "<p>If you did not authorize this transfer, contact {{support_email}} immediately.</p>",
+  },
+  transferReceived: {
+    subject: "Transfer received",
+    title: "Funds were posted to your account",
+    preheader: "A transfer was credited to your available balance.",
+    text:
+      "Hello {{fullname}},\n\n" +
+      "Funds were posted to your account.\n\n" +
+      "Sender: {{sender_name}}\n" +
+      "Method: {{method}}\n" +
+      "Amount: ${{amount}}\n" +
+      "Reference: {{reference}}\n" +
+      "Available balance: ${{account_balance}}\n" +
+      "Note: {{note}}\n\n" +
+      "If you were not expecting this transfer, contact {{support_email}}.",
+    bodyHtml:
+      "<p>Hello {{fullname}},</p>" +
+      "<p>Funds were posted to your account.</p>" +
+      "<ul>" +
+      "<li><b>Sender:</b> {{sender_name}}</li>" +
+      "<li><b>Method:</b> {{method}}</li>" +
+      "<li><b>Amount:</b> ${{amount}}</li>" +
+      "<li><b>Reference:</b> {{reference}}</li>" +
+      "<li><b>Available balance:</b> ${{account_balance}}</li>" +
+      "</ul>" +
+      "<p>{{note}}</p>" +
+      "<p>If you were not expecting this transfer, contact {{support_email}}.</p>",
   },
   accountReviewNotice: {
     subject: "Account review notice",
@@ -713,6 +885,40 @@ async function sendAdminNotificationEmail({ subject, text, attachments = [] }) {
   });
 }
 
+async function sendAccountTemplateEmail({ templateKey, to, user = {}, data = {}, userId = null }) {
+  const templates = loadEmailTemplates();
+  const template = templates[templateKey];
+
+  if (!template || typeof template !== "object") {
+    throw new Error(`Invalid email template: ${templateKey}`);
+  }
+
+  const normalizedUser = {
+    ...user,
+    user_email: user.user_email || user.email || userId || to,
+  };
+  const templateData = toAdminTemplateData(normalizedUser, data);
+  const subject = renderTemplate(template.subject || "Account notification", templateData.plain);
+  const title = renderTemplate(template.title || subject, templateData.plain);
+  const preheader = renderTemplate(template.preheader || "", templateData.plain);
+  const text = renderTemplate(template.text || subject, templateData.plain);
+  const bodyHtml = typeof template.bodyHtml === "string" && template.bodyHtml.trim()
+    ? renderTemplate(template.bodyHtml, templateData.html)
+    : (plainTextToEmailHtml(text) || `<p>${escapeHtml(subject)}</p>`);
+
+  await sendBrandedEmail({
+    to,
+    subject,
+    title,
+    preheader,
+    text,
+    bodyHtml,
+    userId: userId || normalizedUser.user_email || null,
+  });
+
+  return { templateKey, subject };
+}
+
 function generateTransactionReceiptPDF({ tx, accountName }) {
   return new Promise((resolve, reject) => {
     try {
@@ -849,19 +1055,6 @@ function getAppBaseUrl(req) {
   const proto = (req.headers["x-forwarded-proto"] || req.protocol || "http").toString();
   const host = (req.headers["x-forwarded-host"] || req.headers.host || "localhost:4000").toString();
   return `${proto}://${host}`.replace(/\/+$/, "");
-}
-
-async function sendPasswordResetEmail({ to, resetLink }) {
-  if (!canSendEmail()) throw new Error("Mailer not configured (set SENDGRID_API_KEY)");
-  await ensureMailerReady();
-  if (!isMailerReady()) throw new Error("Mailer not configured (set SENDGRID_API_KEY)");
-  await sendEmail(to, "Reset your password", `
-      <div style="font-family:Arial,sans-serif;line-height:1.4">
-        <p>You requested a password reset.</p>
-        <p><a href="${resetLink}">Click here to reset your password</a></p>
-        <p>This link expires in 1 hour. If you did not request this, you can ignore this email.</p>
-      </div>
-    `);
 }
 
 // --- API Routes ---
@@ -1153,20 +1346,20 @@ app.post("/api/admin/users", adminAuthMiddleware, async (req, res) => {
     let emailResult = null;
     if (sendWelcome) {
       try {
-        const templates = loadEmailTemplates();
-        const regTpl = templates.registrationReceived || {};
-        const data = toAdminTemplateData(createdQ.rows[0]);
-        const registrationText = renderTemplate(regTpl.text, data.plain);
-        await sendBrandedEmail({
+        await sendAccountTemplateEmail({
+          templateKey: "accountOpened",
           to: emailRaw,
-          subject: renderTemplate(regTpl.subject || "Registration received", data.plain),
-          title: renderTemplate(regTpl.title || "We received your registration", data.plain),
-          preheader: renderTemplate(regTpl.preheader, data.plain),
-          text: registrationText,
-          bodyHtml: plainTextToEmailHtml(registrationText),
+          user: createdQ.rows[0],
+          data: {
+            status: suspended ? "restricted" : "active",
+            account_balance: initialBalance.toFixed(2),
+            note: initialBalance > 0
+              ? "Your opening balance has already been posted and is available in your account."
+              : "Your account is active and ready to receive activity.",
+          },
           userId: emailRaw,
         });
-        emailResult = { sent: true, template: "registrationReceived" };
+        emailResult = { sent: true, template: "accountOpened" };
       } catch (emailErr) {
         emailResult = { sent: false, error: emailErr.message || "Email send failed" };
       }
@@ -1213,6 +1406,9 @@ app.patch("/api/admin/users/:email", adminAuthMiddleware, async (req, res) => {
       accountname: "accountname",
       suspended: "suspended",
     };
+    const changedFields = Object.keys(allowedFields).filter((key) =>
+      Object.prototype.hasOwnProperty.call(req.body || {}, key)
+    );
 
     const updates = [];
     const values = [];
@@ -1254,9 +1450,61 @@ app.patch("/api/admin/users/:email", adminAuthMiddleware, async (req, res) => {
       [email]
     );
 
+    const updatedUser = updateQ.rows[0];
+    const accountSummary = accountQ.rows[0] || {};
+
+    void (async () => {
+      try {
+        if (!canSendEmail() || !updatedUser.user_email) return;
+
+        const labelMap = {
+          fullname: "full name",
+          phone: "phone number",
+          accountname: "account name",
+          suspended: "account access",
+        };
+        const changedFieldLabels = changedFields
+          .map((field) => labelMap[field] || field)
+          .join(", ");
+
+        if (changedFields.includes("suspended")) {
+          await sendAccountTemplateEmail({
+            templateKey: "accountActivityUpdate",
+            to: updatedUser.user_email,
+            user: updatedUser,
+            data: {
+              action_label: updatedUser.suspended ? "Account access restricted" : "Account access restored",
+              status: updatedUser.suspended ? "restricted" : "active",
+              amount: "0.00",
+              reference: "PROFILE-UPDATE",
+              account_balance: Number(accountSummary.available_total ?? 0).toFixed(2),
+              note: changedFieldLabels
+                ? `Updated details: ${changedFieldLabels}.`
+                : "Your account access settings were updated.",
+            },
+            userId: updatedUser.user_email,
+          });
+        } else {
+          await sendAccountTemplateEmail({
+            templateKey: "accountProfileUpdated",
+            to: updatedUser.user_email,
+            user: updatedUser,
+            data: {
+              status: updatedUser.suspended ? "restricted" : "active",
+              changed_fields: changedFieldLabels || "profile details",
+              account_balance: Number(accountSummary.available_total ?? 0).toFixed(2),
+            },
+            userId: updatedUser.user_email,
+          });
+        }
+      } catch (e) {
+        console.warn("Admin user update email failed:", e.message);
+      }
+    })();
+
     return res.json({
-      ...updateQ.rows[0],
-      ...(accountQ.rows[0] || {}),
+      ...updatedUser,
+      ...accountSummary,
     });
   } catch (err) {
     return handleError(res, "Admin user update error", err);
@@ -1344,7 +1592,7 @@ app.post("/api/admin/users/:email/adjust-balance", adminAuthMiddleware, async (r
     await client.query("BEGIN");
 
     const userQ = await client.query(
-      `SELECT user_email, fullname
+      `SELECT user_email, fullname, accountname
        FROM users
        WHERE LOWER(user_email)=LOWER($1)
        LIMIT 1
@@ -1404,6 +1652,28 @@ app.post("/api/admin/users/:email/adjust-balance", adminAuthMiddleware, async (r
 
     await client.query("COMMIT");
 
+    void (async () => {
+      try {
+        if (!canSendEmail() || !user.user_email) return;
+
+        await sendAccountTemplateEmail({
+          templateKey: "balanceAdjustmentPosted",
+          to: user.user_email,
+          user,
+          data: {
+            status: "completed",
+            amount: amount.toFixed(2),
+            reference,
+            account_balance: nextAvailable.toFixed(2),
+            note: description,
+          },
+          userId: user.user_email,
+        });
+      } catch (e) {
+        console.warn("Balance adjustment email failed:", e.message);
+      }
+    })();
+
     return res.json({
       success: true,
       user_email: user.user_email,
@@ -1443,6 +1713,9 @@ app.put("/api/admin/users/:email/profile", adminAuthMiddleware, async (req, res)
       accountname: "accountname",
       suspended: "suspended",
     };
+    const userChangedFields = Object.keys(userAllowed).filter((field) =>
+      Object.prototype.hasOwnProperty.call(req.body || {}, field)
+    );
 
     const userUpdates = [];
     const userValues = [];
@@ -1522,6 +1795,66 @@ app.put("/api/admin/users/:email/profile", adminAuthMiddleware, async (req, res)
     await client.query("COMMIT");
 
     const updated = await getAdminUserProfileByEmail(email);
+
+    void (async () => {
+      try {
+        if (!canSendEmail() || !updated?.user_email) return;
+
+        const labelMap = {
+          fullname: "full name",
+          phone: "phone number",
+          accountname: "account name",
+          suspended: "account access",
+          dob: "date of birth",
+          citizenship_status: "citizenship status",
+          address_line1: "address line 1",
+          address_line2: "address line 2",
+          city: "city",
+          state: "state",
+          postal_code: "postal code",
+          country: "country",
+          occupation: "occupation",
+          employer: "employer",
+          mailing_same_as_residential: "mailing preference",
+          mailing_address_line1: "mailing address line 1",
+          mailing_address_line2: "mailing address line 2",
+          mailing_city: "mailing city",
+          mailing_state: "mailing state",
+          mailing_postal_code: "mailing postal code",
+          mailing_country: "mailing country",
+        };
+        const changedFieldLabels = [...userChangedFields, ...providedProfileFields]
+          .map((field) => labelMap[field] || field)
+          .join(", ");
+        const includesStatusChange = userChangedFields.includes("suspended");
+
+        await sendAccountTemplateEmail({
+          templateKey: includesStatusChange ? "accountActivityUpdate" : "accountProfileUpdated",
+          to: updated.user_email,
+          user: updated,
+          data: includesStatusChange
+            ? {
+              action_label: updated.suspended ? "Account access restricted" : "Account access restored",
+              status: updated.suspended ? "restricted" : "active",
+              amount: "0.00",
+              reference: "PROFILE-UPDATE",
+              account_balance: Number(updated.available_total ?? 0).toFixed(2),
+              note: changedFieldLabels
+                ? `Updated details: ${changedFieldLabels}.`
+                : "Your account profile details were updated.",
+            }
+            : {
+              status: updated.suspended ? "restricted" : "active",
+              changed_fields: changedFieldLabels || "profile details",
+              account_balance: Number(updated.available_total ?? 0).toFixed(2),
+            },
+          userId: updated.user_email,
+        });
+      } catch (e) {
+        console.warn("Admin profile update email failed:", e.message);
+      }
+    })();
+
     return res.json(updated || { user_email: email });
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
@@ -1557,7 +1890,7 @@ app.post("/api/admin/users/:email/send-default-email", adminAuthMiddleware, asyn
     const mode = String(req.body?.mode || "template").trim().toLowerCase() === "custom"
       ? "custom"
       : "template";
-    const templateKey = String(req.body?.templateKey || "registrationReceived").trim();
+    const templateKey = String(req.body?.templateKey || "accountOpened").trim();
     const toEmail = String(req.body?.to || email).trim().toLowerCase();
     if (!validateEmail(toEmail)) return res.status(400).json({ error: "Invalid recipient email" });
 
@@ -1613,7 +1946,9 @@ app.post("/api/admin/users/:email/send-default-email", adminAuthMiddleware, asyn
         req.body?.textOverride || template.text || subject,
         data.plain
       );
-      bodyHtml = plainTextToEmailHtml(text) || `<p>${escapeHtml(subject)}</p>`;
+      bodyHtml = typeof template.bodyHtml === "string" && template.bodyHtml.trim()
+        ? renderTemplate(template.bodyHtml, data.html)
+        : (plainTextToEmailHtml(text) || `<p>${escapeHtml(subject)}</p>`);
     }
 
     await sendBrandedEmail({
@@ -1741,20 +2076,19 @@ app.post("/api/users", async (req, res) => {
 
       void (async () => {
         try {
-          await sendBrandedEmail({
-            to: user.email,
-            subject: "Welcome to Base Credit",
-            title: "Your account is ready",
-            preheader: "Welcome to Base Credit — your account has been created.",
-            text: `Hi ${user.fullname}, your Base Credit account has been created successfully.`,
-            bodyHtml: `
-      <p>Hi ${escapeHtml(user.fullname)},</p>
-      <p>Welcome to <b>${escapeHtml(BRAND.name)}</b>.</p>
-      <p>Your account has been created successfully.</p>
-      <p>This public sign-up flow does not request Social Security numbers or document uploads.</p>
-      <p>If you did not initiate this registration, please contact support immediately.</p>
-    `
-          });
+          if (canSendEmail()) {
+            await sendAccountTemplateEmail({
+              templateKey: "accountOpened",
+              to: user.email,
+              user,
+              data: {
+                status: "active",
+                account_balance: availableBalance.toFixed(2),
+                note: "This public sign-up flow does not request Social Security numbers or document uploads.",
+              },
+              userId: user.email,
+            });
+          }
         } catch (e) {
           console.warn("Welcome email failed:", e.message);
         }
@@ -1772,28 +2106,6 @@ app.post("/api/users", async (req, res) => {
           }
         } catch (e) {
           console.warn("Registration notify email failed:", e.message);
-        }
-
-        try {
-          if (canSendEmail()) {
-            const templates = loadEmailTemplates();
-            const regTpl = templates.registrationReceived || {};
-            const regDataPlain = {
-              fullname: user.fullname || "there",
-            };
-            const registrationText = renderTemplate(regTpl.text, regDataPlain);
-
-            await sendBrandedEmail({
-              to: normEmail,
-              subject: renderTemplate(regTpl.subject || "Registration received", regDataPlain),
-              title: renderTemplate(regTpl.title || "We received your registration", regDataPlain),
-              preheader: renderTemplate(regTpl.preheader, regDataPlain),
-              text: registrationText,
-              bodyHtml: plainTextToEmailHtml(registrationText),
-            });
-          }
-        } catch (e) {
-          console.warn("Registration received email failed:", e.message);
         }
       })();
 
@@ -1945,7 +2257,7 @@ app.put("/api/users/me", authMiddleware, async (req, res) => {
        SET fullname = $1,
            phone = $2
        WHERE user_email = $3
-       RETURNING user_email AS id, fullname, phone, user_email AS email, accountname`,
+       RETURNING user_email AS id, fullname, phone, user_email AS email, accountname, suspended`,
       [fullname, phone, userId]
     );
 
@@ -1957,20 +2269,15 @@ app.put("/api/users/me", authMiddleware, async (req, res) => {
 
     try {
       if (canSendEmail() && updatedUser.email) {
-        await sendBrandedEmail({
+        await sendAccountTemplateEmail({
+          templateKey: "accountProfileUpdated",
           to: updatedUser.email,
-          subject: "Profile updated",
-          title: "Your profile was updated",
-          preheader: "We detected changes to your account profile details.",
-          text: `Your account profile was updated.\n\nName: ${updatedUser.fullname || ""}\nPhone: ${updatedUser.phone || ""}\n\nIf this wasn't you, contact support immediately.`,
-          bodyHtml: `
-            <p>Your profile details were updated successfully.</p>
-            <ul>
-              <li><b>Name:</b> ${escapeHtml(updatedUser.fullname || "")}</li>
-              <li><b>Phone:</b> ${escapeHtml(updatedUser.phone || "")}</li>
-            </ul>
-            <p>If you did not make this change, please contact support immediately.</p>
-          `,
+          user: updatedUser,
+          data: {
+            status: updatedUser.suspended ? "restricted" : "active",
+            changed_fields: "full name, phone number",
+          },
+          userId: updatedUser.email,
         });
       }
     } catch (e) {
@@ -2074,7 +2381,7 @@ app.post("/api/users/password", authMiddleware, async (req, res) => {
        SET password_hash = $1,
            updated_at = now()
        WHERE user_email = $2
-       RETURNING fullname, user_email AS email`,
+       RETURNING fullname, accountname, user_email AS email`,
       [newHash, userId]
     );
 
@@ -2086,17 +2393,11 @@ app.post("/api/users/password", authMiddleware, async (req, res) => {
 
     try {
       if (canSendEmail() && accountUser.email) {
-        await sendBrandedEmail({
+        await sendAccountTemplateEmail({
+          templateKey: "passwordChanged",
           to: accountUser.email,
-          subject: "Password changed",
-          title: "Your password was changed",
-          preheader: "A password update was completed for your account.",
-          text: `Hi ${accountUser.fullname || ""}, your account password has been changed successfully. If this wasn't you, reset your password immediately.`,
-          bodyHtml: `
-            <p>Hi ${escapeHtml(accountUser.fullname || "there")},</p>
-            <p>Your account password was changed successfully.</p>
-            <p>If you did not make this change, reset your password now and contact support immediately.</p>
-          `,
+          user: accountUser,
+          userId: accountUser.email,
         });
       }
     } catch (e) {
@@ -2136,7 +2437,7 @@ app.post("/api/password/forgot", async (req, res) => {
     }
 
     const uQ = await pool.query(
-      `SELECT user_email
+      `SELECT user_email, fullname, accountname
        FROM users
        WHERE user_email = $1
        LIMIT 1`,
@@ -2170,22 +2471,15 @@ app.post("/api/password/forgot", async (req, res) => {
     const base = getAppBaseUrl(req);
     const resetLink = `${base}/reset-password.html?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(email)}`;
 
-    await sendBrandedEmail({
+    await sendAccountTemplateEmail({
+      templateKey: "passwordResetRequested",
       to: email,
-      subject: "Reset your password",
-      title: "Reset your password",
-      preheader: "Use this secure link to reset your password.",
-      text: `Reset your password using this link (expires in 1 hour): ${resetLink}`,
-      bodyHtml: `
-    <p>You requested a password reset for your ${escapeHtml(BRAND.name)} account.</p>
-    <p style="margin:16px 0;">
-      <a href="${resetLink}"
-         style="display:inline-block;padding:10px 14px;border-radius:8px;text-decoration:none;background:#0b5fff;color:#ffffff;">
-        Reset password
-      </a>
-    </p>
-    <p>This link expires in <b>1 hour</b>. If you did not request this, you can ignore this email.</p>
-  `,
+      user,
+      data: {
+        reset_link: resetLink,
+        expiry_window: "1 hour",
+      },
+      userId: user.user_email,
     });
 
     return res.json(generic);
@@ -2218,8 +2512,11 @@ app.post("/api/password/reset", async (req, res) => {
          t.id AS token_id,
          t.user_email,
          t.expires_at,
-         t.used_at
+         t.used_at,
+         u.fullname,
+         u.accountname
        FROM password_reset_tokens t
+       JOIN users u ON u.user_email = t.user_email
        WHERE t.user_email = $1
          AND t.token_hash = $2
        LIMIT 1
@@ -2264,17 +2561,12 @@ app.post("/api/password/reset", async (req, res) => {
     await client.query("COMMIT");
 
     try {
-      if (canSendEmail() && email) {
-        await sendBrandedEmail({
-          to: email,
-          subject: "Password reset successful",
-          title: "Your password has been reset",
-          preheader: "Your password reset was completed successfully.",
-          text: "Your password has been reset successfully. If this was not you, contact support immediately.",
-          bodyHtml: `
-            <p>Your password has been reset successfully.</p>
-            <p>If you did not perform this action, contact support immediately.</p>
-          `,
+      if (canSendEmail() && row.user_email) {
+        await sendAccountTemplateEmail({
+          templateKey: "passwordResetCompleted",
+          to: row.user_email,
+          user: row,
+          userId: row.user_email,
         });
       }
     } catch (e) {
@@ -2379,9 +2671,289 @@ app.post("/api/payments", authMiddleware, async (req, res) => {
   return sendDisabledPublicFlow(res);
 });
 
-// Disabled public flow routes
+// Transfer and disabled public flow routes
 app.post("/api/transfers", authMiddleware, async (req, res) => {
-  return sendDisabledPublicFlow(res);
+  const client = await pool.connect();
+
+  try {
+    const senderEmail = normalizeDbUserId(req.userId || req.user?.email || DEFAULT_USER_UUID);
+    const senderQ = await client.query(
+      `SELECT user_email, fullname, accountname
+       FROM users
+       WHERE LOWER(user_email)=LOWER($1)
+       LIMIT 1`,
+      [senderEmail]
+    );
+
+    if (!senderQ.rowCount) {
+      return res.status(404).json({ error: "Sender account not found" });
+    }
+
+    const {
+      recipient_email,
+      recipient_name,
+      amount,
+      method = "wire",
+      description = null,
+      bank_name = null,
+      account_number = null,
+      routing_number = null,
+      btc_address = null,
+    } = req.body || {};
+
+    const normalizedRecipientEmail = String(recipient_email || "").trim().toLowerCase();
+    const normalizedRecipientName = String(recipient_name || "").trim();
+    const rawMethod = String(method || "wire").trim().toLowerCase();
+    const normalizedMethod = rawMethod === "btc" ? "crypto" : rawMethod === "eft" ? "ach" : rawMethod;
+    const transferAmount = Number(amount);
+    const bankName = toTrimmedOrNull(bank_name);
+    const accountNumber = toTrimmedOrNull(account_number);
+    const routingNumber = toTrimmedOrNull(routing_number);
+    const walletAddress = toTrimmedOrNull(btc_address);
+    const note = toTrimmedOrNull(description);
+
+    if (!validateEmail(normalizedRecipientEmail)) {
+      return res.status(400).json({ error: "Valid recipient email is required" });
+    }
+
+    if (normalizedRecipientEmail === senderEmail) {
+      return res.status(400).json({ error: "Sender and recipient must be different" });
+    }
+
+    if (!Number.isFinite(transferAmount) || transferAmount <= 0) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
+
+    if (!["wire", "ach", "crypto"].includes(normalizedMethod)) {
+      return res.status(400).json({ error: "Transfer method must be wire, ach, or crypto" });
+    }
+
+    await client.query("BEGIN");
+
+    const senderAccount = await ensureAvailableAccount(client, senderEmail);
+    const senderAvailable = Number(senderAccount.available ?? senderAccount.balance ?? 0);
+    if (senderAvailable < transferAmount) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Insufficient available balance" });
+    }
+
+    const recipientUserQ = await client.query(
+      `SELECT user_email, fullname, accountname
+       FROM users
+       WHERE LOWER(user_email)=LOWER($1)
+       LIMIT 1`,
+      [normalizedRecipientEmail]
+    );
+
+    const recipientUser = recipientUserQ.rows[0] || null;
+    const isInternalTransfer = Boolean(recipientUser);
+
+    if (normalizedMethod === "crypto" && !walletAddress) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Wallet address is required for crypto transfers" });
+    }
+
+    if (!isInternalTransfer && normalizedMethod !== "crypto" && (!bankName || !routingNumber || !accountNumber)) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Bank name, routing number, and account number are required for external bank transfers" });
+    }
+
+    const senderNextBalance = Number((Number(senderAccount.balance ?? senderAvailable) - transferAmount).toFixed(2));
+    const senderNextAvailable = Number((senderAvailable - transferAmount).toFixed(2));
+
+    await client.query(
+      `UPDATE accounts
+       SET balance=$1,
+           available=$2,
+           updated_at=NOW()
+       WHERE id=$3`,
+      [senderNextBalance, senderNextAvailable, senderAccount.id]
+    );
+
+    await client.query(
+      `UPDATE users
+       SET available_balance=COALESCE(available_balance, 0) - $1,
+           updated_at=NOW()
+       WHERE user_email=$2`,
+      [transferAmount, senderEmail]
+    );
+
+    const senderLabel = senderQ.rows[0].accountname || senderQ.rows[0].fullname || senderEmail;
+    const recipientLabel = recipientUser?.accountname || recipientUser?.fullname || normalizedRecipientName || normalizedRecipientEmail;
+    const reference = `TRF-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const transferStatus = "completed";
+    const senderDescription = note || `Transfer to ${recipientLabel}`;
+
+    const senderTxQ = await client.query(
+      `INSERT INTO transactions
+        (user_email, account_id, type, direction, amount, description, reference, status, balance_after, created_at)
+       VALUES ($1,$2,'transfer','debit',$3,$4,$5,$6,$7,NOW())
+       RETURNING id, user_email, type, direction, amount, description, reference, status, balance_after, created_at`,
+      [
+        senderEmail,
+        senderAccount.id,
+        transferAmount,
+        senderDescription,
+        reference,
+        transferStatus,
+        senderNextAvailable,
+      ]
+    );
+
+    let recipientNextAvailable = null;
+
+    if (isInternalTransfer) {
+      const recipientAccount = await ensureAvailableAccount(client, recipientUser.user_email);
+      const recipientAvailable = Number(recipientAccount.available ?? recipientAccount.balance ?? 0);
+      const recipientNextBalance = Number((Number(recipientAccount.balance ?? recipientAvailable) + transferAmount).toFixed(2));
+      recipientNextAvailable = Number((recipientAvailable + transferAmount).toFixed(2));
+      const recipientDescription = note || `Transfer from ${senderLabel}`;
+
+      await client.query(
+        `UPDATE accounts
+         SET balance=$1,
+             available=$2,
+             updated_at=NOW()
+         WHERE id=$3`,
+        [recipientNextBalance, recipientNextAvailable, recipientAccount.id]
+      );
+
+      await client.query(
+        `UPDATE users
+         SET available_balance=COALESCE(available_balance, 0) + $1,
+             updated_at=NOW()
+         WHERE user_email=$2`,
+        [transferAmount, recipientUser.user_email]
+      );
+
+      await client.query(
+        `INSERT INTO transactions
+          (user_email, account_id, type, direction, amount, description, reference, status, balance_after, created_at)
+         VALUES ($1,$2,'transfer','credit',$3,$4,$5,$6,$7,NOW())`,
+        [
+          recipientUser.user_email,
+          recipientAccount.id,
+          transferAmount,
+          recipientDescription,
+          reference,
+          transferStatus,
+          recipientNextAvailable,
+        ]
+      );
+    }
+
+    const transferQ = await client.query(
+      `INSERT INTO transfers
+        (
+          user_email,
+          sender_account_type,
+          recipient_name,
+          recipient_email,
+          bank_name,
+          routing_number,
+          account_number,
+          btc_address,
+          method,
+          amount,
+          description,
+          status,
+          created_at
+        )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())
+       RETURNING id, status, created_at`,
+      [
+        senderEmail,
+        senderAccount.type || "available",
+        recipientLabel,
+        normalizedRecipientEmail,
+        bankName,
+        routingNumber,
+        accountNumber,
+        walletAddress,
+        normalizedMethod,
+        transferAmount,
+        note,
+        transferStatus,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    void (async () => {
+      try {
+        if (canSendEmail()) {
+          await sendAccountTemplateEmail({
+            templateKey: "transferSent",
+            to: senderEmail,
+            user: senderQ.rows[0],
+            data: {
+              status: transferStatus,
+              method: normalizedMethod.toUpperCase(),
+              recipient_name: recipientLabel,
+              amount: transferAmount.toFixed(2),
+              reference,
+              account_balance: senderNextAvailable.toFixed(2),
+              note: senderDescription,
+            },
+            userId: senderEmail,
+          });
+
+          if (recipientUser?.user_email && recipientNextAvailable !== null) {
+            await sendAccountTemplateEmail({
+              templateKey: "transferReceived",
+              to: recipientUser.user_email,
+              user: recipientUser,
+              data: {
+                status: transferStatus,
+                method: normalizedMethod.toUpperCase(),
+                sender_name: senderLabel,
+                amount: transferAmount.toFixed(2),
+                reference,
+                account_balance: recipientNextAvailable.toFixed(2),
+                note: note || `Transfer from ${senderLabel}`,
+              },
+              userId: recipientUser.user_email,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("Transfer activity email failed:", e.message);
+      }
+    })();
+
+    const senderTx = senderTxQ.rows[0];
+    const transferRow = transferQ.rows[0];
+    return res.json({
+      success: true,
+      id: senderTx.id,
+      transfer_id: transferRow.id,
+      reference: senderTx.reference,
+      type: senderTx.type,
+      direction: senderTx.direction,
+      amount: senderTx.amount,
+      description: senderTx.description,
+      status: senderTx.status,
+      created_at: senderTx.created_at,
+      method: normalizedMethod,
+      sender_email: senderEmail,
+      sender_fullname: senderQ.rows[0].fullname || senderLabel,
+      sender_account_name: senderQ.rows[0].accountname || senderLabel,
+      recipient_email: normalizedRecipientEmail,
+      recipient_fullname: recipientUser?.fullname || recipientLabel,
+      recipient_account_name: recipientUser?.accountname || recipientLabel,
+      account_number: accountNumber,
+      routing_number: routingNumber,
+      btc_address: walletAddress,
+      balance_after: senderTx.balance_after,
+    });
+  } catch (err) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+    return handleError(res, "Transfers create error", err);
+  } finally {
+    client.release();
+  }
 });
 
 app.post("/api/loans", authMiddleware, async (req, res) => {

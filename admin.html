@@ -980,12 +980,69 @@
         amount: "1,250.00",
         reference: "ACT-4821",
         note: "Support follow-up requested",
+        action_label: "Balance adjustment posted",
+        account_balance: "18,420.55",
+        changed_fields: "full name, phone number",
+        method: "WIRE",
+        recipient_name: "Jordan Lee",
+        sender_name: "Alex Morgan",
+        reset_link: "https://basecrypto.help/reset-password.html?token=sample-token&email=alex%40example.com",
+        expiry_window: "1 hour",
+        support_email: "support@basecrypto.help",
         review_deadline: "March 20, 2026 4:00 PM"
+      },
+      accountOpened: {
+        status: "active",
+        account_balance: "5,000.00",
+        note: "Your opening balance has already been posted and is available in your account."
       },
       accountActivityUpdate: {
         status: "posted",
         amount: "480.00",
-        reference: "ACT-9034"
+        reference: "ACT-9034",
+        action_label: "Account access updated",
+        account_balance: "4,520.00",
+        note: "Updated details: account access."
+      },
+      accountProfileUpdated: {
+        status: "active",
+        changed_fields: "full name, phone number"
+      },
+      passwordChanged: {
+        fullname: "Alex Morgan"
+      },
+      passwordResetRequested: {
+        fullname: "Alex Morgan",
+        reset_link: "https://basecrypto.help/reset-password.html?token=sample-token&email=alex%40example.com",
+        expiry_window: "1 hour"
+      },
+      passwordResetCompleted: {
+        fullname: "Alex Morgan"
+      },
+      balanceAdjustmentPosted: {
+        status: "completed",
+        amount: "250.00",
+        reference: "ADMIN-4821",
+        account_balance: "18,420.55",
+        note: "Admin manual balance adjustment"
+      },
+      transferSent: {
+        status: "completed",
+        amount: "875.00",
+        reference: "TRF-9034",
+        method: "WIRE",
+        recipient_name: "Jordan Lee",
+        account_balance: "17,545.55",
+        note: "Transfer to Jordan Lee"
+      },
+      transferReceived: {
+        status: "completed",
+        amount: "875.00",
+        reference: "TRF-9034",
+        method: "WIRE",
+        sender_name: "Alex Morgan",
+        account_balance: "9,875.00",
+        note: "Transfer from Alex Morgan"
       },
       accountReviewNotice: {
         fullname: "Alex Morgan",
@@ -1449,7 +1506,7 @@
     function renderManualTemplateOptions() {
       const templates = Object.keys(state.templates || {});
       if (!templates.length) {
-        els.manualEmailTemplate.innerHTML = `<option value="registrationReceived">registrationReceived</option>`;
+        els.manualEmailTemplate.innerHTML = `<option value="accountOpened">accountOpened</option>`;
         return;
       }
       const current = els.manualEmailTemplate.value;
@@ -1465,10 +1522,16 @@
       return {
         ...TEMPLATE_PREVIEW_DATA.default,
         fullname: state.selectedUser?.fullname || TEMPLATE_PREVIEW_DATA.default.fullname,
-        borrower_name: state.selectedUser?.fullname || TEMPLATE_PREVIEW_DATA.default.borrower_name,
-        recipient_name: state.selectedUser?.fullname || TEMPLATE_PREVIEW_DATA.default.recipient_name,
+        recipient_name: TEMPLATE_PREVIEW_DATA.default.recipient_name,
+        sender_name: state.selectedUser?.fullname || TEMPLATE_PREVIEW_DATA.default.sender_name,
         account_name: state.selectedUser?.accountname || TEMPLATE_PREVIEW_DATA.default.account_name,
         email: state.selectedUser?.user_email || els.manualEmailTo.value.trim() || TEMPLATE_PREVIEW_DATA.default.email,
+        status: state.selectedUser?.user_email
+          ? (state.selectedUser?.suspended ? "restricted" : "active")
+          : TEMPLATE_PREVIEW_DATA.default.status,
+        account_balance: state.selectedUser?.user_email
+          ? fmtMoney(state.selectedUser?.available_total ?? state.selectedUser?.available_balance ?? 0).replace(/^\$/, "")
+          : TEMPLATE_PREVIEW_DATA.default.account_balance,
       };
     }
 
@@ -1989,7 +2052,7 @@
         return;
       }
 
-      const templateKey = els.manualEmailTemplate.value || "registrationReceived";
+      const templateKey = els.manualEmailTemplate.value || "accountOpened";
 
       showStatus(els.userEditorStatus, "Sending default email…");
       try {

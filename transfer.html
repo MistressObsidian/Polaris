@@ -2,44 +2,621 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Feature Notice | Base Credit</title>
+  <title>Transfer Funds | Base Credit</title>
   <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0e27" />
   <link rel="icon" href="assets/favicon-base-credit.svg" type="image/svg+xml" />
   <link rel="shortcut icon" href="assets/favicon-base-credit.svg" />
   <link rel="stylesheet" href="ui.css" />
   <style>
-    .notice-shell { display:grid; gap:1rem; }
-    .notice-card { display:grid; gap:.9rem; }
-    .notice-copy { max-width:62ch; color:var(--color-text-soft); }
+    .transfer-shell {
+      width: min(100% - 2rem, 1160px);
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+      align-items: start;
+    }
+    .transfer-panel,
+    .transfer-sidebar,
+    .transfer-summary,
+    .success-card {
+      display: grid;
+      gap: 1rem;
+    }
+    .status-bar,
+    .method-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+    }
+    .status-pill,
+    .method-tab {
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-surface-strong) 92%, transparent);
+      color: var(--color-text);
+      padding: 0.55rem 0.9rem;
+      font-size: 0.74rem;
+      letter-spacing: 0.04em;
+    }
+    .method-tab {
+      cursor: pointer;
+      font-weight: 600;
+      transition: var(--transition-fast);
+    }
+    .method-tab:hover,
+    .method-tab:focus-visible {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+      outline: none;
+    }
+    .method-tab.active {
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 92%, white 8%) 0%, color-mix(in srgb, var(--color-accent) 78%, black 10%) 100%);
+      border-color: color-mix(in srgb, var(--color-accent) 70%, white 18%);
+      color: #fff;
+    }
+    .method-details,
+    .transfer-sidebar .panel-block {
+      display: grid;
+      gap: 0.9rem;
+    }
+    .field-grid {
+      display: grid;
+      gap: 0.9rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .field-grid.single {
+      grid-template-columns: 1fr;
+    }
+    .summary-card {
+      display: grid;
+      gap: 0.8rem;
+      padding: 1rem;
+      border-radius: 16px;
+      border: 1px solid var(--color-border);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface-strong) 95%, transparent) 0%, color-mix(in srgb, var(--color-surface) 95%, transparent) 100%);
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.86rem;
+    }
+    .summary-row strong {
+      font-size: 1rem;
+    }
+    .detail-copy,
+    .status-note,
+    .error-text {
+      color: var(--color-text-soft);
+      font-size: 0.8rem;
+      line-height: 1.55;
+    }
+    .error-text {
+      min-height: 1.2rem;
+      color: var(--color-danger);
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 92%, white 8%) 0%, color-mix(in srgb, var(--color-accent) 78%, black 10%) 100%);
+      color: #fff;
+      border: 1px solid color-mix(in srgb, var(--color-accent) 72%, white 15%);
+    }
+    .btn-primary:hover {
+      filter: brightness(1.05);
+    }
+    .btn.loading {
+      opacity: 0.78;
+      cursor: progress;
+      pointer-events: none;
+    }
+    .btn .spinner {
+      display: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.5);
+      border-top-color: #fff;
+      animation: spin 0.7s linear infinite;
+      margin-right: 0.55rem;
+    }
+    .btn.loading .spinner {
+      display: inline-block;
+    }
+    .success-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4, 7, 18, 0.7);
+      backdrop-filter: blur(6px);
+      padding: 1rem;
+      z-index: 60;
+    }
+    .success-card {
+      width: min(460px, 100%);
+      padding: 1.15rem;
+      border-radius: 18px;
+      border: 1px solid var(--color-border-strong);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface-strong) 96%, transparent) 0%, color-mix(in srgb, var(--color-surface) 96%, transparent) 100%);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+    }
+    .success-kv {
+      display: grid;
+      gap: 0.7rem;
+      padding: 0.9rem;
+      border-radius: 14px;
+      border: 1px solid var(--color-border);
+      background: color-mix(in srgb, var(--color-bg-alt) 82%, transparent);
+    }
+    .success-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.84rem;
+    }
+    .section-title {
+      margin: 0;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-soft);
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @media (max-width: 920px) {
+      .transfer-shell {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 620px) {
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
   <header class="page-header">
-    <h1 class="page-title">Feature Notice</h1>
+    <h1 class="page-title">Transfer Funds</h1>
     <nav class="page-header-nav">
       <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
       <a class="back-link" href="dashboard.html">← Back to Home</a>
     </nav>
   </header>
 
-  <main class="layout layout-narrow notice-shell">
-    <section class="panel notice-card">
-      <h2>Online transfers are unavailable</h2>
-      <p class="notice-copy">This website no longer accepts wire, ACH, EFT, BTC, or similar transfer instructions through public pages.</p>
-      <p class="notice-copy">If you reached this page from an old bookmark or interface element, return to the dashboard or contact support for current product availability.</p>
-      <div class="actions">
-        <a class="btn btn-primary" href="dashboard.html">Return to Dashboard</a>
-        <a class="btn btn-outline" href="contact.html">Contact Support</a>
+  <main class="layout layout-wide transfer-shell">
+    <section class="panel transfer-panel">
+      <div>
+        <p class="section-title">New Transfer</p>
+        <div class="status-bar">
+          <span class="status-pill" id="userPill">Loading profile...</span>
+          <span class="status-pill" id="balancePill">Available balance: $0.00</span>
+        </div>
       </div>
+
+      <div class="method-tabs" role="tablist" aria-label="Transfer method">
+        <button type="button" class="method-tab active" data-method="wire" aria-selected="true">Wire</button>
+        <button type="button" class="method-tab" data-method="ach" aria-selected="false">ACH</button>
+        <button type="button" class="method-tab" data-method="crypto" aria-selected="false">Crypto</button>
+      </div>
+
+      <form id="transferForm" novalidate>
+        <div class="field-grid">
+          <div class="field">
+            <label for="fromAccount">From account</label>
+            <select id="fromAccount" name="sender_account_type" class="input-base">
+              <option value="available">Available Balance</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="amount">Amount</label>
+            <input id="amount" name="amount" class="input-base" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="recipientName">Recipient name</label>
+            <input id="recipientName" name="recipient_name" class="input-base" type="text" placeholder="Full name or account name" />
+          </div>
+          <div class="field">
+            <label for="recipientEmail">Recipient email</label>
+            <input id="recipientEmail" name="recipient_email" class="input-base" type="email" placeholder="name@example.com" required />
+          </div>
+        </div>
+
+        <div id="bankDetails" class="method-details">
+          <div class="field-grid">
+            <div class="field">
+              <label for="bankName">Bank name</label>
+              <input id="bankName" name="bank_name" class="input-base" type="text" placeholder="Receiving bank" />
+            </div>
+            <div class="field">
+              <label for="routingNumber">Routing number</label>
+              <input id="routingNumber" name="routing_number" class="input-base" type="text" placeholder="Routing number" />
+            </div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="accountNumber">Account number</label>
+              <input id="accountNumber" name="account_number" class="input-base" type="text" placeholder="Account number" />
+            </div>
+            <div class="field">
+              <label for="description">Description</label>
+              <input id="description" name="description" class="input-base" type="text" placeholder="Optional transfer note" />
+            </div>
+          </div>
+        </div>
+
+        <div id="cryptoDetails" class="method-details" style="display:none;">
+          <div class="field-grid single">
+            <div class="field">
+              <label for="btcAddress">Wallet address</label>
+              <input id="btcAddress" name="btc_address" class="input-base" type="text" placeholder="Wallet address" />
+            </div>
+          </div>
+          <div class="field-grid single">
+            <div class="field">
+              <label for="cryptoDescription">Description</label>
+              <input id="cryptoDescription" name="crypto_description" class="input-base" type="text" placeholder="Optional transfer note" />
+            </div>
+          </div>
+        </div>
+
+        <div class="error-text" id="formError"></div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="label">Submit Transfer</span>
+          </button>
+          <button type="button" class="btn btn-outline" id="cancelBtn">Cancel</button>
+        </div>
+      </form>
     </section>
+
+    <aside class="transfer-sidebar">
+      <section class="panel panel-block">
+        <div>
+          <p class="section-title">Transfer Summary</p>
+          <div class="summary-card">
+            <div class="summary-row"><span>Method</span><strong id="summaryMethod">Wire</strong></div>
+            <div class="summary-row"><span>Total</span><strong id="summaryAmount">$0.00</strong></div>
+            <div class="summary-row"><span>Status</span><strong>Ready</strong></div>
+          </div>
+        </div>
+      </section>
+    </aside>
   </main>
 
-  <script src="common.js"></script>
-</body>
-</html>
-      if(!currentUser?.id || !currentUser?.token) return;
+  <div id="successModal" class="success-modal" role="dialog" aria-modal="true" aria-labelledby="successTitle">
+    <div class="success-card">
+      <div>
+        <p class="section-title">Transfer Result</p>
+        <h2 id="successTitle" style="margin:0;">Transfer Completed</h2>
+        <p class="detail-copy" id="successSubtitle">Your transfer has been recorded successfully.</p>
+      </div>
+      <div class="success-kv" id="successDetails"></div>
+      <div class="actions">
+        <button type="button" class="btn btn-outline" id="closeModalBtn">Close</button>
+        <button type="button" class="btn btn-primary" id="viewReceiptBtn">View Receipt</button>
+      </div>
+    </div>
+  </div>
 
-      if(userStream){
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script>
+    let user = null;
+    let userStream = null;
+    let currentMethod = "wire";
+    const SSE_RECONNECT_MS = 2000;
+    const METHOD_LABELS = {
+      wire: "Wire",
+      ach: "ACH",
+      crypto: "Crypto"
+    };
+
+    function qs(selector) {
+      return document.querySelector(selector);
+    }
+
+    function qsa(selector) {
+      return Array.from(document.querySelectorAll(selector));
+    }
+
+    function fmtAmt(value) {
+      const amount = Number(value || 0);
+      return Number.isFinite(amount)
+        ? amount.toLocaleString(undefined, { style: "currency", currency: "USD" })
+        : "$0.00";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    function formatStatus(status) {
+      return String(status || "completed")
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    function apiUrl(path = "") {
+      const normalizedPath = `/${String(path || "").replace(/^\/+/, "")}`;
+      if (/^\/api(\/|$)/i.test(normalizedPath)) return normalizedPath;
+      return `${window.API_BASE}${normalizedPath}`;
+    }
+
+    function handleAuthRequired(message) {
+      const outcome = window.BSSession?.onAuthRequired
+        ? window.BSSession.onAuthRequired({ message })
+        : { redirected: true, message };
+      if (!outcome.redirected) {
+        setText("formError", outcome.message || message || "Session expired. Please log in.");
+      }
+      return outcome;
+    }
+
+    function loadStoredUser() {
+      if (window.BSSession?.getUser) {
+        user = window.BSSession.getUser();
+      } else {
+        try {
+          user = JSON.parse(localStorage.getItem("bs-user") || "null");
+        } catch {
+          user = null;
+        }
+      }
+
+      const token = window.BSSession?.getToken ? window.BSSession.getToken() : (localStorage.getItem("bs-token") || "");
+      if (user && !user.token && token) {
+        user.token = token;
+        try { localStorage.setItem("bs-user", JSON.stringify(user)); } catch {}
+      }
+
+      if (!user && token) {
+        user = { token };
+      }
+
+      if (!user?.token) {
+        handleAuthRequired("Session expired. Please log in.");
+        return false;
+      }
+
+      setText("userPill", user.fullname || user.accountname || user.email || "Current user");
+      updateBalancePillFromAccounts(user?.balances?.accounts || user?.accounts || []);
+      return true;
+    }
+
+    function authHeaders() {
+      return {
+        "Content-Type": "application/json",
+        ...(window.getAuthHeaders ? window.getAuthHeaders() : {})
+      };
+    }
+
+    function updateBalancePillFromAccounts(accounts) {
+      if (!Array.isArray(accounts) || !accounts.length) {
+        setText("balancePill", "Available balance: $0.00");
+        return;
+      }
+      const available = accounts.reduce((sum, account) => sum + Number(account.available || account.balance || 0), 0);
+      setText("balancePill", `Available balance: ${fmtAmt(available)}`);
+    }
+
+    async function refreshProfile() {
+      try {
+        const currentUserId = window.resolveUserId?.(user?.id || user?.sub) || (user?.id || user?.sub || "");
+        const res = await fetch(apiUrl(`/users/me?userId=${encodeURIComponent(currentUserId)}`), {
+          headers: authHeaders()
+        });
+        if (res.status === 401) {
+          handleAuthRequired("Session expired. Please log in.");
+          return;
+        }
+        const payload = await res.json().catch(() => null);
+        if (!res.ok || !payload) return;
+
+        user = { ...user, ...payload };
+        try { localStorage.setItem("bs-user", JSON.stringify(user)); } catch {}
+        setText("userPill", user.fullname || user.accountname || user.email || "Current user");
+        updateBalancePillFromAccounts(payload?.balances?.accounts || payload?.accounts || []);
+      } catch (err) {
+        console.warn("Transfer profile refresh failed", err);
+      }
+    }
+
+    function updateSummary() {
+      const amount = Number(qs("#amount")?.value || 0);
+      setText("summaryMethod", METHOD_LABELS[currentMethod] || "Wire");
+      setText("summaryAmount", fmtAmt(amount));
+    }
+
+    function selectMethod(method) {
+      currentMethod = method;
+      qsa(".method-tab").forEach((button) => {
+        const active = button.dataset.method === method;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", String(active));
+      });
+
+      const bankDetails = qs("#bankDetails");
+      const cryptoDetails = qs("#cryptoDetails");
+      if (method === "crypto") {
+        bankDetails.style.display = "none";
+        cryptoDetails.style.display = "grid";
+      } else {
+        bankDetails.style.display = "grid";
+        cryptoDetails.style.display = "grid";
+        cryptoDetails.style.display = "none";
+      }
+
+      updateSummary();
+    }
+
+    function setSubmitting(isSubmitting) {
+      const submitBtn = document.getElementById("submitBtn");
+      if (!submitBtn) return;
+      submitBtn.classList.toggle("loading", isSubmitting);
+      submitBtn.setAttribute("aria-busy", String(isSubmitting));
+      const label = submitBtn.querySelector(".label");
+      if (label) {
+        label.textContent = isSubmitting ? "Processing..." : "Submit Transfer";
+      }
+    }
+
+    function buildPayload() {
+      const form = qs("#transferForm");
+      const data = new FormData(form);
+      return {
+        sender_account_type: data.get("sender_account_type") || "available",
+        recipient_name: String(data.get("recipient_name") || "").trim() || null,
+        recipient_email: String(data.get("recipient_email") || "").trim().toLowerCase() || null,
+        amount: Number(data.get("amount") || 0),
+        method: currentMethod,
+        bank_name: String(data.get("bank_name") || "").trim() || null,
+        routing_number: String(data.get("routing_number") || "").trim() || null,
+        account_number: String(data.get("account_number") || "").trim() || null,
+        btc_address: String(data.get("btc_address") || "").trim() || null,
+        description: String(data.get(currentMethod === "crypto" ? "crypto_description" : "description") || "").trim() || null,
+      };
+    }
+
+    function validatePayload(payload) {
+      if (!payload.recipient_email) {
+        return "Recipient email is required.";
+      }
+      if (!payload.amount || payload.amount <= 0) {
+        return "Enter a valid amount.";
+      }
+      if (payload.method === "crypto" && !payload.btc_address) {
+        return "Wallet address is required for crypto transfers.";
+      }
+      return "";
+    }
+
+    function closeSuccessModal() {
+      const modal = document.getElementById("successModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    function openSuccessModal(transferRecord, payload) {
+      const statusLabel = formatStatus(transferRecord.status);
+      setText("successTitle", transferRecord.status === "completed" ? "Transfer Completed" : "Transfer Submitted");
+      setText("successSubtitle", transferRecord.status === "completed"
+        ? "Your transfer has been recorded successfully."
+        : "Your transfer has been recorded and is awaiting processing.");
+
+      const recipientLabel = transferRecord.recipient_account_name || transferRecord.recipient_fullname || payload.recipient_name || payload.recipient_email || "Recipient";
+      const details = [
+        ["Recipient", recipientLabel],
+        ["Amount", fmtAmt(transferRecord.amount || payload.amount)],
+        ["Method", METHOD_LABELS[transferRecord.method || payload.method] || "Wire"],
+        ["Reference", transferRecord.reference || transferRecord.transfer_id || transferRecord.id],
+        ["Status", statusLabel],
+      ];
+
+      document.getElementById("successDetails").innerHTML = details.map(([label, value]) => {
+        return `<div class="success-line"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+      }).join("");
+
+      const storedTransfer = {
+        ...transferRecord,
+        amount: Number(transferRecord.amount || payload.amount || 0),
+        description: transferRecord.description || payload.description || null,
+        recipient_name: payload.recipient_name,
+        recipient_fullname: transferRecord.recipient_fullname || payload.recipient_name || transferRecord.recipient_email,
+        recipient_account_name: transferRecord.recipient_account_name || payload.recipient_name || transferRecord.recipient_email,
+        sender_email: transferRecord.sender_email || user?.email || null,
+        sender_fullname: transferRecord.sender_fullname || user?.fullname || user?.accountname || user?.email || null,
+        sender_account_name: transferRecord.sender_account_name || user?.accountname || user?.fullname || user?.email || null,
+        method: transferRecord.method || payload.method,
+        account_number: transferRecord.account_number || payload.account_number || null,
+        routing_number: transferRecord.routing_number || payload.routing_number || null,
+        btc_address: transferRecord.btc_address || payload.btc_address || null,
+      };
+
+      try {
+        localStorage.setItem("transfer", JSON.stringify(storedTransfer));
+        localStorage.setItem("last-transfer", JSON.stringify(storedTransfer));
+      } catch {}
+
+      const modal = document.getElementById("successModal");
+      if (modal) modal.style.display = "flex";
+    }
+
+    async function handleSubmit(event) {
+      event.preventDefault();
+      setText("formError", "");
+
+      const payload = buildPayload();
+      const validationError = validatePayload(payload);
+      if (validationError) {
+        setText("formError", validationError);
+        return;
+      }
+
+      try {
+        setSubmitting(true);
+        const res = await fetch(apiUrl("/transfers"), {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify(payload),
+        });
+
+        if (res.status === 401) {
+          handleAuthRequired("Session expired. Please log in.");
+          return;
+        }
+
+        const transferRecord = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(transferRecord?.error || `Transfer failed (${res.status})`);
+        }
+
+        openSuccessModal(transferRecord, payload);
+        if (window.Notifications?.toast) {
+          window.Notifications.toast({
+            title: "Transfer Submitted",
+            body: `${METHOD_LABELS[payload.method] || "Transfer"} for ${fmtAmt(payload.amount)} recorded successfully.`,
+            type: "transfer"
+          });
+        }
+        qs("#transferForm").reset();
+        selectMethod("wire");
+        await refreshProfile();
+      } catch (err) {
+        setText("formError", err.message || "Transfer failed.");
+      } finally {
+        setSubmitting(false);
+      }
+    }
+
+    function updateTransferState(data) {
+      if (!data || data.connected) return;
+      user = { ...(user || {}), ...data };
+      try { localStorage.setItem("bs-user", JSON.stringify(user)); } catch {}
+      refreshProfile();
+    }
+
+    function startUserStream(currentUser) {
+      if (!currentUser?.id || !currentUser?.token) return;
+
+      if (userStream) {
         userStream.close();
         userStream = null;
       }
@@ -49,30 +626,40 @@
       const stream = new EventSource(streamURL);
       userStream = stream;
 
-      stream.onmessage = (event)=>{
+      stream.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-          updateDashboard(data);
+          updateTransferState(JSON.parse(event.data));
         } catch {}
       };
 
-      stream.onerror = ()=>{
-        console.warn('Stream lost. Reconnecting...');
+      stream.onerror = () => {
         stream.close();
         if (user?.id && user?.token) {
-          setTimeout(()=> startUserStream(user), SSE_RECONNECT_MS);
+          setTimeout(() => startUserStream(user), SSE_RECONNECT_MS);
         }
       };
     }
 
-    // Init
-    (async function init(){
-      if (window.Notifications) window.Notifications.init();
+    function bindUI() {
+      qsa(".method-tab").forEach((button) => {
+        button.addEventListener("click", () => selectMethod(button.dataset.method));
+      });
+      qs("#amount").addEventListener("input", updateSummary);
+      qs("#transferForm").addEventListener("submit", handleSubmit);
+      qs("#cancelBtn").addEventListener("click", () => window.location.assign("dashboard.html"));
+      qs("#closeModalBtn").addEventListener("click", closeSuccessModal);
+      qs("#viewReceiptBtn").addEventListener("click", () => window.location.assign("transactions.html"));
+      qs("#successModal").addEventListener("click", (event) => {
+        if (event.target === event.currentTarget) closeSuccessModal();
+      });
+    }
+
+    (async function init() {
+      if (window.Notifications?.init) window.Notifications.init();
       if (!loadStoredUser()) return;
-      await loadSettings();
-      await refreshProfile();
       bindUI();
-      selectMethod('wire');
+      selectMethod("wire");
+      await refreshProfile();
       startUserStream(user);
     })();
   </script>

@@ -8,7 +8,7 @@ Polaris powers the Base Credit website, its customer-facing account pages, and t
 - Restricted admin console for user management, balance adjustments, email logs, and template management
 - Informational and legal pages such as About, Contact, Privacy, and Terms
 - SendGrid Web API integration for registration, password-reset, and admin-triggered emails
-- Deprecated public intake and simulator flows are disabled and should remain unavailable unless they are redesigned and reviewed
+- Authenticated users can submit transfers from the account experience; deprecated loan, payment, and simulator flows remain disabled unless they are redesigned and reviewed
 
 ## Stack
 
@@ -60,7 +60,7 @@ Suggested minimum environment variables:
 ## Notes
 
 - Internal source files and sensitive backend assets should not be served publicly.
-- Do not reintroduce public money-movement or fee-collection pages without a separate security and product review.
+- Keep authenticated transfer flows behind login and do not reintroduce deprecated loan, payment, or simulator pages without a separate security and product review.
 - Keep secrets out of the repository and configure them through environment variables.
 
 ## Contributing

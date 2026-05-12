@@ -225,7 +225,10 @@
         let preselect = null;
         try { preselect = JSON.parse(localStorage.getItem('transfer') || 'null'); } catch {}
         if (!preselect) { try { preselect = JSON.parse(localStorage.getItem('last-transfer') || 'null'); } catch {} }
-        let initial = preselect && preselect.id ? (allTxs.find(t => t.id === preselect.id) || preselect) : allTxs[0];
+        const matchedTransfer = preselect?.id ? allTxs.find(t => t.id === preselect.id) : null;
+        let initial = matchedTransfer
+          ? { ...matchedTransfer, ...preselect }
+          : (preselect || allTxs[0]);
         if (initial) renderReceipt(initial);
         if (!allTxs.length) document.getElementById("txContainer").textContent = "No transactions found.";
       } catch(err){

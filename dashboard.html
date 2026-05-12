@@ -159,6 +159,7 @@
     <h2>Navigation</h2>
     <ul class="nav-menu">
   <li><a href="#" class="nav-link active">Home</a></li>
+      <li><a href="transfer.html" class="nav-link">Transfers</a></li>
       <li><a href="transactions.html" class="nav-link">Transactions</a></li>
       <li><a href="settings.html" class="nav-link">⚙️ Settings</a></li>
     </ul>
@@ -183,6 +184,7 @@
       </div>
       <div class="hero-actions">
         <a class="btn" id="viewAccountsBtn" href="accounts.html">View Accounts</a>
+        <a class="btn" id="makeTransferBtn" href="transfer.html">Transfer Funds</a>
         <a class="btn" href="transactions.html">View Transactions</a>
       </div>
     </section>
@@ -226,7 +228,12 @@ let userStream = null;
 const SSE_RECONNECT_MS = 5000;
 
 /* -------------------- Utilities -------------------- */
-function fmt(n){ return `$${Number(n||0).toFixed(2)}`; }
+function fmt(n){
+  const amount = Number(n || 0);
+  return Number.isFinite(amount)
+    ? amount.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
+    : '$0.00';
+}
 
 function authHeaders(){
   if (window.getAuthHeaders) return window.getAuthHeaders();

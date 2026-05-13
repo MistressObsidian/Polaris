@@ -31,19 +31,12 @@
     @media (prefers-reduced-motion: reduce){
       .fade-in { animation: none !important; }
     }
-    @media (max-width:760px){
-      .accounts-grid { grid-template-columns:1fr; }
-      .status-bar { gap:.55rem; }
-      .tx-list { max-height:none; overflow:visible; }
-      .tx-item {
-        padding:.85rem .95rem;
-        flex-direction:column;
-        align-items:flex-start;
-        gap:.45rem;
-      }
-      .tx-item > span:last-child { font-size:.92rem; }
+    @media (max-width:650px){
+      .accounts-grid { grid-template-columns:1fr 1fr; }
     }
     @media (max-width:520px){
+      .accounts-grid { grid-template-columns:1fr; }
+      header { flex-direction:column; align-items:flex-start; gap:.6rem; }
       .actions { gap:.5rem; }
       button, .btn { flex:1; justify-content:center; }
     }

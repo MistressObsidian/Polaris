@@ -171,9 +171,52 @@
         grid-template-columns: 1fr;
       }
     }
+    @media (max-width: 760px) {
+      .transfer-shell {
+        width: min(100% - 1rem, 1160px);
+        gap: 0.9rem;
+      }
+      .status-bar {
+        gap: 0.5rem;
+      }
+      .status-pill {
+        flex: 1 1 calc(50% - 0.35rem);
+        justify-content: center;
+      }
+      .method-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .method-tab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+      }
+      .field-grid {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+      }
+      .summary-card {
+        padding: 0.95rem;
+        border-radius: 14px;
+      }
+      .transfer-panel .actions > *,
+      .success-card .actions > * {
+        flex: 1 1 100% !important;
+      }
+    }
     @media (max-width: 620px) {
       .field-grid {
         grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 480px) {
+      .method-tabs {
+        grid-template-columns: 1fr;
+      }
+      .status-pill {
+        flex-basis: 100%;
       }
     }
   </style>

@@ -356,17 +356,24 @@
 	}
 }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
 	.info-page-header {
 		align-items: start;
+		gap: 0.9rem;
 	}
 
 	.info-header-controls {
 		width: 100%;
 		justify-content: flex-start;
+		gap: 0.75rem;
 	}
 
 	.info-header-nav {
 		justify-content: flex-start;
+	}
+
+	.theme-toggle.info-theme-toggle {
+		min-width: fit-content;
+		padding: 0.45rem 0.9rem;
 	}
 }

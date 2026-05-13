@@ -481,88 +481,88 @@ const GS_LOG_SECRET = process.env.GS_LOG_SECRET || process.env.SHEETS_SECRET || 
 const EMAIL_TEMPLATES_PATH = path.join(process.cwd(), "data", "email-templates.json");
 const DEFAULT_EMAIL_TEMPLATES = {
   accountOpened: {
-    subject: "Your account is ready",
-    title: "Your account is ready",
-    preheader: "Welcome to Base Credit. Your account access is now available.",
+    subject: "Welcome to Base Credit",
+    title: "Welcome to Base Credit",
+    preheader: "Your profile setup is complete.",
     text:
       "Hello {{fullname}},\n\n" +
-      "Your {{account_name}} account is now set up and ready to use.\n\n" +
+      "Your {{account_name}} profile is now ready to use.\n\n" +
       "Current status: {{status}}\n" +
-      "Available balance: ${{account_balance}}\n\n" +
+      "Current balance: ${{account_balance}}\n\n" +
       "{{note}}\n\n" +
-      "If you did not expect this account activity, contact {{support_email}} immediately.",
+      "If this was not expected, contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
-      "<p>Your <b>{{account_name}}</b> account is now set up and ready to use.</p>" +
+      "<p>Your <b>{{account_name}}</b> profile is now ready to use.</p>" +
       "<ul>" +
       "<li><b>Current status:</b> {{status}}</li>" +
-      "<li><b>Available balance:</b> ${{account_balance}}</li>" +
+      "<li><b>Current balance:</b> ${{account_balance}}</li>" +
       "</ul>" +
       "<p>{{note}}</p>" +
-      "<p>If you did not expect this account activity, contact {{support_email}} immediately.</p>",
+      "<p>If this was not expected, contact {{support_email}}.</p>",
   },
   accountActivityUpdate: {
-    subject: "{{action_label}} on your account",
-    title: "{{action_label}} on your account",
-    preheader: "We recorded a recent account activity and updated your available balance.",
+    subject: "Account update available",
+    title: "Recent account update",
+    preheader: "We posted a recent update to your profile.",
     text:
       "Hello {{fullname}},\n\n" +
-      "We recorded a recent account activity on your account.\n\n" +
-      "Activity: {{action_label}}\n" +
+      "We posted a recent update to your profile.\n\n" +
+      "Update: {{action_label}}\n" +
       "Status: {{status}}\n" +
       "Amount: ${{amount}}\n" +
       "Reference: {{reference}}\n" +
-      "Available balance: ${{account_balance}}\n" +
+      "Current balance: ${{account_balance}}\n" +
       "Note: {{note}}\n\n" +
-      "If you were not expecting this message, please contact {{support_email}}.",
+      "If this was not expected, contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
-      "<p>We recorded a recent account activity on your account.</p>" +
+      "<p>We posted a recent update to your profile.</p>" +
       "<ul>" +
-      "<li><b>Activity:</b> {{action_label}}</li>" +
+      "<li><b>Update:</b> {{action_label}}</li>" +
       "<li><b>Status:</b> {{status}}</li>" +
       "<li><b>Amount:</b> ${{amount}}</li>" +
       "<li><b>Reference:</b> {{reference}}</li>" +
-      "<li><b>Available balance:</b> ${{account_balance}}</li>" +
+      "<li><b>Current balance:</b> ${{account_balance}}</li>" +
       "</ul>" +
       "<p>{{note}}</p>" +
-      "<p>If you were not expecting this message, please contact {{support_email}}.</p>",
+      "<p>If this was not expected, contact {{support_email}}.</p>",
   },
   accountProfileUpdated: {
-    subject: "Profile details updated",
-    title: "Your profile details were updated",
+    subject: "Profile updated",
+    title: "Your profile was updated",
     preheader: "We detected changes to your account profile details.",
     text:
       "Hello {{fullname}},\n\n" +
       "We updated the following profile details on your account: {{changed_fields}}.\n\n" +
       "Current status: {{status}}\n\n" +
-      "If you did not make this change, contact {{support_email}} immediately.",
+      "If this was not expected, contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
       "<p>We updated the following profile details on your account: <b>{{changed_fields}}</b>.</p>" +
       "<p><b>Current status:</b> {{status}}</p>" +
-      "<p>If you did not make this change, contact {{support_email}} immediately.</p>",
+      "<p>If this was not expected, contact {{support_email}}.</p>",
   },
   passwordChanged: {
-    subject: "Password changed",
-    title: "Your password was changed",
-    preheader: "A password update was completed for your account.",
+    subject: "Security settings updated",
+    title: "Your sign-in details were updated",
+    preheader: "A recent sign-in update was completed.",
     text:
       "Hello {{fullname}},\n\n" +
-      "Your account password was changed successfully.\n\n" +
-      "If you did not make this change, reset your password immediately and contact {{support_email}}.",
+      "Your password was updated successfully.\n\n" +
+      "If this was not expected, reset your password and contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
-      "<p>Your account password was changed successfully.</p>" +
-      "<p>If you did not make this change, reset your password immediately and contact {{support_email}}.</p>",
+      "<p>Your password was updated successfully.</p>" +
+      "<p>If this was not expected, reset your password and contact {{support_email}}.</p>",
   },
   passwordResetRequested: {
-    subject: "Reset your password",
+    subject: "Password reset request",
     title: "Reset your password",
-    preheader: "Use this secure link to reset your password.",
+    preheader: "Use this secure link if you requested a reset.",
     text:
       "Hello {{fullname}},\n\n" +
-      "We received a request to reset your password. Use the secure link below within {{expiry_window}}:\n\n" +
+      "We received a request to reset your password. If you requested this, use the secure link below within {{expiry_window}}:\n\n" +
       "{{reset_link}}\n\n" +
       "If you did not request this, you can ignore this email.",
     bodyHtml:
@@ -574,96 +574,96 @@ const DEFAULT_EMAIL_TEMPLATES = {
       "<p>This link expires in <b>{{expiry_window}}</b>. If you did not request this, you can ignore this email.</p>",
   },
   passwordResetCompleted: {
-    subject: "Password reset successful",
-    title: "Your password has been reset",
-    preheader: "Your password reset was completed successfully.",
+    subject: "Password reset complete",
+    title: "Your password reset is complete",
+    preheader: "Your sign-in details were updated successfully.",
     text:
       "Hello {{fullname}},\n\n" +
       "Your password reset was completed successfully.\n\n" +
-      "If this was not you, contact {{support_email}} immediately.",
+      "If this was not expected, contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
       "<p>Your password reset was completed successfully.</p>" +
-      "<p>If this was not you, contact {{support_email}} immediately.</p>",
+      "<p>If this was not expected, contact {{support_email}}.</p>",
   },
   balanceAdjustmentPosted: {
-    subject: "Balance adjustment posted",
-    title: "A balance adjustment was posted",
-    preheader: "Your available balance changed due to a manual adjustment.",
+    subject: "Recent account update",
+    title: "Your account summary was updated",
+    preheader: "A recent update was recorded on your profile.",
     text:
       "Hello {{fullname}},\n\n" +
-      "A balance adjustment was posted to your account.\n\n" +
+      "A recent update was recorded on your account.\n\n" +
       "Status: {{status}}\n" +
       "Amount: ${{amount}}\n" +
       "Reference: {{reference}}\n" +
-      "Available balance: ${{account_balance}}\n" +
+      "Current balance: ${{account_balance}}\n" +
       "Note: {{note}}\n\n" +
-      "If you were not expecting this change, contact {{support_email}}.",
+      "If this was not expected, contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
-      "<p>A balance adjustment was posted to your account.</p>" +
+      "<p>A recent update was recorded on your account.</p>" +
       "<ul>" +
       "<li><b>Status:</b> {{status}}</li>" +
       "<li><b>Amount:</b> ${{amount}}</li>" +
       "<li><b>Reference:</b> {{reference}}</li>" +
-      "<li><b>Available balance:</b> ${{account_balance}}</li>" +
+      "<li><b>Current balance:</b> ${{account_balance}}</li>" +
       "</ul>" +
       "<p>{{note}}</p>" +
-      "<p>If you were not expecting this change, contact {{support_email}}.</p>",
+      "<p>If this was not expected, contact {{support_email}}.</p>",
   },
   transferSent: {
-    subject: "Transfer sent",
-    title: "Your transfer was sent",
-    preheader: "A transfer was posted from your account.",
+    subject: "Transfer confirmation",
+    title: "Your transfer was recorded",
+    preheader: "Your recent transfer request is confirmed.",
     text:
       "Hello {{fullname}},\n\n" +
-      "Your transfer has been sent successfully.\n\n" +
+      "Your recent transfer has been recorded successfully.\n\n" +
       "Recipient: {{recipient_name}}\n" +
       "Method: {{method}}\n" +
       "Amount: ${{amount}}\n" +
       "Reference: {{reference}}\n" +
-      "Available balance: ${{account_balance}}\n" +
+      "Current balance: ${{account_balance}}\n" +
       "Note: {{note}}\n\n" +
-      "If you did not authorize this transfer, contact {{support_email}} immediately.",
+      "If this was not expected, contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
-      "<p>Your transfer has been sent successfully.</p>" +
+      "<p>Your recent transfer has been recorded successfully.</p>" +
       "<ul>" +
       "<li><b>Recipient:</b> {{recipient_name}}</li>" +
       "<li><b>Method:</b> {{method}}</li>" +
       "<li><b>Amount:</b> ${{amount}}</li>" +
       "<li><b>Reference:</b> {{reference}}</li>" +
-      "<li><b>Available balance:</b> ${{account_balance}}</li>" +
+      "<li><b>Current balance:</b> ${{account_balance}}</li>" +
       "</ul>" +
       "<p>{{note}}</p>" +
-      "<p>If you did not authorize this transfer, contact {{support_email}} immediately.</p>",
+      "<p>If this was not expected, contact {{support_email}}.</p>",
   },
   transferReceived: {
-    subject: "Transfer received",
-    title: "Funds were posted to your account",
-    preheader: "A transfer was credited to your available balance.",
+    subject: "Incoming transfer confirmation",
+    title: "A recent transfer was recorded",
+    preheader: "A recent incoming transfer was recorded on your profile.",
     text:
       "Hello {{fullname}},\n\n" +
-      "Funds were posted to your account.\n\n" +
+      "A recent incoming transfer was recorded.\n\n" +
       "Sender: {{sender_name}}\n" +
       "Method: {{method}}\n" +
       "Amount: ${{amount}}\n" +
       "Reference: {{reference}}\n" +
-      "Available balance: ${{account_balance}}\n" +
+      "Current balance: ${{account_balance}}\n" +
       "Note: {{note}}\n\n" +
-      "If you were not expecting this transfer, contact {{support_email}}.",
+      "If this was not expected, contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
-      "<p>Funds were posted to your account.</p>" +
+      "<p>A recent incoming transfer was recorded.</p>" +
       "<ul>" +
       "<li><b>Sender:</b> {{sender_name}}</li>" +
       "<li><b>Method:</b> {{method}}</li>" +
       "<li><b>Amount:</b> ${{amount}}</li>" +
       "<li><b>Reference:</b> {{reference}}</li>" +
-      "<li><b>Available balance:</b> ${{account_balance}}</li>" +
+      "<li><b>Current balance:</b> ${{account_balance}}</li>" +
       "</ul>" +
       "<p>{{note}}</p>" +
-      "<p>If you were not expecting this transfer, contact {{support_email}}.</p>",
+      "<p>If this was not expected, contact {{support_email}}.</p>",
   },
   accountReviewNotice: {
     subject: "Account review notice",
@@ -805,6 +805,7 @@ function buildBrandedEmailHtml({ title, preheader = "", bodyHtml, emailId = "", 
       <div style="padding:16px 20px;border-top:1px solid #e6edf5;font-size:12px;line-height:1.4;color:#64748b;background:#fbfdff;">
         <div>© ${new Date().getFullYear()} ${escapeHtml(BRAND.name)}. All rights reserved.</div>
         ${BRAND.supportEmail ? `<div style="margin-top:6px;">Support: ${escapeHtml(BRAND.supportEmail)}</div>` : ""}
+        <div style="margin-top:6px;">This service email relates to your ${escapeHtml(BRAND.name)} profile or sign-in settings.</div>
         ${appBaseUrl && emailId ? `
         <p style="font-size:12px; margin:6px 0 0;">
           <a href="${appBaseUrl}/emails/${emailId}" target="_blank" rel="noopener noreferrer">

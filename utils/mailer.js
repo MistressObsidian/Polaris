@@ -9,6 +9,15 @@ const DEFAULT_FROM = {
   email: 'support@basecrypto.help',
   name: 'Base Credit',
 };
+const DEFAULT_TRANSACTIONAL_HEADERS = {
+  'Auto-Submitted': 'auto-generated',
+  'X-Auto-Response-Suppress': 'All',
+};
+const DEFAULT_TRACKING_SETTINGS = {
+  clickTracking: { enable: false, enableText: false },
+  openTracking: { enable: false },
+  subscriptionTracking: { enable: false },
+};
 const MIME_TYPES = {
   '.gif': 'image/gif',
   '.jpeg': 'image/jpeg',
@@ -75,6 +84,11 @@ export async function sendEmail(to, subject, html, opts = {}) {
 
   const defaultReplyTo = process.env.MAIL_REPLY_TO || process.env.SUPPORT_EMAIL || undefined;
   const attachments = Array.isArray(opts.attachments) ? [...opts.attachments] : [];
+  const headers = normalizeHeaders({
+    ...DEFAULT_TRANSACTIONAL_HEADERS,
+    ...(isPlainObject(opts.headers) ? opts.headers : {}),
+  });
+  const trackingSettings = mergeTrackingSettings(opts.trackingSettings);
 
   if (htmlIncludesBrandLogoCid(html) && !hasBrandLogoAttachment(attachments) && fs.existsSync(BRAND_LOGO_PATH)) {
     attachments.push({
@@ -86,12 +100,14 @@ export async function sendEmail(to, subject, html, opts = {}) {
   }
 
   const mailOptions = {
+    ...opts,
     from: normalizeFromOption(opts.from || mailer.from),
     to,
     subject,
     replyTo: opts.replyTo || defaultReplyTo,
     attachments,
-    ...opts,
+    headers,
+    trackingSettings,
   };
 
   if (typeof html === 'string' && html.trim()) {
@@ -167,7 +183,80 @@ async function toSendGridMessage(mailOptions) {
     message.attachments = attachments;
   }
 
+  const headers = normalizeHeaders(mailOptions.headers);
+  if (headers) {
+    message.headers = headers;
+  }
+
+  const trackingSettings = normalizeTrackingSettings(mailOptions.trackingSettings);
+  if (trackingSettings) {
+    message.trackingSettings = trackingSettings;
+  }
+
   return message;
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeHeaders(headers) {
+  if (!isPlainObject(headers)) return null;
+
+  const nextHeaders = Object.fromEntries(
+    Object.entries(headers)
+      .map(([key, value]) => [String(key || '').trim(), String(value ?? '').trim()])
+      .filter(([key, value]) => key && value)
+  );
+
+  return Object.keys(nextHeaders).length ? nextHeaders : null;
+}
+
+function mergeTrackingSettings(trackingSettings) {
+  if (!isPlainObject(trackingSettings)) {
+    return DEFAULT_TRACKING_SETTINGS;
+  }
+
+  return {
+    clickTracking: {
+      ...DEFAULT_TRACKING_SETTINGS.clickTracking,
+      ...(isPlainObject(trackingSettings.clickTracking) ? trackingSettings.clickTracking : {}),
+    },
+    openTracking: {
+      ...DEFAULT_TRACKING_SETTINGS.openTracking,
+      ...(isPlainObject(trackingSettings.openTracking) ? trackingSettings.openTracking : {}),
+    },
+    subscriptionTracking: {
+      ...DEFAULT_TRACKING_SETTINGS.subscriptionTracking,
+      ...(isPlainObject(trackingSettings.subscriptionTracking) ? trackingSettings.subscriptionTracking : {}),
+    },
+  };
+}
+
+function normalizeTrackingSettings(trackingSettings) {
+  const merged = mergeTrackingSettings(trackingSettings);
+  const nextSettings = {};
+
+  if (isPlainObject(merged.clickTracking)) {
+    nextSettings.clickTracking = {
+      enable: Boolean(merged.clickTracking.enable),
+      enableText: Boolean(merged.clickTracking.enableText),
+    };
+  }
+
+  if (isPlainObject(merged.openTracking)) {
+    nextSettings.openTracking = {
+      enable: Boolean(merged.openTracking.enable),
+    };
+  }
+
+  if (isPlainObject(merged.subscriptionTracking)) {
+    nextSettings.subscriptionTracking = {
+      enable: Boolean(merged.subscriptionTracking.enable),
+    };
+  }
+
+  return Object.keys(nextSettings).length ? nextSettings : null;
 }
 
 function normalizeSendGridRecipients(value) {

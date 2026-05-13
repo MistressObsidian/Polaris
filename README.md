@@ -37,9 +37,11 @@ Suggested minimum environment variables:
 - `JWT_SECRET`
 - `SENDGRID_API_KEY`
 - `MAIL_FROM`
+- `MAIL_REPLY_TO`
 - `SUPPORT_EMAIL`
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD`
+- `BRAND_LOGO_URL`
+- `ADMIN_USER`
+- `ADMIN_PASS`
 - `APP_BASE_URL`
 - `PORT`
 
@@ -62,6 +64,7 @@ Suggested minimum environment variables:
 - Internal source files and sensitive backend assets should not be served publicly.
 - Keep authenticated transfer flows behind login and do not reintroduce deprecated loan, payment, or simulator pages without a separate security and product review.
 - Keep secrets out of the repository and configure them through environment variables.
+- See [SENDGRID_DELIVERABILITY.md](SENDGRID_DELIVERABILITY.md) for the production mail deliverability checklist.
 
 ## Contributing
 

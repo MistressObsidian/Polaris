@@ -325,6 +325,36 @@ function stripAdminMarker(value) {
     .trim();
 }
 
+function normalizeUserFacingTransactionDescription(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return raw;
+  if (/new user opening balance/i.test(raw)) return "Opening balance";
+
+  const stripped = stripAdminMarker(raw);
+  if (!stripped) return "";
+  if (/manual balance adjustment/i.test(stripped)) return "Balance adjustment";
+  if (/^transfer initiated for /i.test(stripped)) return "Transfer";
+  return stripped;
+}
+
+function normalizeUserFacingTransactionReference(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return raw;
+  if (/^ADMCRT-/i.test(raw)) return raw.replace(/^ADMCRT-/i, "OPEN-");
+  if (/^ADMIN-/i.test(raw)) return raw.replace(/^ADMIN-/i, "TXN-");
+  return raw.replace(/\bADMIN\b[-:]?/gi, "TXN-").replace(/TXN--+/g, "TXN-");
+}
+
+function toUserFacingTransaction(tx = {}) {
+  const description = normalizeUserFacingTransactionDescription(tx.description);
+  const reference = normalizeUserFacingTransactionReference(tx.reference);
+  return {
+    ...tx,
+    description: description || null,
+    reference: reference || null,
+  };
+}
+
 const DEFAULT_USER_PREFERENCES = Object.freeze({
   theme: "dark",
   currency: "USD",
@@ -3219,7 +3249,7 @@ app.get("/api/transactions", authMiddleware, async (req, res) => {
 
     // Enrich with account type and currency
     const enriched = transactions.map(t => ({
-      ...t,
+      ...toUserFacingTransaction(t),
       account_type: account.type,
       currency: account.currency || "USD",
       total_balance_after: t.balance_after
@@ -3269,7 +3299,7 @@ app.get("/api/transactions/:id/receipt", authMiddleware, async (req, res) => {
       return res.status(404).json({ error: "Transaction not found" });
     }
 
-    const tx = q.rows[0];
+    const tx = toUserFacingTransaction(q.rows[0]);
     const pdf = await generateTransactionReceiptPDF({
       tx,
       accountName: tx.accountname || tx.fullname || tx.account_type || "Account",

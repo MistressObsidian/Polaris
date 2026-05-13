@@ -186,6 +186,41 @@
       }
     }
 
+    function stripAdminMarker(value) {
+      return String(value ?? '')
+        .replace(/\badmin\b[\s:-]*/gi, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
+
+    function normalizeUserFacingDescription(value) {
+      const raw = String(value ?? '').trim();
+      if (!raw) return raw;
+      if (/new user opening balance/i.test(raw)) return 'Opening balance';
+      const stripped = stripAdminMarker(raw);
+      if (!stripped) return '';
+      if (/manual balance adjustment/i.test(stripped)) return 'Balance adjustment';
+      if (/^transfer initiated for /i.test(stripped)) return 'Transfer';
+      return stripped;
+    }
+
+    function normalizeUserFacingReference(value) {
+      const raw = String(value ?? '').trim();
+      if (!raw) return raw;
+      if (/^ADMCRT-/i.test(raw)) return raw.replace(/^ADMCRT-/i, 'OPEN-');
+      if (/^ADMIN-/i.test(raw)) return raw.replace(/^ADMIN-/i, 'TXN-');
+      return raw.replace(/\bADMIN\b[-:]?/gi, 'TXN-').replace(/TXN--+/g, 'TXN-');
+    }
+
+    function normalizeTransaction(tx) {
+      if (!tx || typeof tx !== 'object') return tx;
+      return {
+        ...tx,
+        description: normalizeUserFacingDescription(tx.description) || tx.description || null,
+        reference: normalizeUserFacingReference(tx.reference) || tx.reference || null,
+      };
+    }
+
     async function loadSettings(){
       return;
     }
@@ -218,17 +253,19 @@
           return;
         }
         if (!res.ok) throw new Error(txRows?.error || `Failed to load transactions (${res.status})`);
-        allTxs = Array.isArray(txRows) ? txRows : [];
+        allTxs = Array.isArray(txRows) ? txRows.map(normalizeTransaction) : [];
         renderTxList(allTxs);
 
         // Preselect from localStorage or first
         let preselect = null;
         try { preselect = JSON.parse(localStorage.getItem('transfer') || 'null'); } catch {}
         if (!preselect) { try { preselect = JSON.parse(localStorage.getItem('last-transfer') || 'null'); } catch {} }
+        preselect = normalizeTransaction(preselect);
         const matchedTransfer = preselect?.id ? allTxs.find(t => t.id === preselect.id) : null;
         let initial = matchedTransfer
-          ? { ...matchedTransfer, ...preselect }
+          ? { ...preselect, ...matchedTransfer }
           : (preselect || allTxs[0]);
+        initial = normalizeTransaction(initial);
         if (initial) renderReceipt(initial);
         if (!allTxs.length) document.getElementById("txContainer").textContent = "No transactions found.";
       } catch(err){
@@ -275,6 +312,7 @@
     }
 
     async function renderReceipt(tx) {
+      tx = normalizeTransaction(tx);
       const user = getSessionUser();
       const currentEmail = (user?.email || "").toLowerCase();
 

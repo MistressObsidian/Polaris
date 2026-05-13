@@ -325,6 +325,19 @@ function stripAdminMarker(value) {
     .trim();
 }
 
+function sanitizeUserFacingEmailText(value) {
+  return stripAdminMarker(value);
+}
+
+function sanitizeUserFacingStringFields(input = {}) {
+  return Object.fromEntries(
+    Object.entries(input || {}).map(([key, value]) => [
+      key,
+      typeof value === "string" ? sanitizeUserFacingEmailText(value) : value,
+    ])
+  );
+}
+
 function normalizeUserFacingTransactionDescription(value) {
   const raw = String(value ?? "").trim();
   if (!raw) return raw;
@@ -518,6 +531,9 @@ function toAdminTemplateData(user = {}, extraData = {}) {
     action_label: "activity posted",
     account_balance: "0.00",
     changed_fields: "",
+    activity_label: "Direct Deposit",
+    activity_preheader: "A direct deposit was posted to your account.",
+    activity_message: "A direct deposit was posted to your account.",
     method: "wire",
     recipient_name: "",
     sender_name: "",
@@ -1096,12 +1112,12 @@ const DEFAULT_EMAIL_TEMPLATES = {
       "<p>If this was not expected, contact {{support_email}}.</p>",
   },
   balanceAdjustmentPosted: {
-    subject: "Recent account update",
-    title: "Your account summary was updated",
-    preheader: "A recent update was recorded on your profile.",
+    subject: "{{activity_label}}",
+    title: "{{activity_label}}",
+    preheader: "{{activity_preheader}}",
     text:
       "Hello {{fullname}},\n\n" +
-      "A recent update was recorded on your account.\n\n" +
+      "{{activity_message}}\n\n" +
       "Status: {{status}}\n" +
       "Amount: ${{amount}}\n" +
       "Reference: {{reference}}\n" +
@@ -1110,7 +1126,7 @@ const DEFAULT_EMAIL_TEMPLATES = {
       "If this was not expected, contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
-      "<p>A recent update was recorded on your account.</p>" +
+      "<p>{{activity_message}}</p>" +
       "<ul>" +
       "<li><b>Status:</b> {{status}}</li>" +
       "<li><b>Amount:</b> ${{amount}}</li>" +
@@ -2199,7 +2215,8 @@ app.post("/api/admin/users/:email/adjust-balance", adminAuthMiddleware, async (r
 
     const direction = String(req.body?.direction || "credit").trim().toLowerCase();
     const amount = Number(req.body?.amount);
-    const description = stripAdminMarker(req.body?.description) || "Balance adjustment";
+  const defaultDescription = direction === "debit" ? "Debit Adjustment" : "Direct Deposit";
+  const description = stripAdminMarker(req.body?.description) || defaultDescription;
 
     if (!["credit", "debit"].includes(direction)) {
       return res.status(400).json({ error: "Direction must be credit or debit" });
@@ -2276,6 +2293,11 @@ app.post("/api/admin/users/:email/adjust-balance", adminAuthMiddleware, async (r
       try {
         if (!canSendEmail() || !user.user_email) return;
 
+        const activityLabel = direction === "debit" ? "Account Debit" : "Direct Deposit";
+        const activityMessage = direction === "debit"
+          ? "A debit was recorded on your account."
+          : "A direct deposit was posted to your account.";
+
         await sendAccountTemplateEmail({
           templateKey: "balanceAdjustmentPosted",
           to: user.user_email,
@@ -2286,6 +2308,9 @@ app.post("/api/admin/users/:email/adjust-balance", adminAuthMiddleware, async (r
             reference,
             account_balance: nextAvailable.toFixed(2),
             note: description,
+            activity_label: activityLabel,
+            activity_preheader: activityMessage,
+            activity_message: activityMessage,
           },
           userId: user.user_email,
         });
@@ -2514,7 +2539,10 @@ app.post("/api/admin/users/:email/send-default-email", adminAuthMiddleware, asyn
     const toEmail = String(req.body?.to || email).trim().toLowerCase();
     if (!validateEmail(toEmail)) return res.status(400).json({ error: "Invalid recipient email" });
 
-    const data = toAdminTemplateData(userQ.rows[0], req.body?.data || {});
+    const data = toAdminTemplateData(
+      userQ.rows[0],
+      sanitizeUserFacingStringFields(req.body?.data || {})
+    );
 
     let responseTemplateKey = null;
     let subject = "";
@@ -2524,10 +2552,10 @@ app.post("/api/admin/users/:email/send-default-email", adminAuthMiddleware, asyn
     let bodyHtml = "";
 
     if (mode === "custom") {
-      subject = String(req.body?.subject || "").trim();
-      title = String(req.body?.title || "").trim() || subject;
-      preheader = String(req.body?.preheader || "").trim();
-      text = String(req.body?.text || "").trim();
+      subject = sanitizeUserFacingEmailText(req.body?.subject);
+      title = sanitizeUserFacingEmailText(req.body?.title) || subject;
+      preheader = sanitizeUserFacingEmailText(req.body?.preheader);
+      text = sanitizeUserFacingEmailText(req.body?.text);
 
       if (!subject) {
         return res.status(400).json({ error: "Custom emails require a subject" });
@@ -2550,22 +2578,15 @@ app.post("/api/admin/users/:email/send-default-email", adminAuthMiddleware, asyn
       }
 
       responseTemplateKey = templateKey;
-      subject = renderTemplate(
-        req.body?.subjectOverride || template.subject || "Notification",
-        data.plain
-      );
-      title = renderTemplate(
-        req.body?.titleOverride || template.title || subject,
-        data.plain
-      );
-      preheader = renderTemplate(
-        req.body?.preheaderOverride || template.preheader || "",
-        data.plain
-      );
-      text = renderTemplate(
-        req.body?.textOverride || template.text || subject,
-        data.plain
-      );
+      const subjectSource = sanitizeUserFacingEmailText(req.body?.subjectOverride) || template.subject || "Notification";
+      const titleSource = sanitizeUserFacingEmailText(req.body?.titleOverride) || template.title || subjectSource;
+      const preheaderSource = sanitizeUserFacingEmailText(req.body?.preheaderOverride) || template.preheader || "";
+      const textSource = sanitizeUserFacingEmailText(req.body?.textOverride) || template.text || subjectSource;
+
+      subject = sanitizeUserFacingEmailText(renderTemplate(subjectSource, data.plain)) || "Notification";
+      title = sanitizeUserFacingEmailText(renderTemplate(titleSource, data.plain)) || subject;
+      preheader = sanitizeUserFacingEmailText(renderTemplate(preheaderSource, data.plain));
+      text = sanitizeUserFacingEmailText(renderTemplate(textSource, data.plain)) || subject;
       bodyHtml = typeof template.bodyHtml === "string" && template.bodyHtml.trim()
         ? renderTemplate(template.bodyHtml, data.html)
         : (plainTextToEmailHtml(text) || `<p>${escapeHtml(subject)}</p>`);

@@ -809,7 +809,7 @@
                 </div>
                 <div class="field">
                   <label for="adjustDescription">Description</label>
-                  <input id="adjustDescription" class="input-base" type="text" placeholder="Balance adjustment" />
+                  <input id="adjustDescription" class="input-base" type="text" placeholder="Direct deposit or debit adjustment" />
                 </div>
               </div>
               <div class="actions-inline" style="margin-top:.9rem;">
@@ -965,7 +965,7 @@
                 </div>
                 <div class="field hidden" id="manualEmailSubjectField" style="grid-column:1 / -1;">
                   <label for="manualEmailSubject">Subject</label>
-                  <input id="manualEmailSubject" class="input-base" type="text" placeholder="Account update from admin" />
+                  <input id="manualEmailSubject" class="input-base" type="text" placeholder="Account update" />
                 </div>
                 <div class="field hidden" id="manualEmailTitleField">
                   <label for="manualEmailTitle">Email Heading</label>
@@ -1145,11 +1145,14 @@
         fullname: "Alex Morgan"
       },
       balanceAdjustmentPosted: {
+        activity_label: "Direct Deposit",
+        activity_preheader: "A direct deposit was posted to your account.",
+        activity_message: "A direct deposit was posted to your account.",
         status: "completed",
         amount: "250.00",
         reference: "TXN-4821",
         account_balance: "18,420.55",
-        note: "Balance adjustment"
+        note: "Direct Deposit"
       },
       transferSent: {
         status: "completed",
@@ -1744,6 +1747,7 @@
       els.adminConfirmPassword.value = "";
       resetAdminTransferForm();
       els.adjustAmount.value = "";
+      els.adjustDescription.value = "";
       showStatus(els.userEditorStatus, "Selected user form reset.", "success");
     }
 
@@ -1774,15 +1778,13 @@
       els.selectedUserMeta.textContent = user?.user_email
         ? `${user.user_email} • ${user.accountname || "No account name"} • Available ${fmtMoney(user.available_total ?? user.available_balance ?? 0)}`
         : "Use Edit on the left to load a user into this workspace.";
-      if (user?.user_email) {
-        els.adjustDescription.value = els.adjustDescription.value || "Balance adjustment";
-      }
       if (!nextEmail || userChanged) {
         fillSelectedUserPreferences(defaultUserPreferences());
         state.selectedUserTransfers = [];
         renderSelectedUserTransfers();
         els.adminSetPassword.value = "";
         els.adminConfirmPassword.value = "";
+        els.adjustDescription.value = "";
         resetAdminTransferForm();
       }
       renderManualEmailPreview();

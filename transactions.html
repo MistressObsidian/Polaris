@@ -21,6 +21,16 @@
     .tx-amount { font-weight:900; }
     .tx-amount.pos { color:var(--color-good); }
     .tx-amount.neg { color:var(--color-danger); }
+    .direction-pill.credit {
+      color: var(--color-good);
+      border: 1px solid color-mix(in srgb, var(--color-good) 28%, transparent);
+      background: color-mix(in srgb, var(--color-good) 12%, var(--color-surface-strong));
+    }
+    .direction-pill.debit {
+      color: var(--color-danger);
+      border: 1px solid color-mix(in srgb, var(--color-danger) 24%, transparent);
+      background: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface-strong));
+    }
 
     /* Right receipt */
     .status-row { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin-bottom:.6rem; flex-wrap:wrap; }
@@ -37,6 +47,8 @@
     .amount-line { display:flex; align-items:baseline; gap:10px; margin:.6rem 0 1rem; flex-wrap:wrap; }
     .amount-line .label { color:var(--color-text-muted); font-size:.8rem; }
     .amount-line .value { font-size:1.55rem; font-weight:900; }
+  .amount-line .value.amount-credit { color: var(--color-good); }
+  .amount-line .value.amount-debit { color: var(--color-danger); }
 
     .details-grid { display:grid; gap:.75rem; grid-template-columns:1fr; }
     @media (min-width:760px){ .details-grid { grid-template-columns:1fr 1fr; } }
@@ -221,6 +233,26 @@
       };
     }
 
+    function getTransactionDirection(tx) {
+      const rawDirection = String(tx?.direction || tx?.type || '').trim().toLowerCase();
+      if (rawDirection === 'credit' || rawDirection === 'debit') return rawDirection;
+
+      const amount = Number(tx?.amount || 0);
+      if (Number.isFinite(amount) && amount < 0) return 'debit';
+      return 'credit';
+    }
+
+    function getTransactionDirectionPresentation(tx) {
+      const direction = getTransactionDirection(tx);
+      return {
+        key: direction,
+        label: direction === 'credit' ? 'Credit' : 'Debit',
+        icon: direction === 'credit' ? '💰' : '💸',
+        prefix: direction === 'credit' ? '+' : '-',
+        amountClass: direction === 'credit' ? 'pos' : 'neg',
+      };
+    }
+
     async function loadSettings(){
       return;
     }
@@ -285,21 +317,19 @@
       list.forEach((tx, idx) => {
         const item = document.createElement('div');
         item.className = 'tx-item';
-        const isCredit = (tx.type || '').toLowerCase() === 'credit';
-        const amount = Number(tx.amount || 0);
-        const prefix = isCredit ? '+' : '-';
-        const signClass = isCredit ? 'pos' : 'neg';
+        const direction = getTransactionDirectionPresentation(tx);
+        const amount = Math.abs(Number(tx.amount || 0));
         const when = tx.created_at ? new Date(tx.created_at).toLocaleString() : '';
-        const title = tx.description || (isCredit ? 'Credit' : 'Debit');
+        const title = tx.description || direction.label;
         item.innerHTML = `
           <div class="tx-left">
-            <div class="tx-icon">${isCredit ? '💰' : '💸'}</div>
+            <div class="tx-icon">${direction.icon}</div>
             <div>
               <div class="tx-title">${title}</div>
               <div class="tx-meta">${when}</div>
             </div>
           </div>
-          <div class="tx-amount ${signClass}">${prefix}$${amount.toFixed(2)}</div>
+          <div class="tx-amount ${direction.amountClass}">${direction.prefix}$${amount.toFixed(2)}</div>
         `;
         item.addEventListener('click', () => {
           Array.from(container.children).forEach(c => c.classList.remove('active'));
@@ -358,15 +388,16 @@
 
       const amt = Number(tx.amount) || 0;
       const feeAmount = Number(tx.fee_amount || 0);
+      const direction = getTransactionDirectionPresentation(tx);
+      const txDirection = direction.key;
+      const displayDirection = direction.label;
 
-  // Sender/receiver relative to current user (fallback to tx.type when emails are absent)
-  const txType = (tx.type || '').toLowerCase();
-  const isSender = ((tx.sender_email || '').toLowerCase() === currentEmail) || txType === 'debit';
-  const isReceiver = ((tx.recipient_email || '').toLowerCase() === currentEmail) || txType === 'credit';
-        const txReference = String(tx.reference || tx.id || '').trim();
-        const fallbackReference = tx.id ? `TX-${String(tx.id).slice(0, 8).toUpperCase()}` : `TX-${Date.now()}`;
-        const displayReference = txReference || fallbackReference;
-        const displayDirection = txType === 'credit' ? 'Incoming' : 'Outgoing';
+      // Sender/receiver relative to current user (fallback to direction when emails are absent)
+      const isSender = ((tx.sender_email || '').toLowerCase() === currentEmail) || txDirection === 'debit';
+      const isReceiver = ((tx.recipient_email || '').toLowerCase() === currentEmail) || txDirection === 'credit';
+      const txReference = String(tx.reference || tx.id || '').trim();
+      const fallbackReference = tx.id ? `TX-${String(tx.id).slice(0, 8).toUpperCase()}` : `TX-${Date.now()}`;
+      const displayReference = txReference || fallbackReference;
 
       const txStatus = String(tx.status || "completed").toLowerCase();
       const statusLabel = txStatus.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
@@ -392,7 +423,9 @@
       }
 
       // Amount
-      document.getElementById("amountValue").textContent = `$${amt.toFixed(2)}`;
+      const amountValue = document.getElementById("amountValue");
+      amountValue.textContent = `${direction.prefix}$${Math.abs(amt).toFixed(2)}`;
+      amountValue.className = `value amount-${txDirection}`;
 
       // Names: prefer explicit fields; fall back to user + description parsing; finally use lookup by email.
       const extractAfter = (desc, marker) => {
@@ -409,10 +442,10 @@
       // Derive from current user context and description patterns when missing
       const desc = tx.description || '';
       if (!fromDisplay || !toDisplay){
-        if (txType === 'debit') {
+        if (txDirection === 'debit') {
           fromDisplay = fromDisplay || user.accountname || user.fullname || fromDisplay;
           toDisplay = toDisplay || extractAfter(desc, ' to ');
-        } else if (txType === 'credit') {
+        } else if (txDirection === 'credit') {
           toDisplay = toDisplay || user.accountname || user.fullname || toDisplay;
           fromDisplay = fromDisplay || extractAfter(desc, ' from ');
         }
@@ -437,7 +470,9 @@
       if (isSender && fromDisplay === '—') fromDisplay = user?.accountname || user?.fullname || 'You';
       if (isReceiver && toDisplay === '—') toDisplay = user?.accountname || user?.fullname || 'You';
 
-      document.getElementById("summaryText").textContent = `${displayDirection} • Ref ${displayReference}`;
+      const summaryText = document.getElementById("summaryText");
+      summaryText.className = `pill direction-pill ${txDirection}`;
+      summaryText.textContent = `${displayDirection} • Ref ${displayReference}`;
       document.getElementById("fromValue").textContent = fromDisplay;
       document.getElementById("toValue").textContent = toDisplay;
 

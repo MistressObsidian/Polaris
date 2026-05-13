@@ -351,6 +351,10 @@
       if (el) el.textContent = value;
     }
 
+    function getCurrentUserLabel() {
+      return user?.fullname || user?.accountname || user?.email || "Current user";
+    }
+
     function formatStatus(status) {
       return String(status || "completed")
         .replace(/_/g, " ")
@@ -399,7 +403,7 @@
         return false;
       }
 
-      setText("userPill", user.fullname || user.accountname || user.email || "Current user");
+      setText("userPill", getCurrentUserLabel());
       updateBalancePillFromAccounts(user?.balances?.accounts || user?.accounts || []);
       return true;
     }
@@ -425,6 +429,7 @@
         button.setAttribute("aria-disabled", String(!isEnabled));
       });
 
+      setText("userPill", !isEnabled ? `${getCurrentUserLabel()} • Transfers unavailable` : getCurrentUserLabel());
       setText("formError", message || "");
     }
 
@@ -444,7 +449,7 @@
 
         const transfersEnabled = payload?.transfersEnabled ?? payload?.transfers_enabled;
         if (transfersEnabled === false) {
-          setTransferFormEnabled(false, "Transfers are disabled for this account. Contact support or an administrator.");
+          setTransferFormEnabled(false, "Transfers are unavailable for this account. Contact support for assistance.");
           return;
         }
 
@@ -616,7 +621,7 @@
       }
 
       if (!transfersEnabledForUser) {
-        setText("formError", "Transfers are disabled for this account. Contact support or an administrator.");
+        setText("formError", "Transfers are unavailable for this account. Contact support for assistance.");
         return;
       }
 

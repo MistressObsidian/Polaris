@@ -809,7 +809,7 @@
                 </div>
                 <div class="field">
                   <label for="adjustDescription">Description</label>
-                  <input id="adjustDescription" class="input-base" type="text" placeholder="Admin manual balance adjustment" />
+                  <input id="adjustDescription" class="input-base" type="text" placeholder="Balance adjustment" />
                 </div>
               </div>
               <div class="actions-inline" style="margin-top:.9rem;">
@@ -919,7 +919,7 @@
                 </div>
                 <div class="field" style="grid-column:1 / -1;">
                   <label for="adminTransferDescription">Description</label>
-                  <input id="adminTransferDescription" class="input-base" type="text" placeholder="Admin transfer note" />
+                  <input id="adminTransferDescription" class="input-base" type="text" placeholder="Optional transfer note" />
                 </div>
               </div>
               <div class="actions-inline" style="margin-top:.9rem;">
@@ -1147,9 +1147,9 @@
       balanceAdjustmentPosted: {
         status: "completed",
         amount: "250.00",
-        reference: "ADMIN-4821",
+        reference: "TXN-4821",
         account_balance: "18,420.55",
-        note: "Admin manual balance adjustment"
+        note: "Balance adjustment"
       },
       transferSent: {
         status: "completed",
@@ -1446,9 +1446,7 @@
       els.adminTransferRoutingNumber.value = "";
       els.adminTransferAccountNumber.value = "";
       els.adminTransferBtcAddress.value = "";
-      els.adminTransferDescription.value = state.selectedUser?.user_email
-        ? `Admin transfer initiated for ${state.selectedUser.user_email}`
-        : "";
+      els.adminTransferDescription.value = "";
       toggleAdminTransferFields();
     }
 
@@ -1777,7 +1775,7 @@
         ? `${user.user_email} • ${user.accountname || "No account name"} • Available ${fmtMoney(user.available_total ?? user.available_balance ?? 0)}`
         : "Use Edit on the left to load a user into this workspace.";
       if (user?.user_email) {
-        els.adjustDescription.value = els.adjustDescription.value || `Admin manual balance adjustment for ${user.user_email}`;
+        els.adjustDescription.value = els.adjustDescription.value || "Balance adjustment";
       }
       if (!nextEmail || userChanged) {
         fillSelectedUserPreferences(defaultUserPreferences());

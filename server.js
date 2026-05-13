@@ -318,6 +318,13 @@ function toTrimmedOrNull(value) {
   return next || null;
 }
 
+function stripAdminMarker(value) {
+  return String(value ?? "")
+    .replace(/\badmin\b[\s:-]*/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 const DEFAULT_USER_PREFERENCES = Object.freeze({
   theme: "dark",
   currency: "USD",
@@ -1797,7 +1804,7 @@ app.post("/api/admin/users", adminAuthMiddleware, async (req, res) => {
         [initialBalance, initialBalance, account.id]
       );
 
-      const reference = `ADMCRT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      const reference = `OPEN-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
       await client.query(
         `INSERT INTO transactions
           (user_email, account_id, direction, amount, description, reference, status, balance_after, created_at)
@@ -1806,7 +1813,7 @@ app.post("/api/admin/users", adminAuthMiddleware, async (req, res) => {
           emailRaw,
           account.id,
           initialBalance,
-          "Admin new user opening balance",
+          "Opening balance",
           reference,
           initialBalance,
         ]
@@ -1917,7 +1924,12 @@ app.post("/api/admin/users/:email/transfers", adminAuthMiddleware, async (req, r
     const email = normalizeEmailParam(req.params.email);
     if (!validateEmail(email)) return res.status(400).json({ error: "Invalid user email" });
 
-    const result = await createTransferForSender(email, req.body || {}, { allowSuspended: true, allowTransfersDisabled: true });
+    const payload = {
+      ...(req.body || {}),
+      description: toTrimmedOrNull(stripAdminMarker(req.body?.description)),
+    };
+
+    const result = await createTransferForSender(email, payload, { allowSuspended: true, allowTransfersDisabled: true });
     return res.status(201).json(result);
   } catch (err) {
     if (err?.status) return res.status(err.status).json({ error: err.message });
@@ -2157,7 +2169,7 @@ app.post("/api/admin/users/:email/adjust-balance", adminAuthMiddleware, async (r
 
     const direction = String(req.body?.direction || "credit").trim().toLowerCase();
     const amount = Number(req.body?.amount);
-    const description = String(req.body?.description || "Admin manual balance adjustment").trim();
+    const description = stripAdminMarker(req.body?.description) || "Balance adjustment";
 
     if (!["credit", "debit"].includes(direction)) {
       return res.status(400).json({ error: "Direction must be credit or debit" });
@@ -2211,7 +2223,7 @@ app.post("/api/admin/users/:email/adjust-balance", adminAuthMiddleware, async (r
       [delta, user.user_email]
     );
 
-    const reference = `ADMIN-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const reference = `TXN-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     const txQ = await client.query(
       `INSERT INTO transactions
         (user_email, account_id, direction, amount, description, reference, status, balance_after, created_at)

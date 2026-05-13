@@ -9,7 +9,10 @@
     "api": "node server.js",
     "serve": "http-server -p 5173 -c-1 .",
     "dev": "nodemon server.js",
-    "dev:all": "concurrently -n api,web -c blue,magenta \"nodemon server.js\" \"http-server -p 5173 -c-1 .\""
+    "dev:all": "concurrently -n api,web -c blue,magenta \"nodemon server.js\" \"http-server -p 5173 -c-1 .\"",
+    "db:migrate": "node scripts/migrate-db.js up",
+    "db:migrate:status": "node scripts/migrate-db.js status",
+    "db:migrate:new": "node scripts/new-migration.js"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",

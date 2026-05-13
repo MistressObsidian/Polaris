@@ -313,6 +313,8 @@
     let user = null;
     let userStream = null;
     let currentMethod = "wire";
+    let transferAccessReady = false;
+    let transfersEnabledForUser = true;
     const SSE_RECONNECT_MS = 2000;
     const METHOD_LABELS = {
       wire: "Wire",
@@ -409,6 +411,50 @@
       };
     }
 
+    function setTransferFormEnabled(isEnabled, message = "", options = {}) {
+      transfersEnabledForUser = Boolean(isEnabled);
+      transferAccessReady = options.ready !== false;
+
+      document.querySelectorAll("#transferForm input, #transferForm select, #transferForm textarea, #transferForm button").forEach((field) => {
+        if (field.id === "cancelBtn") return;
+        field.disabled = !isEnabled;
+      });
+
+      qsa(".method-tab").forEach((button) => {
+        button.disabled = !isEnabled;
+        button.setAttribute("aria-disabled", String(!isEnabled));
+      });
+
+      setText("formError", message || "");
+    }
+
+    async function loadTransferAccess() {
+      try {
+        const res = await fetch(apiUrl("/users/preferences"), {
+          headers: authHeaders(),
+        });
+
+        if (res.status === 401) {
+          handleAuthRequired("Session expired. Please log in.");
+          return;
+        }
+
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+
+        const transfersEnabled = payload?.transfersEnabled ?? payload?.transfers_enabled;
+        if (transfersEnabled === false) {
+          setTransferFormEnabled(false, "Transfers are disabled for this account. Contact support or an administrator.");
+          return;
+        }
+
+        setTransferFormEnabled(true, "");
+      } catch (err) {
+        console.warn("Transfer access check failed", err);
+        setTransferFormEnabled(true, "");
+      }
+    }
+
     function updateBalancePillFromAccounts(accounts) {
       if (!Array.isArray(accounts) || !accounts.length) {
         setText("balancePill", "Available balance: $0.00");
@@ -435,6 +481,7 @@
         try { localStorage.setItem("bs-user", JSON.stringify(user)); } catch {}
         setText("userPill", user.fullname || user.accountname || user.email || "Current user");
         updateBalancePillFromAccounts(payload?.balances?.accounts || payload?.accounts || []);
+        await loadTransferAccess();
       } catch (err) {
         console.warn("Transfer profile refresh failed", err);
       }
@@ -563,6 +610,16 @@
       event.preventDefault();
       setText("formError", "");
 
+      if (!transferAccessReady) {
+        setText("formError", "Checking transfer access. Please wait a moment.");
+        return;
+      }
+
+      if (!transfersEnabledForUser) {
+        setText("formError", "Transfers are disabled for this account. Contact support or an administrator.");
+        return;
+      }
+
       const payload = buildPayload();
       const validationError = validatePayload(payload);
       if (validationError) {
@@ -657,6 +714,7 @@
     (async function init() {
       if (window.Notifications?.init) window.Notifications.init();
       if (!loadStoredUser()) return;
+      setTransferFormEnabled(false, "Checking transfer access…", { ready: false });
       bindUI();
       selectMethod("wire");
       await refreshProfile();

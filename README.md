@@ -25,6 +25,9 @@ Polaris powers the Base Credit website, its customer-facing account pages, and t
 - `npm run serve`: serve the static frontend locally with `http-server`
 - `npm run dev`: start the backend with `nodemon`
 - `npm run dev:all`: run the backend and static server together
+- `npm run db:migrate:status`: show applied and pending database migrations
+- `npm run db:migrate`: apply pending database migrations to the configured Postgres or Neon database
+- `npm run db:migrate:new -- <name>`: scaffold a new SQL migration file in `data/migrations`
 
 ## Local Setup
 
@@ -47,6 +50,20 @@ Suggested minimum environment variables:
 
 3. Start the backend with `npm run api`.
 4. Open `http://localhost:4000` for the application, or run `npm run serve` if you want a separate static server during development.
+
+## Database Migrations
+
+Use the repo migration workflow for schema changes instead of editing Neon manually.
+
+1. Check the current migration state with `npm run db:migrate:status`.
+2. Apply pending migrations with `npm run db:migrate`.
+3. Create a new migration with `npm run db:migrate:new -- add-user-flag` and put only forward-only SQL into that file.
+
+Notes:
+
+- `data/migrations/0000_baseline_email_primary_schema.sql` bootstraps the current non-destructive email-primary-key schema for new environments.
+- `postgres-schema.sql` is still a destructive rebuild script because it drops tables first. Do not run it against a populated Neon database.
+- The migration runner records applied files in a `schema_migrations` table and will stop if an already-applied migration file is changed later.
 
 ## Important Pages
 

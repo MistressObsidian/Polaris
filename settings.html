@@ -169,11 +169,18 @@
 
     async function fetchJSON(url, opts={}){
       const res = await fetch(url, opts);
+      const text = await res.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = null;
+      }
       if (res.status === 401) {
         handleAuthRequired('Session expired. Please log in.');
       }
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      return res.json();
+      if(!res.ok) throw new Error(data?.error || ('HTTP ' + res.status));
+      return data;
     }
 
     function fillProfileForm(p){
@@ -256,30 +263,91 @@
       }
     }
 
-    function loadPrefs(){
-      try { state.prefs = JSON.parse(localStorage.getItem('bs-prefs')||'{}'); } catch { state.prefs = {}; }
-      state.prefs.theme = window.BSTheme?.normalizeThemeMode
-        ? window.BSTheme.normalizeThemeMode(state.prefs.theme)
-        : (state.prefs.theme === 'light' ? 'light' : 'dark');
+    function normalizePrefs(prefSource = {}){
+      return {
+        theme: window.BSTheme?.normalizeThemeMode
+          ? window.BSTheme.normalizeThemeMode(prefSource.theme)
+          : (prefSource.theme === 'light' ? 'light' : 'dark'),
+        currency: ['USD', 'EUR', 'GBP'].includes(String(prefSource.currency || '').toUpperCase())
+          ? String(prefSource.currency).toUpperCase()
+          : 'USD',
+        notifEmail: !!(prefSource.notifEmail ?? prefSource.notif_email),
+        notifPush: !!(prefSource.notifPush ?? prefSource.notif_push)
+      };
+    }
+
+    function applyPrefsToForm(){
       qs('#theme').value = state.prefs.theme;
-      qs('#currency').value = state.prefs.currency || 'USD';
+      qs('#currency').value = state.prefs.currency;
       qs('#notifEmail').checked = !!state.prefs.notifEmail;
       qs('#notifPush').checked = !!state.prefs.notifPush;
       localStorage.setItem('bs-prefs', JSON.stringify(state.prefs));
-      applyTheme(qs('#theme').value);
+      applyTheme(state.prefs.theme);
     }
 
-    function savePrefs(){
-      state.prefs = {
+    async function loadPrefs(){
+      qs('#prefsStatus').textContent = 'Loading preferences…';
+      try {
+        const localPrefs = normalizePrefs(JSON.parse(localStorage.getItem('bs-prefs')||'{}'));
+        state.prefs = localPrefs;
+
+        if (state.user?.token) {
+          const remotePrefs = await fetchJSON('/api/users/preferences', { headers: authHeaders() });
+          if (remotePrefs) {
+            state.prefs = normalizePrefs(remotePrefs);
+          }
+        }
+
+        applyPrefsToForm();
+        qs('#prefsStatus').textContent = 'Preferences loaded';
+      } catch(e){
+        try {
+          state.prefs = normalizePrefs(JSON.parse(localStorage.getItem('bs-prefs')||'{}'));
+        } catch {
+          state.prefs = normalizePrefs({});
+        }
+        applyPrefsToForm();
+        qs('#prefsStatus').textContent = state.user?.token ? 'Using saved device preferences' : 'Preferences ready';
+        console.warn(e);
+      }
+    }
+
+    async function savePrefs(){
+      state.prefs = normalizePrefs({
         theme: qs('#theme').value,
         currency: qs('#currency').value,
         notifEmail: qs('#notifEmail').checked,
         notifPush: qs('#notifPush').checked
-      };
-      localStorage.setItem('bs-prefs', JSON.stringify(state.prefs));
-      applyTheme(state.prefs.theme);
-      qs('#prefsStatus').textContent = 'Preferences saved';
-      showToast('Preferences saved');
+      });
+
+      qs('#prefsStatus').textContent = 'Saving…';
+      applyPrefsToForm();
+
+      if (!state.user?.token) {
+        qs('#prefsStatus').textContent = 'Preferences saved on this device';
+        showToast('Preferences saved');
+        return;
+      }
+
+      try {
+        const savedPrefs = await fetchJSON('/api/users/preferences', {
+          method:'PUT',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            theme: state.prefs.theme,
+            currency: state.prefs.currency,
+            notifEmail: state.prefs.notifEmail,
+            notifPush: state.prefs.notifPush
+          })
+        });
+
+        state.prefs = normalizePrefs(savedPrefs || state.prefs);
+        applyPrefsToForm();
+        qs('#prefsStatus').textContent = 'Preferences synced';
+        showToast('Preferences saved');
+      } catch(err){
+        qs('#prefsStatus').textContent = err.message || 'Failed to save preferences';
+      }
     }
 
     function applyTheme(mode){
@@ -307,14 +375,13 @@
       else location.href='login.html';
     });
 
-    function initPage(){
+    async function initPage(){
       if (window.Notifications) window.Notifications.init();
       if (!loadStoredUser()) {
-        loadPrefs();
+        await loadPrefs();
         return;
       }
-      loadProfile();
-      loadPrefs();
+      await Promise.allSettled([loadProfile(), loadPrefs()]);
     }
 
     initPage();

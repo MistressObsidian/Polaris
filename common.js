@@ -25,6 +25,37 @@
 		return nextPrefs;
 	}
 
+	function getSessionToken(){
+		if (window.BSSession?.getToken) return window.BSSession.getToken() || "";
+		try {
+			const user = JSON.parse(localStorage.getItem("bs-user") || "null");
+			return user?.token || localStorage.getItem("bs-token") || "";
+		} catch {
+			return localStorage.getItem("bs-token") || "";
+		}
+	}
+
+	async function persistPrefsToServer(partialPrefs = {}){
+		const token = getSessionToken();
+		if (!token) return null;
+
+		try {
+			const res = await fetch(`${window.API_BASE || "/api"}/users/preferences`, {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify(partialPrefs),
+			});
+
+			if (!res.ok) return null;
+			return await res.json();
+		} catch {
+			return null;
+		}
+	}
+
 	function getPreferredMode(){
 		const prefs = readPrefs();
 		return normalizeThemeMode(prefs.theme);
@@ -74,7 +105,39 @@
 		const prefs = readPrefs();
 		prefs.theme = normalizeThemeMode(mode);
 		writePrefs(prefs);
+		void persistPrefsToServer({ theme: prefs.theme });
 		return applyTheme(prefs.theme);
+	}
+
+	async function syncServerPrefs(){
+		const token = getSessionToken();
+		if (!token) return null;
+
+		try {
+			const res = await fetch(`${window.API_BASE || "/api"}/users/preferences`, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+
+			if (!res.ok) return null;
+
+			const data = await res.json();
+			const current = readPrefs();
+			const nextPrefs = {
+				...current,
+				theme: normalizeThemeMode(data?.theme),
+				currency: data?.currency || current.currency || "USD",
+				notifEmail: Boolean(data?.notifEmail ?? data?.notif_email),
+				notifPush: Boolean(data?.notifPush ?? data?.notif_push),
+			};
+
+			writePrefs(nextPrefs);
+			applyTheme(nextPrefs.theme);
+			return nextPrefs;
+		} catch {
+			return null;
+		}
 	}
 
 	function toggleTheme(){
@@ -123,6 +186,7 @@
 	window.BSTheme = {
 		applyTheme,
 		saveTheme,
+		syncServerPrefs,
 		toggleTheme,
 		getPreferredMode,
 		normalizeThemeMode,
@@ -134,6 +198,7 @@
 	};
 
 	applyTheme();
+	void syncServerPrefs();
 	bindSystemPreference();
 	if (document.readyState === "loading") {
 		document.addEventListener("DOMContentLoaded", bindThemeToggles);

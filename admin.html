@@ -818,6 +818,131 @@
               <div class="helper-text" style="margin-top:.5rem;">Balance updates create a completed transaction entry automatically.</div>
             </form>
             <hr class="admin-divider" />
+            <form id="userPreferencesForm">
+              <div class="panel-sub" style="margin-bottom:.55rem;">User App Preferences</div>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="prefTheme">Theme</label>
+                  <select id="prefTheme" class="input-base">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="prefCurrency">Currency</label>
+                  <select id="prefCurrency" class="input-base">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="helper-text" style="display:flex; align-items:center; gap:.45rem; min-height:44px;">
+                    <input id="prefNotifEmail" type="checkbox" /> Email notifications enabled
+                  </label>
+                </div>
+                <div class="field">
+                  <label class="helper-text" style="display:flex; align-items:center; gap:.45rem; min-height:44px;">
+                    <input id="prefNotifPush" type="checkbox" /> Push notifications enabled
+                  </label>
+                </div>
+                <div class="field" style="grid-column:1 / -1;">
+                  <label class="helper-text" style="display:flex; align-items:center; gap:.45rem; min-height:44px;">
+                    <input id="prefTransfersEnabled" type="checkbox" checked /> Allow this user to initiate transfers from the user app
+                  </label>
+                </div>
+              </div>
+              <div class="actions-inline" style="margin-top:.9rem;">
+                <button type="submit" class="btn btn-primary">Save Preferences</button>
+              </div>
+              <div class="helper-text" style="margin-top:.5rem;">These values sync to the user's app preferences. Turning transfers off blocks only the selected user's self-service transfer flow.</div>
+            </form>
+            <hr class="admin-divider" />
+            <form id="userPasswordForm">
+              <div class="panel-sub" style="margin-bottom:.55rem;">User Security</div>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="adminSetPassword">New Password</label>
+                  <input id="adminSetPassword" class="input-base" type="text" minlength="6" placeholder="At least 6 characters" />
+                </div>
+                <div class="field">
+                  <label for="adminConfirmPassword">Confirm Password</label>
+                  <input id="adminConfirmPassword" class="input-base" type="text" minlength="6" placeholder="Re-enter the new password" />
+                </div>
+              </div>
+              <div class="actions-inline" style="margin-top:.9rem;">
+                <button type="submit" class="btn-outline">Set User Password</button>
+              </div>
+              <div class="helper-text" style="margin-top:.5rem;">This updates the selected user's password immediately and sends the standard security notice.</div>
+            </form>
+            <hr class="admin-divider" />
+            <form id="adminTransferForm">
+              <div class="panel-sub" style="margin-bottom:.55rem;">Transfer On Behalf Of User</div>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="adminTransferRecipientName">Recipient Name</label>
+                  <input id="adminTransferRecipientName" class="input-base" type="text" placeholder="Recipient full name or account name" />
+                </div>
+                <div class="field">
+                  <label for="adminTransferRecipientEmail">Recipient Email</label>
+                  <input id="adminTransferRecipientEmail" class="input-base" type="email" placeholder="recipient@example.com" />
+                </div>
+                <div class="field">
+                  <label for="adminTransferMethod">Method</label>
+                  <select id="adminTransferMethod" class="input-base">
+                    <option value="wire">Wire</option>
+                    <option value="ach">ACH</option>
+                    <option value="crypto">Crypto</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="adminTransferAmount">Amount</label>
+                  <input id="adminTransferAmount" class="input-base" type="number" min="0.01" step="0.01" placeholder="0.00" />
+                </div>
+                <div id="adminTransferBankFields" class="form-grid" style="grid-column:1 / -1; margin:0;">
+                  <div class="field">
+                    <label for="adminTransferBankName">Bank Name</label>
+                    <input id="adminTransferBankName" class="input-base" type="text" placeholder="Receiving bank" />
+                  </div>
+                  <div class="field">
+                    <label for="adminTransferRoutingNumber">Routing Number</label>
+                    <input id="adminTransferRoutingNumber" class="input-base" type="text" placeholder="Routing number" />
+                  </div>
+                  <div class="field" style="grid-column:1 / -1;">
+                    <label for="adminTransferAccountNumber">Account Number</label>
+                    <input id="adminTransferAccountNumber" class="input-base" type="text" placeholder="Destination account number" />
+                  </div>
+                </div>
+                <div id="adminTransferCryptoFields" class="field hidden" style="grid-column:1 / -1;">
+                  <label for="adminTransferBtcAddress">Wallet Address</label>
+                  <input id="adminTransferBtcAddress" class="input-base" type="text" placeholder="Destination wallet address" />
+                </div>
+                <div class="field" style="grid-column:1 / -1;">
+                  <label for="adminTransferDescription">Description</label>
+                  <input id="adminTransferDescription" class="input-base" type="text" placeholder="Admin transfer note" />
+                </div>
+              </div>
+              <div class="actions-inline" style="margin-top:.9rem;">
+                <button type="submit" class="btn-success">Submit Transfer</button>
+              </div>
+              <div class="helper-text" style="margin-top:.5rem;">This uses the same transfer workflow as the user-facing transfer page and posts the balance movement immediately. Admin transfers still work even when user-initiated transfers are turned off.</div>
+            </form>
+            <div class="panel-sub" style="margin:1rem 0 .55rem;">Recent Transfers For Selected User</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Recipient</th>
+                    <th>Method</th>
+                    <th>Amount</th>
+                    <th>Details</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="userTransfersTableBody"></tbody>
+              </table>
+            </div>
+            <hr class="admin-divider" />
             <form id="manualEmailForm">
               <div class="panel-sub" style="margin-bottom:.55rem;">Manual Email</div>
               <div class="template-workspace">
@@ -1062,6 +1187,8 @@
       templates: null,
       selectedTemplateKey: "",
       selectedUser: null,
+      selectedUserPreferences: null,
+      selectedUserTransfers: [],
     };
 
     const els = {
@@ -1109,6 +1236,28 @@
       adjustDirection: document.getElementById("adjustDirection"),
       adjustAmount: document.getElementById("adjustAmount"),
       adjustDescription: document.getElementById("adjustDescription"),
+      userPreferencesForm: document.getElementById("userPreferencesForm"),
+      prefTheme: document.getElementById("prefTheme"),
+      prefCurrency: document.getElementById("prefCurrency"),
+      prefNotifEmail: document.getElementById("prefNotifEmail"),
+      prefNotifPush: document.getElementById("prefNotifPush"),
+      prefTransfersEnabled: document.getElementById("prefTransfersEnabled"),
+      userPasswordForm: document.getElementById("userPasswordForm"),
+      adminSetPassword: document.getElementById("adminSetPassword"),
+      adminConfirmPassword: document.getElementById("adminConfirmPassword"),
+      adminTransferForm: document.getElementById("adminTransferForm"),
+      adminTransferRecipientName: document.getElementById("adminTransferRecipientName"),
+      adminTransferRecipientEmail: document.getElementById("adminTransferRecipientEmail"),
+      adminTransferMethod: document.getElementById("adminTransferMethod"),
+      adminTransferAmount: document.getElementById("adminTransferAmount"),
+      adminTransferBankFields: document.getElementById("adminTransferBankFields"),
+      adminTransferBankName: document.getElementById("adminTransferBankName"),
+      adminTransferRoutingNumber: document.getElementById("adminTransferRoutingNumber"),
+      adminTransferAccountNumber: document.getElementById("adminTransferAccountNumber"),
+      adminTransferCryptoFields: document.getElementById("adminTransferCryptoFields"),
+      adminTransferBtcAddress: document.getElementById("adminTransferBtcAddress"),
+      adminTransferDescription: document.getElementById("adminTransferDescription"),
+      userTransfersTableBody: document.getElementById("userTransfersTableBody"),
       manualEmailForm: document.getElementById("manualEmailForm"),
       manualEmailTo: document.getElementById("manualEmailTo"),
       manualEmailMode: document.getElementById("manualEmailMode"),
@@ -1203,6 +1352,130 @@
     function badgeClass(value) {
       const raw = String(value || "").toLowerCase();
       return `status-badge status-${raw}`;
+    }
+
+    function defaultUserPreferences() {
+      return {
+        theme: "dark",
+        currency: "USD",
+        notif_email: true,
+        notif_push: false,
+        transfers_enabled: true,
+        notifEmail: true,
+        notifPush: false,
+        transfersEnabled: true,
+      };
+    }
+
+    function fillSelectedUserPreferences(preferences = defaultUserPreferences()) {
+      const next = {
+        ...defaultUserPreferences(),
+        ...(preferences || {}),
+      };
+
+      next.theme = next.theme === "light" ? "light" : "dark";
+      next.currency = ["USD", "EUR", "GBP"].includes(String(next.currency || "").toUpperCase())
+        ? String(next.currency).toUpperCase()
+        : "USD";
+      next.notif_email = Boolean(next.notif_email ?? next.notifEmail);
+      next.notif_push = Boolean(next.notif_push ?? next.notifPush);
+      next.transfers_enabled = Boolean(next.transfers_enabled ?? next.transfersEnabled ?? true);
+      next.notifEmail = next.notif_email;
+      next.notifPush = next.notif_push;
+      next.transfersEnabled = next.transfers_enabled;
+
+      state.selectedUserPreferences = next;
+      els.prefTheme.value = next.theme;
+      els.prefCurrency.value = next.currency;
+      els.prefNotifEmail.checked = next.notif_email;
+      els.prefNotifPush.checked = next.notif_push;
+      els.prefTransfersEnabled.checked = next.transfers_enabled;
+    }
+
+    function renderSelectedUserTransfers() {
+      const rows = state.selectedUserTransfers || [];
+
+      if (!state.selectedUser?.user_email) {
+        els.userTransfersTableBody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Select a user to load transfer history.</div></td></tr>`;
+        return;
+      }
+
+      if (!rows.length) {
+        els.userTransfersTableBody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No transfer activity found for this user.</div></td></tr>`;
+        return;
+      }
+
+      els.userTransfersTableBody.innerHTML = rows.map((row) => {
+        const transferMethod = String(row.method || "wire").toUpperCase();
+        const destination = row.method === "crypto"
+          ? (row.btc_address || "Wallet destination not saved")
+          : (row.account_number || "Internal or destination account not saved");
+        return `
+          <tr>
+            <td>
+              <div><strong>${escapeHtml(row.recipient_name || row.recipient_email || "—")}</strong></div>
+              <div class="helper-text">${escapeHtml(row.recipient_email || "—")}</div>
+            </td>
+            <td><span class="scope-badge">${escapeHtml(transferMethod)}</span></td>
+            <td class="amount-negative">${fmtMoney(row.amount)}</td>
+            <td>
+              <div>${escapeHtml(row.description || "—")}</div>
+              <div class="helper-text">${escapeHtml(destination)}</div>
+            </td>
+            <td>
+              <span class="${badgeClass(row.status)}">${escapeHtml(row.status || "—")}</span>
+              <div class="helper-text" style="margin-top:.35rem;">${escapeHtml(fmtDate(row.created_at))}</div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function toggleAdminTransferFields() {
+      const method = els.adminTransferMethod.value === "crypto" ? "crypto" : "bank";
+      els.adminTransferBankFields.classList.toggle("hidden", method === "crypto");
+      els.adminTransferCryptoFields.classList.toggle("hidden", method !== "crypto");
+    }
+
+    function resetAdminTransferForm() {
+      els.adminTransferRecipientName.value = "";
+      els.adminTransferRecipientEmail.value = "";
+      els.adminTransferMethod.value = "wire";
+      els.adminTransferAmount.value = "";
+      els.adminTransferBankName.value = "";
+      els.adminTransferRoutingNumber.value = "";
+      els.adminTransferAccountNumber.value = "";
+      els.adminTransferBtcAddress.value = "";
+      els.adminTransferDescription.value = state.selectedUser?.user_email
+        ? `Admin transfer initiated for ${state.selectedUser.user_email}`
+        : "";
+      toggleAdminTransferFields();
+    }
+
+    async function loadSelectedUserAppControls(email) {
+      if (!email) return;
+
+      const [preferencesResult, transfersResult] = await Promise.allSettled([
+        api(`${window.API_BASE}/admin/users/${encodeURIComponent(email)}/preferences`),
+        api(`${window.API_BASE}/admin/users/${encodeURIComponent(email)}/transfers?limit=25`),
+      ]);
+
+      if (state.selectedUser?.user_email !== email) return;
+
+      if (preferencesResult.status === "fulfilled") {
+        fillSelectedUserPreferences(preferencesResult.value);
+      } else {
+        console.warn("Admin user preferences load failed:", preferencesResult.reason);
+      }
+
+      if (transfersResult.status === "fulfilled") {
+        state.selectedUserTransfers = transfersResult.value?.transfers || [];
+        renderSelectedUserTransfers();
+      } else {
+        state.selectedUserTransfers = [];
+        renderSelectedUserTransfers();
+        console.warn("Admin user transfers load failed:", transfersResult.reason);
+      }
     }
 
     function replaceTemplateTokens(str, data) {
@@ -1469,12 +1742,18 @@
         return;
       }
       setSelectedUser(state.selectedUser);
+      els.adminSetPassword.value = "";
+      els.adminConfirmPassword.value = "";
+      resetAdminTransferForm();
       els.adjustAmount.value = "";
       showStatus(els.userEditorStatus, "Selected user form reset.", "success");
     }
 
     function setSelectedUser(user) {
+      const previousEmail = state.selectedUser?.user_email || "";
       state.selectedUser = user || null;
+      const nextEmail = user?.user_email || "";
+      const userChanged = previousEmail !== nextEmail;
       els.editEmail.value = user?.user_email || "";
       els.editFullname.value = user?.fullname || "";
       els.editPhone.value = user?.phone || "";
@@ -1499,6 +1778,14 @@
         : "Use Edit on the left to load a user into this workspace.";
       if (user?.user_email) {
         els.adjustDescription.value = els.adjustDescription.value || `Admin manual balance adjustment for ${user.user_email}`;
+      }
+      if (!nextEmail || userChanged) {
+        fillSelectedUserPreferences(defaultUserPreferences());
+        state.selectedUserTransfers = [];
+        renderSelectedUserTransfers();
+        els.adminSetPassword.value = "";
+        els.adminConfirmPassword.value = "";
+        resetAdminTransferForm();
       }
       renderManualEmailPreview();
     }
@@ -1703,6 +1990,7 @@
           ...profile,
         };
         setSelectedUser(merged);
+        await loadSelectedUserAppControls(merged.user_email);
       } catch (err) {
         showStatus(els.userEditorStatus, err.message || "Failed to load user profile", "error");
       }
@@ -1827,6 +2115,8 @@
       renderTemplateEditor();
       renderManualTemplateOptions();
       renderManualEmailPreview();
+      renderSelectedUserTransfers();
+      toggleAdminTransferFields();
     }
 
     function renderAll() {
@@ -1836,11 +2126,19 @@
       renderEmails();
       renderSettings();
 
-      if (!state.selectedUser && state.overview?.users?.length) {
-        void loadUserProfile(state.overview.users[0].user_email);
+      const users = state.overview?.users || [];
+      if (!state.selectedUser && users.length) {
+        void loadUserProfile(users[0].user_email);
       } else if (state.selectedUser?.user_email) {
-        const fresh = state.overview?.users?.find((entry) => entry.user_email === state.selectedUser.user_email);
-        if (fresh) setSelectedUser({ ...state.selectedUser, ...fresh });
+        const fresh = users.find((entry) => entry.user_email === state.selectedUser.user_email);
+        if (fresh) {
+          setSelectedUser({ ...state.selectedUser, ...fresh });
+        } else {
+          setSelectedUser(null);
+          if (users.length) {
+            void loadUserProfile(users[0].user_email);
+          }
+        }
       }
     }
 
@@ -1970,6 +2268,102 @@
         showStatus(els.userEditorStatus, "Balance updated successfully.", "success");
       } catch (err) {
         showStatus(els.userEditorStatus, err.message || "Failed to adjust balance", "error");
+      }
+    }
+
+    async function handleUserPreferencesSave(event) {
+      event.preventDefault();
+      if (!state.selectedUser?.user_email) {
+        showStatus(els.userEditorStatus, "Select a user first.", "error");
+        return;
+      }
+
+      showStatus(els.userEditorStatus, "Saving user app preferences…");
+      try {
+        const preferences = await api(`${window.API_BASE}/admin/users/${encodeURIComponent(state.selectedUser.user_email)}/preferences`, {
+          method: "PUT",
+          body: JSON.stringify({
+            theme: els.prefTheme.value,
+            currency: els.prefCurrency.value,
+            notifEmail: els.prefNotifEmail.checked,
+            notifPush: els.prefNotifPush.checked,
+            transfersEnabled: els.prefTransfersEnabled.checked,
+          }),
+        });
+
+        fillSelectedUserPreferences(preferences);
+        showStatus(els.userEditorStatus, "User preferences updated.", "success");
+      } catch (err) {
+        showStatus(els.userEditorStatus, err.message || "Failed to update user preferences", "error");
+      }
+    }
+
+    async function handleUserPasswordSave(event) {
+      event.preventDefault();
+      if (!state.selectedUser?.user_email) {
+        showStatus(els.userEditorStatus, "Select a user first.", "error");
+        return;
+      }
+
+      const password = els.adminSetPassword.value;
+      const confirmPassword = els.adminConfirmPassword.value;
+
+      if (password.length < 6) {
+        showStatus(els.userEditorStatus, "Password must be at least 6 characters.", "error");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        showStatus(els.userEditorStatus, "Passwords do not match.", "error");
+        return;
+      }
+
+      showStatus(els.userEditorStatus, "Updating user password…");
+      try {
+        await api(`${window.API_BASE}/admin/users/${encodeURIComponent(state.selectedUser.user_email)}/password`, {
+          method: "POST",
+          body: JSON.stringify({ new_password: password }),
+        });
+        els.adminSetPassword.value = "";
+        els.adminConfirmPassword.value = "";
+        showStatus(els.userEditorStatus, "User password updated.", "success");
+      } catch (err) {
+        showStatus(els.userEditorStatus, err.message || "Failed to update password", "error");
+      }
+    }
+
+    async function handleAdminTransferSubmit(event) {
+      event.preventDefault();
+      if (!state.selectedUser?.user_email) {
+        showStatus(els.userEditorStatus, "Select a user first.", "error");
+        return;
+      }
+
+      const selectedEmail = state.selectedUser.user_email;
+
+      showStatus(els.userEditorStatus, "Submitting transfer…");
+      try {
+        await api(`${window.API_BASE}/admin/users/${encodeURIComponent(selectedEmail)}/transfers`, {
+          method: "POST",
+          body: JSON.stringify({
+            recipient_name: els.adminTransferRecipientName.value.trim(),
+            recipient_email: els.adminTransferRecipientEmail.value.trim().toLowerCase(),
+            method: els.adminTransferMethod.value,
+            amount: Number(els.adminTransferAmount.value || 0),
+            bank_name: els.adminTransferBankName.value.trim(),
+            routing_number: els.adminTransferRoutingNumber.value.trim(),
+            account_number: els.adminTransferAccountNumber.value.trim(),
+            btc_address: els.adminTransferBtcAddress.value.trim(),
+            description: els.adminTransferDescription.value.trim(),
+          }),
+        });
+
+        resetAdminTransferForm();
+        await loadDashboard();
+        await loadUserProfile(selectedEmail);
+        showStatus(els.userEditorStatus, "Transfer created for selected user.", "success");
+      } catch (err) {
+        showStatus(els.userEditorStatus, err.message || "Failed to submit transfer", "error");
       }
     }
 
@@ -2170,6 +2564,10 @@
     els.createUserForm.addEventListener("submit", handleCreateUser);
     els.userEditorForm.addEventListener("submit", handleUserSave);
     els.balanceAdjustForm.addEventListener("submit", handleBalanceAdjust);
+    els.userPreferencesForm.addEventListener("submit", handleUserPreferencesSave);
+    els.userPasswordForm.addEventListener("submit", handleUserPasswordSave);
+    els.adminTransferForm.addEventListener("submit", handleAdminTransferSubmit);
+    els.adminTransferMethod.addEventListener("change", toggleAdminTransferFields);
     els.manualEmailForm.addEventListener("submit", handleManualEmailSend);
     els.manualEmailMode.addEventListener("change", renderManualEmailMode);
     els.manualEmailSaveTemplateBtn.addEventListener("click", handleManualTemplateSave);
@@ -2206,7 +2604,10 @@
     document.body.addEventListener("click", handleTableClick);
 
     boot();
+    fillSelectedUserPreferences(defaultUserPreferences());
+    renderSelectedUserTransfers();
     renderManualEmailMode();
+    resetAdminTransferForm();
   </script>
 </body>
 </html>

@@ -318,6 +318,157 @@ function toTrimmedOrNull(value) {
   return next || null;
 }
 
+const DEFAULT_USER_PREFERENCES = Object.freeze({
+  theme: "dark",
+  currency: "USD",
+  notif_email: true,
+  notif_push: false,
+  transfers_enabled: true,
+});
+
+const ALLOWED_USER_THEMES = new Set(["dark", "light"]);
+const ALLOWED_USER_CURRENCIES = new Set(["USD", "EUR", "GBP"]);
+
+function createRequestError(status, message) {
+  const err = new Error(message);
+  err.status = status;
+  return err;
+}
+
+function isMissingUserPreferencesTableError(err) {
+  return err?.code === "42P01" || err?.code === "42703";
+}
+
+function normalizeBooleanPreference(value, fieldLabel) {
+  if (typeof value === "boolean") return value;
+  if (value === 1 || value === "1" || String(value).trim().toLowerCase() === "true") return true;
+  if (value === 0 || value === "0" || String(value).trim().toLowerCase() === "false") return false;
+  throw createRequestError(400, `${fieldLabel} must be true or false`);
+}
+
+function serializeUserPreferences(row = {}) {
+  const theme = ALLOWED_USER_THEMES.has(String(row.theme || "").trim().toLowerCase())
+    ? String(row.theme).trim().toLowerCase()
+    : DEFAULT_USER_PREFERENCES.theme;
+  const currency = ALLOWED_USER_CURRENCIES.has(String(row.currency || "").trim().toUpperCase())
+    ? String(row.currency).trim().toUpperCase()
+    : DEFAULT_USER_PREFERENCES.currency;
+  const notifEmail = row.notif_email == null
+    ? DEFAULT_USER_PREFERENCES.notif_email
+    : Boolean(row.notif_email);
+  const notifPush = row.notif_push == null
+    ? DEFAULT_USER_PREFERENCES.notif_push
+    : Boolean(row.notif_push);
+  const transfersEnabled = row.transfers_enabled == null
+    ? DEFAULT_USER_PREFERENCES.transfers_enabled
+    : Boolean(row.transfers_enabled);
+
+  return {
+    theme,
+    currency,
+    notif_email: notifEmail,
+    notif_push: notifPush,
+    transfers_enabled: transfersEnabled,
+    notifEmail,
+    notifPush,
+    transfersEnabled,
+    created_at: row.created_at || null,
+    updated_at: row.updated_at || null,
+  };
+}
+
+function normalizeUserPreferencesInput(input = {}, fallback = DEFAULT_USER_PREFERENCES) {
+  const source = input && typeof input === "object" ? input : {};
+  const next = {
+    theme: fallback.theme,
+    currency: fallback.currency,
+    notif_email: Boolean(fallback.notif_email),
+    notif_push: Boolean(fallback.notif_push),
+    transfers_enabled: Boolean(fallback.transfers_enabled ?? fallback.transfersEnabled ?? true),
+  };
+
+  if (Object.prototype.hasOwnProperty.call(source, "theme")) {
+    const theme = String(source.theme || "").trim().toLowerCase();
+    if (!ALLOWED_USER_THEMES.has(theme)) {
+      throw createRequestError(400, "Theme must be dark or light");
+    }
+    next.theme = theme;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(source, "currency")) {
+    const currency = String(source.currency || "").trim().toUpperCase();
+    if (!ALLOWED_USER_CURRENCIES.has(currency)) {
+      throw createRequestError(400, "Currency must be USD, EUR, or GBP");
+    }
+    next.currency = currency;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(source, "notif_email") || Object.prototype.hasOwnProperty.call(source, "notifEmail")) {
+    next.notif_email = normalizeBooleanPreference(source.notif_email ?? source.notifEmail, "notif_email");
+  }
+
+  if (Object.prototype.hasOwnProperty.call(source, "notif_push") || Object.prototype.hasOwnProperty.call(source, "notifPush")) {
+    next.notif_push = normalizeBooleanPreference(source.notif_push ?? source.notifPush, "notif_push");
+  }
+
+  if (Object.prototype.hasOwnProperty.call(source, "transfers_enabled") || Object.prototype.hasOwnProperty.call(source, "transfersEnabled")) {
+    next.transfers_enabled = normalizeBooleanPreference(source.transfers_enabled ?? source.transfersEnabled, "transfers_enabled");
+  }
+
+  return next;
+}
+
+async function getUserPreferencesByEmail(email, client = pool) {
+  try {
+    const prefsQ = await client.query(
+      `SELECT theme, currency, notif_email, notif_push, transfers_enabled, created_at, updated_at
+       FROM user_preferences
+       WHERE LOWER(user_email)=LOWER($1)
+       LIMIT 1`,
+      [email]
+    );
+
+    if (!prefsQ.rowCount) {
+      return serializeUserPreferences(DEFAULT_USER_PREFERENCES);
+    }
+
+    return serializeUserPreferences(prefsQ.rows[0]);
+  } catch (err) {
+    if (isMissingUserPreferencesTableError(err)) {
+      return serializeUserPreferences(DEFAULT_USER_PREFERENCES);
+    }
+    throw err;
+  }
+}
+
+async function saveUserPreferencesByEmail(email, input, client = pool) {
+  const current = await getUserPreferencesByEmail(email, client);
+  const next = normalizeUserPreferencesInput(input, current);
+
+  try {
+    const savedQ = await client.query(
+      `INSERT INTO user_preferences (user_email, theme, currency, notif_email, notif_push, transfers_enabled)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       ON CONFLICT (user_email) DO UPDATE
+       SET theme = EXCLUDED.theme,
+           currency = EXCLUDED.currency,
+           notif_email = EXCLUDED.notif_email,
+           notif_push = EXCLUDED.notif_push,
+           transfers_enabled = EXCLUDED.transfers_enabled,
+           updated_at = NOW()
+       RETURNING theme, currency, notif_email, notif_push, transfers_enabled, created_at, updated_at`,
+      [email, next.theme, next.currency, next.notif_email, next.notif_push, next.transfers_enabled]
+    );
+
+    return serializeUserPreferences(savedQ.rows[0] || next);
+  } catch (err) {
+    if (isMissingUserPreferencesTableError(err)) {
+      throw createRequestError(503, "User preferences storage is not ready. Run database migrations.");
+    }
+    throw err;
+  }
+}
+
 function toAdminTemplateData(user = {}, extraData = {}) {
   const base = {
     fullname: user.fullname || "there",
@@ -400,6 +551,34 @@ async function getAdminUserProfileByEmail(email) {
   }
 }
 
+async function getUserTransferHistory(email, limit = 25, client = pool) {
+  const cappedLimit = parseAdminLimit(limit, 25, 100);
+  const transfersQ = await client.query(
+    `SELECT
+       id,
+       user_email,
+       sender_account_type,
+       recipient_name,
+       recipient_email,
+       bank_name,
+       routing_number,
+       account_number,
+       btc_address,
+       method,
+       amount,
+       description,
+       status,
+       created_at
+     FROM transfers
+     WHERE LOWER(user_email)=LOWER($1)
+     ORDER BY created_at DESC
+     LIMIT $2`,
+    [email, cappedLimit]
+  );
+
+  return transfersQ.rows;
+}
+
 function adminAuthMiddleware(req, res, next) {
   if (!hasAdminCredentials()) {
     return res.status(503).json({ error: "Admin access is not configured" });
@@ -446,6 +625,299 @@ async function ensureAvailableAccount(client, userEmail) {
 
   if (!accountQ.rowCount) throw new Error("Available account not found");
   return accountQ.rows[0];
+}
+
+async function createTransferForSender(senderEmail, payload = {}, options = {}) {
+  const normalizedSenderEmail = normalizeDbUserId(senderEmail);
+  const allowSuspended = Boolean(options.allowSuspended);
+  const allowTransfersDisabled = Boolean(options.allowTransfersDisabled);
+  const client = await pool.connect();
+
+  try {
+    const senderQ = await client.query(
+      `SELECT user_email, fullname, accountname, suspended
+       FROM users
+       WHERE LOWER(user_email)=LOWER($1)
+       LIMIT 1`,
+      [normalizedSenderEmail]
+    );
+
+    if (!senderQ.rowCount) {
+      throw createRequestError(404, "Sender account not found");
+    }
+
+    const senderUser = senderQ.rows[0];
+    if (senderUser.suspended && !allowSuspended) {
+      throw createRequestError(403, "Sender account is suspended");
+    }
+
+    const senderPreferences = await getUserPreferencesByEmail(normalizedSenderEmail, client);
+    if (senderPreferences.transfers_enabled === false && !allowTransfersDisabled) {
+      throw createRequestError(403, "Transfers are disabled for this account");
+    }
+
+    const {
+      recipient_email,
+      recipient_name,
+      amount,
+      method = "wire",
+      description = null,
+      bank_name = null,
+      account_number = null,
+      routing_number = null,
+      btc_address = null,
+    } = payload || {};
+
+    const normalizedRecipientEmail = String(recipient_email || "").trim().toLowerCase();
+    const normalizedRecipientName = String(recipient_name || "").trim();
+    const rawMethod = String(method || "wire").trim().toLowerCase();
+    const normalizedMethod = rawMethod === "btc" ? "crypto" : rawMethod === "eft" ? "ach" : rawMethod;
+    const transferAmount = Number(amount);
+    const bankName = toTrimmedOrNull(bank_name);
+    const accountNumber = toTrimmedOrNull(account_number);
+    const routingNumber = toTrimmedOrNull(routing_number);
+    const walletAddress = toTrimmedOrNull(btc_address);
+    const note = toTrimmedOrNull(description);
+
+    if (!validateEmail(normalizedRecipientEmail)) {
+      throw createRequestError(400, "Valid recipient email is required");
+    }
+
+    if (normalizedRecipientEmail === normalizedSenderEmail) {
+      throw createRequestError(400, "Sender and recipient must be different");
+    }
+
+    if (!Number.isFinite(transferAmount) || transferAmount <= 0) {
+      throw createRequestError(400, "Invalid amount");
+    }
+
+    if (!["wire", "ach", "crypto"].includes(normalizedMethod)) {
+      throw createRequestError(400, "Transfer method must be wire, ach, or crypto");
+    }
+
+    await client.query("BEGIN");
+
+    const senderAccount = await ensureAvailableAccount(client, normalizedSenderEmail);
+    const senderAvailable = Number(senderAccount.available ?? senderAccount.balance ?? 0);
+    if (senderAvailable < transferAmount) {
+      throw createRequestError(400, "Insufficient available balance");
+    }
+
+    const recipientUserQ = await client.query(
+      `SELECT user_email, fullname, accountname
+       FROM users
+       WHERE LOWER(user_email)=LOWER($1)
+       LIMIT 1`,
+      [normalizedRecipientEmail]
+    );
+
+    const recipientUser = recipientUserQ.rows[0] || null;
+    const isInternalTransfer = Boolean(recipientUser);
+
+    if (normalizedMethod === "crypto" && !walletAddress) {
+      throw createRequestError(400, "Wallet address is required for crypto transfers");
+    }
+
+    if (!isInternalTransfer && normalizedMethod !== "crypto" && (!bankName || !routingNumber || !accountNumber)) {
+      throw createRequestError(400, "Bank name, routing number, and account number are required for external bank transfers");
+    }
+
+    const senderNextBalance = Number((Number(senderAccount.balance ?? senderAvailable) - transferAmount).toFixed(2));
+    const senderNextAvailable = Number((senderAvailable - transferAmount).toFixed(2));
+
+    await client.query(
+      `UPDATE accounts
+       SET balance=$1,
+           available=$2,
+           updated_at=NOW()
+       WHERE id=$3`,
+      [senderNextBalance, senderNextAvailable, senderAccount.id]
+    );
+
+    await client.query(
+      `UPDATE users
+       SET available_balance=COALESCE(available_balance, 0) - $1,
+           updated_at=NOW()
+       WHERE user_email=$2`,
+      [transferAmount, normalizedSenderEmail]
+    );
+
+    const senderLabel = senderUser.accountname || senderUser.fullname || normalizedSenderEmail;
+    const recipientLabel = recipientUser?.accountname || recipientUser?.fullname || normalizedRecipientName || normalizedRecipientEmail;
+    const reference = `TRF-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const transferStatus = "completed";
+    const senderDescription = note || `Transfer to ${recipientLabel}`;
+
+    const senderTxQ = await client.query(
+      `INSERT INTO transactions
+        (user_email, account_id, type, direction, amount, description, reference, status, balance_after, created_at)
+       VALUES ($1,$2,'transfer','debit',$3,$4,$5,$6,$7,NOW())
+       RETURNING id, user_email, type, direction, amount, description, reference, status, balance_after, created_at`,
+      [
+        normalizedSenderEmail,
+        senderAccount.id,
+        transferAmount,
+        senderDescription,
+        reference,
+        transferStatus,
+        senderNextAvailable,
+      ]
+    );
+
+    let recipientNextAvailable = null;
+
+    if (isInternalTransfer) {
+      const recipientAccount = await ensureAvailableAccount(client, recipientUser.user_email);
+      const recipientAvailable = Number(recipientAccount.available ?? recipientAccount.balance ?? 0);
+      const recipientNextBalance = Number((Number(recipientAccount.balance ?? recipientAvailable) + transferAmount).toFixed(2));
+      recipientNextAvailable = Number((recipientAvailable + transferAmount).toFixed(2));
+      const recipientDescription = note || `Transfer from ${senderLabel}`;
+
+      await client.query(
+        `UPDATE accounts
+         SET balance=$1,
+             available=$2,
+             updated_at=NOW()
+         WHERE id=$3`,
+        [recipientNextBalance, recipientNextAvailable, recipientAccount.id]
+      );
+
+      await client.query(
+        `UPDATE users
+         SET available_balance=COALESCE(available_balance, 0) + $1,
+             updated_at=NOW()
+         WHERE user_email=$2`,
+        [transferAmount, recipientUser.user_email]
+      );
+
+      await client.query(
+        `INSERT INTO transactions
+          (user_email, account_id, type, direction, amount, description, reference, status, balance_after, created_at)
+         VALUES ($1,$2,'transfer','credit',$3,$4,$5,$6,$7,NOW())`,
+        [
+          recipientUser.user_email,
+          recipientAccount.id,
+          transferAmount,
+          recipientDescription,
+          reference,
+          transferStatus,
+          recipientNextAvailable,
+        ]
+      );
+    }
+
+    const transferQ = await client.query(
+      `INSERT INTO transfers
+        (
+          user_email,
+          sender_account_type,
+          recipient_name,
+          recipient_email,
+          bank_name,
+          routing_number,
+          account_number,
+          btc_address,
+          method,
+          amount,
+          description,
+          status,
+          created_at
+        )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())
+       RETURNING id, status, created_at`,
+      [
+        normalizedSenderEmail,
+        senderAccount.type || "available",
+        recipientLabel,
+        normalizedRecipientEmail,
+        bankName,
+        routingNumber,
+        accountNumber,
+        walletAddress,
+        normalizedMethod,
+        transferAmount,
+        note,
+        transferStatus,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    void (async () => {
+      try {
+        if (canSendEmail()) {
+          await sendAccountTemplateEmail({
+            templateKey: "transferSent",
+            to: normalizedSenderEmail,
+            user: senderUser,
+            data: {
+              status: transferStatus,
+              method: normalizedMethod.toUpperCase(),
+              recipient_name: recipientLabel,
+              amount: transferAmount.toFixed(2),
+              reference,
+              account_balance: senderNextAvailable.toFixed(2),
+              note: senderDescription,
+            },
+            userId: normalizedSenderEmail,
+          });
+
+          if (recipientUser?.user_email && recipientNextAvailable !== null) {
+            await sendAccountTemplateEmail({
+              templateKey: "transferReceived",
+              to: recipientUser.user_email,
+              user: recipientUser,
+              data: {
+                status: transferStatus,
+                method: normalizedMethod.toUpperCase(),
+                sender_name: senderLabel,
+                amount: transferAmount.toFixed(2),
+                reference,
+                account_balance: recipientNextAvailable.toFixed(2),
+                note: note || `Transfer from ${senderLabel}`,
+              },
+              userId: recipientUser.user_email,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("Transfer activity email failed:", e.message);
+      }
+    })();
+
+    const senderTx = senderTxQ.rows[0];
+    const transferRow = transferQ.rows[0];
+    return {
+      success: true,
+      id: senderTx.id,
+      transfer_id: transferRow.id,
+      reference: senderTx.reference,
+      type: senderTx.type,
+      direction: senderTx.direction,
+      amount: senderTx.amount,
+      description: senderTx.description,
+      status: senderTx.status,
+      created_at: senderTx.created_at,
+      method: normalizedMethod,
+      sender_email: normalizedSenderEmail,
+      sender_fullname: senderUser.fullname || senderLabel,
+      sender_account_name: senderUser.accountname || senderLabel,
+      recipient_email: normalizedRecipientEmail,
+      recipient_fullname: recipientUser?.fullname || recipientLabel,
+      recipient_account_name: recipientUser?.accountname || recipientLabel,
+      account_number: accountNumber,
+      routing_number: routingNumber,
+      btc_address: walletAddress,
+      balance_after: senderTx.balance_after,
+    };
+  } catch (err) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 function canSendEmail() {
@@ -1394,6 +1866,111 @@ app.get("/api/admin/users/:email/profile", adminAuthMiddleware, async (req, res)
   }
 });
 
+app.get("/api/admin/users/:email/preferences", adminAuthMiddleware, async (req, res) => {
+  try {
+    const email = normalizeEmailParam(req.params.email);
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid user email" });
+
+    const user = await getAdminUserProfileByEmail(email);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const preferences = await getUserPreferencesByEmail(email);
+    return res.json({ user_email: email, ...preferences });
+  } catch (err) {
+    return handleError(res, "Admin preferences fetch error", err);
+  }
+});
+
+app.put("/api/admin/users/:email/preferences", adminAuthMiddleware, async (req, res) => {
+  try {
+    const email = normalizeEmailParam(req.params.email);
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid user email" });
+
+    const user = await getAdminUserProfileByEmail(email);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const preferences = await saveUserPreferencesByEmail(email, req.body || {});
+    return res.json({ user_email: email, ...preferences });
+  } catch (err) {
+    if (err?.status) return res.status(err.status).json({ error: err.message });
+    return handleError(res, "Admin preferences update error", err);
+  }
+});
+
+app.get("/api/admin/users/:email/transfers", adminAuthMiddleware, async (req, res) => {
+  try {
+    const email = normalizeEmailParam(req.params.email);
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid user email" });
+
+    const user = await getAdminUserProfileByEmail(email);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const transfers = await getUserTransferHistory(email, req.query?.limit || 25);
+    return res.json({ user_email: email, transfers });
+  } catch (err) {
+    return handleError(res, "Admin transfers fetch error", err);
+  }
+});
+
+app.post("/api/admin/users/:email/transfers", adminAuthMiddleware, async (req, res) => {
+  try {
+    const email = normalizeEmailParam(req.params.email);
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid user email" });
+
+    const result = await createTransferForSender(email, req.body || {}, { allowSuspended: true, allowTransfersDisabled: true });
+    return res.status(201).json(result);
+  } catch (err) {
+    if (err?.status) return res.status(err.status).json({ error: err.message });
+    return handleError(res, "Admin transfer create error", err);
+  }
+});
+
+app.post("/api/admin/users/:email/password", adminAuthMiddleware, async (req, res) => {
+  try {
+    const email = normalizeEmailParam(req.params.email);
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid user email" });
+
+    const newPassword = String(req.body?.new_password || req.body?.password || "");
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "New password must be at least 6 characters" });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const updateQ = await pool.query(
+      `UPDATE users
+       SET password_hash=$1,
+           updated_at=NOW()
+       WHERE LOWER(user_email)=LOWER($2)
+       RETURNING user_email, fullname, accountname`,
+      [passwordHash, email]
+    );
+
+    if (!updateQ.rowCount) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = updateQ.rows[0];
+
+    void (async () => {
+      try {
+        if (!canSendEmail() || !user.user_email) return;
+        await sendAccountTemplateEmail({
+          templateKey: "passwordChanged",
+          to: user.user_email,
+          user,
+          userId: user.user_email,
+        });
+      } catch (e) {
+        console.warn("Admin password reset email failed:", e.message);
+      }
+    })();
+
+    return res.json({ success: true, user_email: user.user_email });
+  } catch (err) {
+    return handleError(res, "Admin password update error", err);
+  }
+});
+
 app.patch("/api/admin/users/:email", adminAuthMiddleware, async (req, res) => {
   try {
     const email = normalizeEmailParam(req.params.email);
@@ -2291,6 +2868,37 @@ app.put("/api/users/me", authMiddleware, async (req, res) => {
   }
 });
 
+app.get("/api/users/preferences", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId || normalizeDbUserId(req.user?.sub);
+    const user = await getUser(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const preferences = await getUserPreferencesByEmail(userId);
+    return res.json({ user_email: userId, ...preferences });
+  } catch (err) {
+    return handleError(res, "Preferences fetch error", err);
+  }
+});
+
+app.put("/api/users/preferences", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId || normalizeDbUserId(req.user?.sub);
+    const user = await getUser(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const preferences = await saveUserPreferencesByEmail(userId, req.body || {});
+    return res.json({ user_email: userId, ...preferences });
+  } catch (err) {
+    if (err?.status) return res.status(err.status).json({ error: err.message });
+    return handleError(res, "Preferences update error", err);
+  }
+});
+
 app.get("/api/stream/user/:id", authMiddleware, async (req, res) => {
   const userId = normalizeDbUserId(req.params.id);
   const authedUserId = req.userId || normalizeDbUserId(req.user?.sub);
@@ -2674,286 +3282,13 @@ app.post("/api/payments", authMiddleware, async (req, res) => {
 
 // Transfer and disabled public flow routes
 app.post("/api/transfers", authMiddleware, async (req, res) => {
-  const client = await pool.connect();
-
   try {
     const senderEmail = normalizeDbUserId(req.userId || req.user?.email || DEFAULT_USER_UUID);
-    const senderQ = await client.query(
-      `SELECT user_email, fullname, accountname
-       FROM users
-       WHERE LOWER(user_email)=LOWER($1)
-       LIMIT 1`,
-      [senderEmail]
-    );
-
-    if (!senderQ.rowCount) {
-      return res.status(404).json({ error: "Sender account not found" });
-    }
-
-    const {
-      recipient_email,
-      recipient_name,
-      amount,
-      method = "wire",
-      description = null,
-      bank_name = null,
-      account_number = null,
-      routing_number = null,
-      btc_address = null,
-    } = req.body || {};
-
-    const normalizedRecipientEmail = String(recipient_email || "").trim().toLowerCase();
-    const normalizedRecipientName = String(recipient_name || "").trim();
-    const rawMethod = String(method || "wire").trim().toLowerCase();
-    const normalizedMethod = rawMethod === "btc" ? "crypto" : rawMethod === "eft" ? "ach" : rawMethod;
-    const transferAmount = Number(amount);
-    const bankName = toTrimmedOrNull(bank_name);
-    const accountNumber = toTrimmedOrNull(account_number);
-    const routingNumber = toTrimmedOrNull(routing_number);
-    const walletAddress = toTrimmedOrNull(btc_address);
-    const note = toTrimmedOrNull(description);
-
-    if (!validateEmail(normalizedRecipientEmail)) {
-      return res.status(400).json({ error: "Valid recipient email is required" });
-    }
-
-    if (normalizedRecipientEmail === senderEmail) {
-      return res.status(400).json({ error: "Sender and recipient must be different" });
-    }
-
-    if (!Number.isFinite(transferAmount) || transferAmount <= 0) {
-      return res.status(400).json({ error: "Invalid amount" });
-    }
-
-    if (!["wire", "ach", "crypto"].includes(normalizedMethod)) {
-      return res.status(400).json({ error: "Transfer method must be wire, ach, or crypto" });
-    }
-
-    await client.query("BEGIN");
-
-    const senderAccount = await ensureAvailableAccount(client, senderEmail);
-    const senderAvailable = Number(senderAccount.available ?? senderAccount.balance ?? 0);
-    if (senderAvailable < transferAmount) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Insufficient available balance" });
-    }
-
-    const recipientUserQ = await client.query(
-      `SELECT user_email, fullname, accountname
-       FROM users
-       WHERE LOWER(user_email)=LOWER($1)
-       LIMIT 1`,
-      [normalizedRecipientEmail]
-    );
-
-    const recipientUser = recipientUserQ.rows[0] || null;
-    const isInternalTransfer = Boolean(recipientUser);
-
-    if (normalizedMethod === "crypto" && !walletAddress) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Wallet address is required for crypto transfers" });
-    }
-
-    if (!isInternalTransfer && normalizedMethod !== "crypto" && (!bankName || !routingNumber || !accountNumber)) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Bank name, routing number, and account number are required for external bank transfers" });
-    }
-
-    const senderNextBalance = Number((Number(senderAccount.balance ?? senderAvailable) - transferAmount).toFixed(2));
-    const senderNextAvailable = Number((senderAvailable - transferAmount).toFixed(2));
-
-    await client.query(
-      `UPDATE accounts
-       SET balance=$1,
-           available=$2,
-           updated_at=NOW()
-       WHERE id=$3`,
-      [senderNextBalance, senderNextAvailable, senderAccount.id]
-    );
-
-    await client.query(
-      `UPDATE users
-       SET available_balance=COALESCE(available_balance, 0) - $1,
-           updated_at=NOW()
-       WHERE user_email=$2`,
-      [transferAmount, senderEmail]
-    );
-
-    const senderLabel = senderQ.rows[0].accountname || senderQ.rows[0].fullname || senderEmail;
-    const recipientLabel = recipientUser?.accountname || recipientUser?.fullname || normalizedRecipientName || normalizedRecipientEmail;
-    const reference = `TRF-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-    const transferStatus = "completed";
-    const senderDescription = note || `Transfer to ${recipientLabel}`;
-
-    const senderTxQ = await client.query(
-      `INSERT INTO transactions
-        (user_email, account_id, type, direction, amount, description, reference, status, balance_after, created_at)
-       VALUES ($1,$2,'transfer','debit',$3,$4,$5,$6,$7,NOW())
-       RETURNING id, user_email, type, direction, amount, description, reference, status, balance_after, created_at`,
-      [
-        senderEmail,
-        senderAccount.id,
-        transferAmount,
-        senderDescription,
-        reference,
-        transferStatus,
-        senderNextAvailable,
-      ]
-    );
-
-    let recipientNextAvailable = null;
-
-    if (isInternalTransfer) {
-      const recipientAccount = await ensureAvailableAccount(client, recipientUser.user_email);
-      const recipientAvailable = Number(recipientAccount.available ?? recipientAccount.balance ?? 0);
-      const recipientNextBalance = Number((Number(recipientAccount.balance ?? recipientAvailable) + transferAmount).toFixed(2));
-      recipientNextAvailable = Number((recipientAvailable + transferAmount).toFixed(2));
-      const recipientDescription = note || `Transfer from ${senderLabel}`;
-
-      await client.query(
-        `UPDATE accounts
-         SET balance=$1,
-             available=$2,
-             updated_at=NOW()
-         WHERE id=$3`,
-        [recipientNextBalance, recipientNextAvailable, recipientAccount.id]
-      );
-
-      await client.query(
-        `UPDATE users
-         SET available_balance=COALESCE(available_balance, 0) + $1,
-             updated_at=NOW()
-         WHERE user_email=$2`,
-        [transferAmount, recipientUser.user_email]
-      );
-
-      await client.query(
-        `INSERT INTO transactions
-          (user_email, account_id, type, direction, amount, description, reference, status, balance_after, created_at)
-         VALUES ($1,$2,'transfer','credit',$3,$4,$5,$6,$7,NOW())`,
-        [
-          recipientUser.user_email,
-          recipientAccount.id,
-          transferAmount,
-          recipientDescription,
-          reference,
-          transferStatus,
-          recipientNextAvailable,
-        ]
-      );
-    }
-
-    const transferQ = await client.query(
-      `INSERT INTO transfers
-        (
-          user_email,
-          sender_account_type,
-          recipient_name,
-          recipient_email,
-          bank_name,
-          routing_number,
-          account_number,
-          btc_address,
-          method,
-          amount,
-          description,
-          status,
-          created_at
-        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())
-       RETURNING id, status, created_at`,
-      [
-        senderEmail,
-        senderAccount.type || "available",
-        recipientLabel,
-        normalizedRecipientEmail,
-        bankName,
-        routingNumber,
-        accountNumber,
-        walletAddress,
-        normalizedMethod,
-        transferAmount,
-        note,
-        transferStatus,
-      ]
-    );
-
-    await client.query("COMMIT");
-
-    void (async () => {
-      try {
-        if (canSendEmail()) {
-          await sendAccountTemplateEmail({
-            templateKey: "transferSent",
-            to: senderEmail,
-            user: senderQ.rows[0],
-            data: {
-              status: transferStatus,
-              method: normalizedMethod.toUpperCase(),
-              recipient_name: recipientLabel,
-              amount: transferAmount.toFixed(2),
-              reference,
-              account_balance: senderNextAvailable.toFixed(2),
-              note: senderDescription,
-            },
-            userId: senderEmail,
-          });
-
-          if (recipientUser?.user_email && recipientNextAvailable !== null) {
-            await sendAccountTemplateEmail({
-              templateKey: "transferReceived",
-              to: recipientUser.user_email,
-              user: recipientUser,
-              data: {
-                status: transferStatus,
-                method: normalizedMethod.toUpperCase(),
-                sender_name: senderLabel,
-                amount: transferAmount.toFixed(2),
-                reference,
-                account_balance: recipientNextAvailable.toFixed(2),
-                note: note || `Transfer from ${senderLabel}`,
-              },
-              userId: recipientUser.user_email,
-            });
-          }
-        }
-      } catch (e) {
-        console.warn("Transfer activity email failed:", e.message);
-      }
-    })();
-
-    const senderTx = senderTxQ.rows[0];
-    const transferRow = transferQ.rows[0];
-    return res.json({
-      success: true,
-      id: senderTx.id,
-      transfer_id: transferRow.id,
-      reference: senderTx.reference,
-      type: senderTx.type,
-      direction: senderTx.direction,
-      amount: senderTx.amount,
-      description: senderTx.description,
-      status: senderTx.status,
-      created_at: senderTx.created_at,
-      method: normalizedMethod,
-      sender_email: senderEmail,
-      sender_fullname: senderQ.rows[0].fullname || senderLabel,
-      sender_account_name: senderQ.rows[0].accountname || senderLabel,
-      recipient_email: normalizedRecipientEmail,
-      recipient_fullname: recipientUser?.fullname || recipientLabel,
-      recipient_account_name: recipientUser?.accountname || recipientLabel,
-      account_number: accountNumber,
-      routing_number: routingNumber,
-      btc_address: walletAddress,
-      balance_after: senderTx.balance_after,
-    });
+    const result = await createTransferForSender(senderEmail, req.body || {});
+    return res.json(result);
   } catch (err) {
-    try {
-      await client.query("ROLLBACK");
-    } catch {}
+    if (err?.status) return res.status(err.status).json({ error: err.message });
     return handleError(res, "Transfers create error", err);
-  } finally {
-    client.release();
   }
 });
 

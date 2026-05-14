@@ -333,7 +333,7 @@
     </div>
     <div class="page-header-nav">
       
-      <a class="btn settings-btn" href="settings.html" aria-label="Settings"><span class="settings-icon" aria-hidden="true">⚙️</span><span class="settings-label">Settings</span></a>
+      <a class="btn settings-btn" href="/settings" aria-label="Settings"><span class="settings-icon" aria-hidden="true">⚙️</span><span class="settings-label">Settings</span></a>
     </div>
   </header>
 
@@ -342,9 +342,9 @@
     <h2>Navigation</h2>
     <ul class="nav-menu">
   <li><a href="#" class="nav-link active">Home</a></li>
-      <li><a href="transfer.html" class="nav-link">Transfers</a></li>
-      <li><a href="transactions.html" class="nav-link">Transactions</a></li>
-      <li><a href="settings.html" class="nav-link">⚙️ Settings</a></li>
+      <li><a href="/transfer" class="nav-link">Transfers</a></li>
+      <li><a href="/transactions" class="nav-link">Transactions</a></li>
+      <li><a href="/settings" class="nav-link">⚙️ Settings</a></li>
     </ul>
   </aside>
   <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true"></div>
@@ -366,9 +366,9 @@
         </div>
       </div>
       <div class="hero-actions">
-        <a class="btn" id="viewAccountsBtn" href="accounts.html">View Accounts</a>
-        <a class="btn" id="makeTransferBtn" href="transfer.html">Transfer Funds</a>
-        <a class="btn" href="transactions.html">View Transactions</a>
+        <a class="btn" id="viewAccountsBtn" href="/accounts">View Accounts</a>
+        <a class="btn" id="makeTransferBtn" href="/transfer">Transfer Funds</a>
+        <a class="btn" href="/transactions">View Transactions</a>
       </div>
     </section>
 
@@ -521,7 +521,7 @@ async function fetchJSON(url, opts = {}) {
   try { data = text ? JSON.parse(text) : null; } catch { data = null; }
 
   if (res.status === 401) {
-    window.location.href = "login.html";
+    window.location.href = "/login";
     return { unauthorized: true, data: null };
   }
 
@@ -678,7 +678,7 @@ function wireActions(){
     viewAccountsBtn.dataset.bound = '1';
     viewAccountsBtn.addEventListener("click", (event) => {
       event.preventDefault();
-      window.location.assign("accounts.html");
+      window.location.assign("/accounts");
     });
   }
 
@@ -731,7 +731,7 @@ async function init(){
   }
 
   if(!user?.token){
-    window.location.href = "login.html";
+    window.location.href = "/login";
     return;
   }
 

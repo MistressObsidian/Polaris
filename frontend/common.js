@@ -229,7 +229,7 @@
 	}
 
 	function goToLogin(){
-		window.location.href = "login.html";
+		window.location.href = "/login";
 	}
 
 	function onAuthRequired({ message } = {}){
@@ -326,7 +326,7 @@
 					localStorage.removeItem("bs-token");
 				}
 				if (window.BSSession?.goToLogin) window.BSSession.goToLogin();
-				else window.location.href = "login.html";
+				else window.location.href = "/login";
 			});
 		});
 	}

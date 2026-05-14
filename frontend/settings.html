@@ -28,7 +28,7 @@
     <h1 class="page-title">Settings</h1>
     <nav class="page-header-nav">
       <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
-  <a class="back-link" href="dashboard.html">← Back to Home</a>
+  <a class="back-link" href="/dashboard">← Back to Home</a>
     </nav>
   </header>
 
@@ -372,7 +372,7 @@
         localStorage.removeItem('bs-token');
       }
       if (window.BSSession?.goToLogin) window.BSSession.goToLogin();
-      else location.href='login.html';
+      else location.href='/login';
     });
 
     async function initPage(){

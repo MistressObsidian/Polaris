@@ -14,7 +14,7 @@
   <div class="particles" id="particles"></div>
 
   <main class="auth-wrapper">
-    <a href="index.html" class="btn-shared btn-outline safe-fixed-top-left" aria-label="Go to home">← Go Back</a>
+    <a href="/" class="btn-shared btn-outline safe-fixed-top-left" aria-label="Go to home">← Go Back</a>
 
     <section class="auth-card" aria-labelledby="regTitle">
       <div class="auth-head">
@@ -94,7 +94,7 @@
         <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
       </form>
 
-      <div class="auth-alt">Already have an account? <a href="login.html">Sign in</a></div>
+      <div class="auth-alt">Already have an account? <a href="/login">Sign in</a></div>
     </section>
   </main>
 
@@ -219,7 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("bs-token", data.token);
       }
 
-      window.location.href = "/dashboard.html";
+      window.location.href = "/dashboard";
 
     } catch (err) {
       console.error("Registration error:", err);

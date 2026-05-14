@@ -14,7 +14,7 @@
   <div class="particles" id="particles"></div>
 
   <main class="auth-wrapper">
-    <a href="index.html" class="btn-shared btn-outline safe-fixed-top-left" aria-label="Go to home">← Go Back</a>
+    <a href="/" class="btn-shared btn-outline safe-fixed-top-left" aria-label="Go to home">← Go Back</a>
 
     <section class="auth-card" aria-labelledby="loginTitle">
       <div class="auth-head">
@@ -45,13 +45,13 @@
           <label style="display:flex; align-items:center; gap:.45rem; cursor:pointer; color:rgba(255,255,255,.7);">
             <input type="checkbox" id="remember" style="accent-color:#667eea; width:16px; height:16px;"> Remember me
           </label>
-          <a href="forgot-password.html" style="color:#667eea; text-decoration:none; font-weight:600;">Forgot password?</a>
+          <a href="/forgot-password" style="color:#667eea; text-decoration:none; font-weight:600;">Forgot password?</a>
         </div>
 
         <button type="submit" class="btn-full" id="loginBtn">Sign In</button>
       </form>
 
-      <div class="auth-alt">Don't have an account? <a href="register.html">Sign up</a></div>
+      <div class="auth-alt">Don't have an account? <a href="/register">Sign up</a></div>
     </section>
   </main>
 
@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
   try {
     const existingAdminToken = localStorage.getItem(ADMIN_TOKEN_KEY) || '';
     if (existingAdminToken) {
-      window.location.href = 'admin.html';
+      window.location.href = '/admin';
       return;
     }
   } catch {}
@@ -142,7 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.removeItem(ADMIN_META_KEY);
 
         loginBtn.textContent = 'Success!';
-        window.location.href = 'dashboard.html';
+        window.location.href = '/dashboard';
         return;
       } catch (userErr) {
         const userMessage = String(userErr?.message || '').trim().toLowerCase();
@@ -156,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.removeItem('bs-user');
         localStorage.removeItem('bs-token');
         loginBtn.textContent = 'Success!';
-        window.location.href = 'admin.html';
+        window.location.href = '/admin';
         return;
       }
     } catch (err) {

@@ -183,7 +183,7 @@
     <h1 class="page-title">Transfer Funds</h1>
     <nav class="page-header-nav">
       <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
-      <a class="back-link" href="dashboard.html">← Back to Home</a>
+      <a class="back-link" href="/dashboard">← Back to Home</a>
     </nav>
   </header>
 
@@ -708,9 +708,9 @@
       });
       qs("#amount").addEventListener("input", updateSummary);
       qs("#transferForm").addEventListener("submit", handleSubmit);
-      qs("#cancelBtn").addEventListener("click", () => window.location.assign("dashboard.html"));
+      qs("#cancelBtn").addEventListener("click", () => window.location.assign("/dashboard"));
       qs("#closeModalBtn").addEventListener("click", closeSuccessModal);
-      qs("#viewReceiptBtn").addEventListener("click", () => window.location.assign("transactions.html"));
+      qs("#viewReceiptBtn").addEventListener("click", () => window.location.assign("/transactions"));
       qs("#successModal").addEventListener("click", (event) => {
         if (event.target === event.currentTarget) closeSuccessModal();
       });

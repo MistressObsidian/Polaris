@@ -47,7 +47,7 @@
     <h1 class="page-title">Accounts Overview</h1>
     <nav class="page-header-nav">
       <button type="button" class="btn btn-outline theme-toggle" data-action="theme-toggle"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
-  <a href="dashboard.html" class="back-link">← Back to Home</a>
+  <a href="/dashboard" class="back-link">← Back to Home</a>
     </nav>
   </header>
 
@@ -59,7 +59,7 @@
 
     <div class="actions">
       <button id="refreshBtn" type="button" class="btn-accent">Refresh</button>
-      <a id="viewTransfersBtn" class="btn" href="transfer.html">Transfer Funds</a>
+      <a id="viewTransfersBtn" class="btn" href="/transfer">Transfer Funds</a>
       <button id="logoutBtn" type="button">Logout</button>
     </div>
 
@@ -292,7 +292,7 @@
               status: tx.status || 'completed',
               created_at: tx.created_at
             }));
-            location.href = 'transactions.html';
+            location.href = '/transactions';
         });
         txList.appendChild(li);
       });
@@ -417,7 +417,7 @@
             localStorage.removeItem('bs-token');
           }
           if (window.BSSession?.goToLogin) window.BSSession.goToLogin();
-          else location.href='login.html';
+          else location.href='/login';
         });
       }
     }

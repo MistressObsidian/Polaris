@@ -4,9 +4,9 @@
  *
  * ✅ Open your pages like:
  *   https://polaris-uru5.onrender.com/
- *   https://polaris-uru5.onrender.com/login.html
- *   https://polaris-uru5.onrender.com/register.html
- *   https://polaris-uru5.onrender.com/dashboard.html
+ *   https://polaris-uru5.onrender.com/login
+ *   https://polaris-uru5.onrender.com/register
+ *   https://polaris-uru5.onrender.com/dashboard
  *
  * ✅ Then set config.js to:
  *   window.API_BASE = "/api";
@@ -3141,7 +3141,7 @@ app.post("/api/password/forgot", async (req, res) => {
     );
 
     const base = getAppBaseUrl(req);
-    const resetLink = `${base}/reset-password.html?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(email)}`;
+    const resetLink = `${base}/reset-password?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(email)}`;
 
     await sendAccountTemplateEmail({
       templateKey: "passwordResetRequested",
@@ -3370,6 +3370,7 @@ app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
 // --- Static hosting (frontend) ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const frontendDir = path.join(__dirname, "frontend");
 const STATIC_PRIVATE_PATHS = [
   /^\/(?:server|bank|generate-jwt(?:-with-new-secret)?|index)\.js$/i,
   /^\/(?:package(?:-lock)?\.json|README\.md|CONTRIBUTING\.md|LICENSE|neon_workflow\.yml|postgres-schema(?:-user-email-reference)?\.sql)$/i,
@@ -3392,14 +3393,41 @@ app.use((req, res, next) => {
   return next();
 });
 
-// Serve files from your project folder (index.html, login.html, ui.css, etc.)
-app.use(express.static(__dirname, { dotfiles: "ignore", extensions: ["html"], index: false }));
+// Serve files from the frontend directory (index.html, login.html, ui.css, etc.)
+const staticPageRoutes = fs
+  .readdirSync(frontendDir, { withFileTypes: true })
+  .filter((entry) => entry.isFile() && entry.name.endsWith(".html"))
+  .map((entry) => entry.name)
+  .sort((left, right) => {
+    if (left === "index.html") return -1;
+    if (right === "index.html") return 1;
+    return left.localeCompare(right);
+  })
+  .map((fileName) => ({
+    fileName,
+    routePath: fileName === "index.html" ? "/" : `/${fileName.slice(0, -5)}`,
+  }));
 
-// If you hit "/", serve index.html
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index.html")));
+const staticPageRedirects = new Map(
+  staticPageRoutes.map(({ fileName, routePath }) => [`/${fileName}`, routePath])
+);
 
-// SPA-like fallback (optional): any non-api route serves index.html
-app.get(/^\/(?!api\/).*/, (req, res) => res.sendFile(path.join(__dirname, "index.html")));
+app.use((req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+
+  const canonicalPath = staticPageRedirects.get(req.path);
+  if (!canonicalPath) return next();
+
+  const queryIndex = req.originalUrl.indexOf("?");
+  const queryString = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : "";
+  return res.redirect(301, `${canonicalPath}${queryString}`);
+});
+
+app.use(express.static(frontendDir, { dotfiles: "ignore", index: false }));
+
+for (const { routePath, fileName } of staticPageRoutes) {
+  app.get(routePath, (req, res) => res.sendFile(path.join(frontendDir, fileName)));
+}
 
 // --- Start ---
 app.listen(PORT, () => {

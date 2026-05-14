@@ -23,6 +23,10 @@
       --good:var(--color-good);
       --warn:var(--color-warn);
       --bad:var(--color-danger);
+      --sidebar-w:228px;
+      --content-max:1360px;
+      --panel-radius:14px;
+      --panel-pad:.95rem;
     }
     * { box-sizing:border-box; }
     html { scroll-behavior:smooth; }
@@ -42,23 +46,23 @@
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:.75rem;
-      padding:1rem 1.25rem;
+      gap:.6rem;
+      padding:.85rem 1rem;
       background:color-mix(in srgb, var(--color-surface) 92%, transparent);
       border-bottom:1px solid var(--border);
       backdrop-filter:blur(10px);
     }
     .brand { display:flex; align-items:center; gap:.55rem; font-weight:700; min-width:0; }
-    .brand img { width:140px; height:auto; max-width:42vw; display:block; }
-    .appbar-actions { display:flex; gap:.6rem; flex-wrap:wrap; }
+    .brand img { width:126px; height:auto; max-width:34vw; display:block; }
+    .appbar-actions { display:flex; gap:.45rem; flex-wrap:wrap; }
     .menu-btn,.btn,.btn-outline,.btn-danger,.btn-success,.btn-warn,select,input,textarea {
       font:inherit;
     }
     .menu-btn,.btn,.btn-outline,.btn-danger,.btn-success,.btn-warn {
       border:1px solid transparent;
-      border-radius:10px;
+      border-radius:9px;
       cursor:pointer;
-      padding:.72rem .95rem;
+      padding:.64rem .85rem;
       color:var(--ink);
       transition:.18s ease;
     }
@@ -82,82 +86,94 @@
     .sidebar {
       position:fixed;
       inset:0 auto 0 0;
-      width:260px;
-      padding:1.2rem .95rem;
+      width:var(--sidebar-w);
+      padding:1rem .85rem;
       background:color-mix(in srgb, var(--color-surface-strong) 96%, transparent);
       border-right:1px solid var(--border);
       backdrop-filter:blur(15px);
       z-index:5;
       overflow:auto;
     }
-    .sidebar h2 { margin:.2rem 0 1rem; font-size:1.05rem; }
-    .nav-menu { list-style:none; margin:0; padding:0; display:grid; gap:.35rem; }
+    .sidebar h2 {
+      margin:.15rem 0 .8rem;
+      font-size:.8rem;
+      letter-spacing:.1em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    .nav-menu { list-style:none; margin:0; padding:0; display:grid; gap:.25rem; }
     .nav-link {
       display:block;
       text-decoration:none;
       color:var(--muted);
-      padding:.7rem .8rem;
-      border-radius:10px;
-      font-size:.92rem;
+      padding:.62rem .72rem;
+      border-radius:9px;
+      font-size:.88rem;
     }
     .nav-link:hover,.nav-link.active { background:var(--color-accent-soft); color:var(--ink); }
 
     .main {
-      margin-left:260px;
-      padding:1.25rem;
-      max-width:calc(100vw - 260px);
+      margin-left:var(--sidebar-w);
+      padding:1rem;
+      max-width:min(calc(100vw - var(--sidebar-w)), var(--content-max));
     }
     .hero, .panel {
       background:var(--panel);
       border:1px solid var(--border);
-      border-radius:14px;
+      border-radius:var(--panel-radius);
     }
     .hero {
-      padding:1.2rem 1.25rem;
-      margin-bottom:1rem;
+      padding:1rem 1.05rem;
+      margin-bottom:.85rem;
       background-image:var(--hero-gradient);
     }
-    .hero h1 { margin:.1rem 0 .5rem; font-size:1.35rem; }
-    .hero-subtitle { margin:0 0 1rem; color:var(--muted2); }
+    .hero h1 { margin:.1rem 0 .4rem; font-size:1.22rem; }
+    .hero-subtitle {
+      margin:0 0 .85rem;
+      color:var(--muted2);
+      max-width:68ch;
+      line-height:1.5;
+      font-size:.94rem;
+    }
     .guide-grid {
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-      gap:.75rem;
-      margin:0 0 1rem;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:.65rem;
+      margin:0 0 .85rem;
     }
     .guide-card {
       background:color-mix(in srgb, var(--color-surface) 72%, transparent);
       border:1px solid var(--border);
-      border-radius:12px;
-      padding:.9rem 1rem;
+      border-radius:10px;
+      padding:.75rem .85rem;
     }
     .guide-card h3 {
       margin:0 0 .35rem;
-      font-size:.95rem;
+      font-size:.9rem;
     }
     .guide-card p {
       margin:0;
       color:var(--muted2);
-      font-size:.86rem;
-      line-height:1.5;
+      font-size:.82rem;
+      line-height:1.45;
     }
-    .pills { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.85rem; }
+    .pills { display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.7rem; }
     .pill {
       background:var(--pill);
       color:var(--muted);
       border-radius:999px;
-      padding:.35rem .65rem;
-      font-size:.74rem;
+      padding:.3rem .55rem;
+      font-size:.72rem;
     }
     .scope-badge {
       display:inline-flex;
       align-items:center;
       gap:.35rem;
       border-radius:999px;
-      padding:.26rem .6rem;
-      font-size:.7rem;
+      padding:.24rem .52rem;
+      font-size:.66rem;
       font-weight:800;
-      letter-spacing:.7px;
+      letter-spacing:.55px;
       text-transform:uppercase;
       background:var(--panel-2);
       color:var(--ink);
@@ -167,51 +183,58 @@
     .scope-user { background:var(--color-good-soft); color:var(--color-good); }
     .stats-grid {
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
-      gap:.75rem;
+      grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+      gap:.65rem;
     }
     .stat-card {
       background:var(--panel-2);
       border:1px solid var(--border);
-      border-radius:12px;
-      padding:.85rem .95rem;
+      border-radius:10px;
+      padding:.75rem .8rem;
     }
     .stat-label { color:var(--muted); font-size:.8rem; }
-    .stat-value { font-size:1.25rem; font-weight:700; margin-top:.2rem; }
+    .stat-value { font-size:1.08rem; font-weight:700; margin-top:.15rem; }
 
     .section-grid {
       display:grid;
-      gap:1rem;
+      gap:.85rem;
     }
     .panel {
-      padding:1.05rem 1.05rem 1.15rem;
+      padding:var(--panel-pad);
       overflow:hidden;
     }
     .panel-head {
       display:flex;
       justify-content:space-between;
       align-items:flex-start;
-      gap:1rem;
-      margin-bottom:.9rem;
+      gap:.75rem;
+      margin-bottom:.75rem;
       flex-wrap:wrap;
     }
     .panel h2, .panel h3 { margin:0; }
-    .panel-sub { color:var(--muted2); font-size:.9rem; margin-top:.2rem; }
-    .toolbar { display:flex; gap:.6rem; flex-wrap:wrap; }
+    .panel-sub {
+      color:var(--muted2);
+      font-size:.84rem;
+      margin-top:.18rem;
+      line-height:1.45;
+      max-width:72ch;
+    }
+    .toolbar { display:flex; gap:.45rem; flex-wrap:wrap; }
     .panel-tools {
       display:flex;
       align-items:center;
-      gap:.55rem;
+      gap:.45rem;
       flex-wrap:wrap;
     }
+    .search-input { min-width:min(100%, 260px); }
 
     .cards-2 {
       display:grid;
-      grid-template-columns:1.1fr .9fr;
-      gap:1rem;
+      grid-template-columns:minmax(0,1fr) minmax(300px,.84fr);
+      gap:.85rem;
     }
     .settings-layout {
-      grid-template-columns:minmax(280px, 360px) minmax(0, 1fr);
+      grid-template-columns:minmax(250px, 320px) minmax(0, 1fr);
       align-items:start;
     }
     .settings-layout > .panel {
@@ -220,41 +243,41 @@
     .cards-3 {
       display:grid;
       grid-template-columns:repeat(3,1fr);
-      gap:1rem;
+      gap:.85rem;
     }
 
     .form-grid {
       display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:.85rem;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:.75rem;
     }
     .form-grid-3 {
       display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:.85rem;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:.75rem;
     }
     .field {
       display:flex;
       flex-direction:column;
-      gap:.35rem;
+      gap:.28rem;
     }
     .field label {
-      font-size:.74rem;
+      font-size:.7rem;
       text-transform:uppercase;
-      letter-spacing:.7px;
+      letter-spacing:.65px;
       color:var(--muted);
       font-weight:700;
     }
     .input-base, .field input, .field select, .field textarea, .search-input {
       width:100%;
-      padding:.75rem .85rem;
+      padding:.68rem .78rem;
       background:var(--color-input);
       border:1px solid var(--border);
-      border-radius:8px;
+      border-radius:9px;
       color:var(--ink);
       outline:none;
     }
-    .field textarea { min-height:280px; resize:vertical; font-family:Consolas,monospace; font-size:.84rem; }
+    .field textarea { min-height:200px; resize:vertical; font-family:Consolas,monospace; font-size:.82rem; }
     .field input:focus, .field select:focus, .field textarea:focus, .search-input:focus {
       border-color:#365da8;
       box-shadow:0 0 0 3px rgba(38,99,255,.15);
@@ -263,16 +286,17 @@
     .table-wrap {
       overflow:auto;
       border:1px solid var(--border);
-      border-radius:12px;
+      border-radius:10px;
+      background:color-mix(in srgb, var(--color-surface) 68%, transparent);
     }
     table {
       width:100%;
       border-collapse:collapse;
-      min-width:860px;
-      font-size:.9rem;
+      min-width:720px;
+      font-size:.84rem;
     }
     th, td {
-      padding:.8rem .75rem;
+      padding:.65rem .68rem;
       border-bottom:1px solid var(--border);
       text-align:left;
       vertical-align:top;
@@ -280,7 +304,7 @@
     th {
       background:var(--color-surface-muted);
       color:var(--muted);
-      font-size:.76rem;
+      font-size:.72rem;
       text-transform:uppercase;
       letter-spacing:.7px;
       position:sticky;
@@ -308,13 +332,13 @@
     .status-completed, .status-approved, .status-sent, .status-active { background:var(--color-good-soft); color:var(--good); }
     .status-failed, .status-rejected, .status-suspended, .status-cancelled { background:var(--color-danger-soft); color:var(--bad); }
     .status-locked { background:var(--color-accent-soft); color:var(--accent); }
-    .mono { font-family:Consolas,monospace; font-size:.84rem; }
+    .mono { font-family:Consolas,monospace; font-size:.8rem; }
     .empty-state {
-      padding:1.2rem;
+      padding:1rem;
       text-align:center;
       color:var(--muted2);
       border:1px dashed var(--border);
-      border-radius:12px;
+      border-radius:10px;
     }
     .actions-inline {
       display:flex;
@@ -325,20 +349,20 @@
       border:none;
       background:var(--color-surface-muted);
       color:var(--ink);
-      padding:.45rem .65rem;
+      padding:.42rem .58rem;
       border-radius:8px;
       cursor:pointer;
-      font-size:.76rem;
+      font-size:.74rem;
     }
     .mini-btn:hover { background:color-mix(in srgb, var(--color-surface-muted) 84%, white 6%); }
     .mini-btn.bad { background:var(--color-danger-soft); color:var(--bad); }
     .mini-btn.good { background:var(--color-good-soft); color:var(--good); }
     .mini-btn.warn { background:var(--color-warn-soft); color:var(--warn); }
-    .helper-text { color:var(--muted2); font-size:.82rem; }
+    .helper-text { color:var(--muted2); font-size:.78rem; line-height:1.45; }
     .status-line {
-      margin-top:.8rem;
+      margin-top:.65rem;
       min-height:1.2rem;
-      font-size:.86rem;
+      font-size:.82rem;
       color:var(--color-info);
     }
     .status-line[data-status="error"] { color:var(--bad); }
@@ -346,16 +370,16 @@
     .status-line[data-status="info"] { color:var(--color-info); }
     .template-workspace {
       display:grid;
-      grid-template-columns:minmax(0, 1.4fr) minmax(340px, .8fr);
-      gap:1rem;
+      grid-template-columns:minmax(0, 1.1fr) minmax(280px, .72fr);
+      gap:.85rem;
       align-items:start;
     }
     .template-editor-pane,
     .template-preview-pane {
       background:color-mix(in srgb, var(--color-surface) 76%, transparent);
       border:1px solid var(--border);
-      border-radius:12px;
-      padding:1rem;
+      border-radius:10px;
+      padding:.85rem;
     }
     .template-editor-pane {
       min-width:0;
@@ -367,19 +391,19 @@
     }
     .template-preview-pane {
       position:sticky;
-      top:88px;
-      max-height:calc(100vh - 120px);
+      top:76px;
+      max-height:calc(100vh - 98px);
       overflow:auto;
     }
     .template-preview-stack {
       display:grid;
-      gap:.8rem;
+      gap:.7rem;
       margin-top:.75rem;
     }
     .template-preview-card {
       border:1px solid var(--border);
       border-radius:10px;
-      padding:.85rem;
+      padding:.78rem;
       background:var(--color-surface-muted);
     }
     .template-preview-label {
@@ -416,23 +440,78 @@
     }
     .template-validation-list li + li { margin-top:.25rem; }
     .selected-user-card {
-      margin-bottom:.9rem;
+      margin-bottom:.75rem;
       background:color-mix(in srgb, var(--color-surface) 76%, transparent);
       border:1px solid var(--border);
-      border-radius:12px;
-      padding:.85rem .95rem;
+      border-radius:10px;
+      padding:.75rem .85rem;
     }
     .panel-muted {
       background:var(--panel-2);
-      margin-bottom:1rem;
+      margin-bottom:.85rem;
+      display:grid;
+      gap:.85rem;
+    }
+    .admin-workspace {
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      align-items:start;
+    }
+    .admin-workspace > .panel-head,
+    .admin-workspace > .selected-user-card,
+    .admin-workspace > .workspace-form-wide,
+    .admin-workspace > .workspace-table-block,
+    .admin-workspace > .workspace-status-line {
+      grid-column:1 / -1;
+    }
+    .admin-workspace .admin-divider {
+      display:none;
     }
     .panel-muted.panel-narrow {
-      max-width:360px;
+      max-width:none;
+    }
+    .workspace-form {
+      display:grid;
+      gap:.6rem;
+      padding:.78rem .82rem;
+      background:color-mix(in srgb, var(--color-surface) 70%, transparent);
+      border:1px solid var(--border);
+      border-radius:12px;
+    }
+    .workspace-form .form-grid,
+    .workspace-form .form-grid-3 {
+      gap:.65rem;
+    }
+    .workspace-form .actions-inline {
+      margin-top:.72rem !important;
+    }
+    .workspace-form .panel-sub:first-child {
+      margin:0 !important;
+      color:var(--ink);
+      font-size:.88rem;
+      font-weight:700;
+    }
+    .workspace-form-compact {
+      align-self:start;
+    }
+    .workspace-form-compact .form-grid,
+    .workspace-form-compact .form-grid-3 {
+      grid-template-columns:repeat(auto-fit, minmax(165px, 1fr));
+    }
+    .workspace-form-wide .form-grid,
+    .workspace-form-wide .form-grid-3 {
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+    }
+    .workspace-table-block {
+      display:grid;
+      gap:.55rem;
+    }
+    .workspace-status-line {
+      margin:.1rem 0 0;
     }
     .admin-divider {
       border-color:var(--border);
       opacity:.4;
-      margin:1rem 0;
+      margin:.1rem 0;
     }
     .validation-state {
       font-weight:600;
@@ -449,7 +528,7 @@
       margin-bottom:.35rem;
     }
     .selected-user-title strong {
-      font-size:.95rem;
+      font-size:.9rem;
     }
     .collapsed-panel {
       display:none;
@@ -463,18 +542,18 @@
       background:radial-gradient(circle at top, color-mix(in srgb, var(--accent) 18%, transparent), transparent 35%), var(--bg);
     }
     .login-card {
-      width:min(460px,100%);
+      width:min(420px,100%);
       background:linear-gradient(160deg, color-mix(in srgb, var(--color-surface-strong) 92%, transparent), color-mix(in srgb, var(--color-surface) 80%, transparent));
       border:1px solid var(--color-border-strong);
-      border-radius:20px;
-      padding:1.4rem;
+      border-radius:16px;
+      padding:1.2rem;
       box-shadow:0 18px 50px rgba(0,0,0,.18);
     }
-    .login-card h1 { margin:.15rem 0 .35rem; font-size:1.55rem; }
+    .login-card h1 { margin:.15rem 0 .35rem; font-size:1.38rem; }
     .login-card p { color:var(--muted2); }
     .footer-note { margin-top:1.5rem; text-align:center; color:var(--muted2); font-size:.8rem; }
 
-    @media (max-width: 1200px) {
+    @media (max-width: 1040px) {
       .settings-layout {
         grid-template-columns:1fr;
       }
@@ -488,13 +567,83 @@
       }
     }
     @media (max-width: 1080px) {
-      .cards-2, .cards-3, .form-grid, .form-grid-3, .template-workspace { grid-template-columns:1fr; }
+      .cards-3 { grid-template-columns:1fr; }
+    }
+    @media (max-width: 920px) {
+      .admin-workspace { grid-template-columns:1fr; }
     }
     @media (max-width: 980px) {
       .main { margin-left:0; max-width:none; padding:1rem; }
+      .sidebar { width:min(86vw, 280px); }
       .sidebar { transform:translateX(-100%); transition:transform .25s ease; }
       .sidebar.active { transform:translateX(0); }
       .brand img { width:122px; }
+    }
+    @media (max-width: 768px) {
+      .appbar {
+        padding:.75rem .85rem;
+        align-items:flex-start;
+      }
+      .panel, .hero {
+        padding:.85rem;
+      }
+      .panel-head, .selected-user-title {
+        gap:.55rem;
+      }
+      .panel-tools {
+        width:100%;
+      }
+      .panel-tools .search-input,
+      .panel-tools .btn-outline,
+      .panel-tools .btn {
+        width:100%;
+        max-width:none !important;
+      }
+      .table-wrap {
+        border-radius:9px;
+      }
+      table {
+        min-width:640px;
+        font-size:.8rem;
+      }
+      th, td {
+        padding:.58rem .6rem;
+      }
+      .workspace-form,
+      .template-editor-pane,
+      .template-preview-pane {
+        padding:.8rem;
+      }
+      .workspace-form-wide .form-grid,
+      .workspace-form-wide .form-grid-3 {
+        grid-template-columns:1fr;
+      }
+    }
+    @media (max-width: 560px) {
+      .guide-grid,
+      .stats-grid {
+        grid-template-columns:1fr;
+      }
+      .pill,
+      .scope-badge {
+        width:fit-content;
+      }
+      .appbar-actions {
+        width:100%;
+      }
+      .appbar-actions > * {
+        flex:1 1 auto;
+      }
+      .menu-btn,.btn,.btn-outline,.btn-danger,.btn-success,.btn-warn {
+        width:100%;
+        justify-content:center;
+      }
+      .actions-inline {
+        flex-direction:column;
+      }
+      table {
+        min-width:560px;
+      }
     }
   </style>
 </head>
@@ -668,7 +817,7 @@
               <div class="panel-sub">Use this area for admin actions and platform-wide changes. User-specific actions work on the account selected from the Users section.</div>
             </div>
           </div>
-          <div class="panel panel-muted">
+          <div class="panel panel-muted admin-workspace">
             <div class="panel-head">
               <div>
                 <div class="scope-badge scope-user">Admin workspace</div>
@@ -683,7 +832,7 @@
               </div>
               <div id="selectedUserMeta" class="helper-text">Open Users, click Edit on an account, then manage that user here.</div>
             </div>
-            <form id="createUserForm">
+            <form id="createUserForm" class="workspace-form workspace-form-compact">
               <div class="panel-sub" style="margin-bottom:.55rem;">Create New User</div>
               <div class="form-grid">
                 <div class="field">
@@ -717,10 +866,10 @@
                 </label>
                 <button type="submit" class="btn-success">Create User</button>
               </div>
+              <div id="createUserStatus" class="status-line workspace-status-line"></div>
             </form>
-            <div id="createUserStatus" class="status-line"></div>
             <hr class="admin-divider" />
-            <form id="userEditorForm">
+            <form id="userEditorForm" class="workspace-form workspace-form-wide">
               <div class="panel-sub" style="margin-bottom:.55rem;">Selected User Profile</div>
               <div class="form-grid">
                 <div class="field">
@@ -793,7 +942,7 @@
               </div>
             </form>
             <hr class="admin-divider" />
-            <form id="balanceAdjustForm">
+            <form id="balanceAdjustForm" class="workspace-form workspace-form-compact">
               <div class="panel-sub" style="margin-bottom:.55rem;">Balance Change</div>
               <div class="form-grid-3">
                 <div class="field">
@@ -818,7 +967,7 @@
               <div class="helper-text" style="margin-top:.5rem;">Balance updates create a completed transaction entry automatically.</div>
             </form>
             <hr class="admin-divider" />
-            <form id="userPreferencesForm">
+            <form id="userPreferencesForm" class="workspace-form workspace-form-compact">
               <div class="panel-sub" style="margin-bottom:.55rem;">User App Preferences</div>
               <div class="form-grid">
                 <div class="field">
@@ -858,7 +1007,7 @@
               <div class="helper-text" style="margin-top:.5rem;">These values sync to the user's app preferences. Turning transfers off blocks only the selected user's self-service transfer flow.</div>
             </form>
             <hr class="admin-divider" />
-            <form id="userPasswordForm">
+            <form id="userPasswordForm" class="workspace-form workspace-form-compact">
               <div class="panel-sub" style="margin-bottom:.55rem;">User Security</div>
               <div class="form-grid">
                 <div class="field">
@@ -876,7 +1025,7 @@
               <div class="helper-text" style="margin-top:.5rem;">This updates the selected user's password immediately and sends the standard security notice.</div>
             </form>
             <hr class="admin-divider" />
-            <form id="adminTransferForm">
+            <form id="adminTransferForm" class="workspace-form workspace-form-wide">
               <div class="panel-sub" style="margin-bottom:.55rem;">Transfer On Behalf Of User</div>
               <div class="form-grid">
                 <div class="field">
@@ -927,23 +1076,25 @@
               </div>
               <div class="helper-text" style="margin-top:.5rem;">This uses the same transfer workflow as the user-facing transfer page and posts the balance movement immediately. Admin transfers still work even when user-initiated transfers are turned off.</div>
             </form>
-            <div class="panel-sub" style="margin:1rem 0 .55rem;">Recent Transfers For Selected User</div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Recipient</th>
-                    <th>Method</th>
-                    <th>Amount</th>
-                    <th>Details</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="userTransfersTableBody"></tbody>
-              </table>
+            <div class="workspace-form workspace-form-wide workspace-table-block">
+              <div class="panel-sub">Recent Transfers For Selected User</div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Recipient</th>
+                      <th>Method</th>
+                      <th>Amount</th>
+                      <th>Details</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="userTransfersTableBody"></tbody>
+                </table>
+              </div>
             </div>
             <hr class="admin-divider" />
-            <form id="manualEmailForm">
+            <form id="manualEmailForm" class="workspace-form workspace-form-wide">
               <div class="panel-sub" style="margin-bottom:.55rem;">Manual Email</div>
               <div class="template-workspace">
                 <div class="template-editor-pane">
@@ -1019,70 +1170,72 @@
                 </div>
               </div>
             </form>
-            <div id="userEditorStatus" class="status-line"></div>
+            <div id="userEditorStatus" class="status-line workspace-status-line"></div>
           </div>
-          <div class="panel panel-muted panel-narrow">
+          <div class="cards-2 settings-layout">
+            <div class="panel panel-muted panel-narrow">
+                <div class="scope-badge scope-global">Global</div>
+                <h3>Application Controls</h3>
+                <div style="margin-top:.85rem;" class="helper-text">
+                  Deprecated public submission flows are disabled and cannot be re-enabled from this console.
+                </div>
+              </div>
+            <div class="panel panel-muted">
               <div class="scope-badge scope-global">Global</div>
-              <h3>Application Controls</h3>
-              <div style="margin-top:.85rem;" class="helper-text">
-                Deprecated public submission flows are disabled and cannot be re-enabled from this console.
-              </div>
+              <h3>Email Templates</h3>
+              <form id="templatesForm" class="workspace-form workspace-form-wide" style="margin-top:.85rem;">
+                <div class="template-workspace">
+                  <div class="template-editor-pane">
+                    <div class="field">
+                      <label for="templateEditorSelect">Template</label>
+                      <select id="templateEditorSelect" class="input-base"></select>
+                    </div>
+                    <div class="helper-text" id="templatePreviewData" style="margin-top:.5rem;"></div>
+                    <div id="templateValidation" class="status-line"></div>
+                    <div class="form-grid" style="margin-top:.4rem;">
+                      <div class="field">
+                        <label for="templateSubject">Subject</label>
+                        <input id="templateSubject" class="input-base" type="text" />
+                      </div>
+                      <div class="field">
+                        <label for="templateTitle">Title</label>
+                        <input id="templateTitle" class="input-base" type="text" />
+                      </div>
+                      <div class="field" style="grid-column:1 / -1;">
+                        <label for="templatePreheader">Preheader</label>
+                        <input id="templatePreheader" class="input-base" type="text" />
+                      </div>
+                      <div class="field" style="grid-column:1 / -1;">
+                        <label for="templateText">Plain Text</label>
+                        <textarea id="templateText" style="min-height:180px;"></textarea>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="template-preview-pane">
+                    <h3 style="margin:0;">Live Preview</h3>
+                    <div class="panel-sub">Preview values use sample data so placeholder variables render the same way users will see them in the plain text version.</div>
+                    <div class="template-preview-stack">
+                      <div class="template-preview-card">
+                        <div class="template-preview-label">Subject</div>
+                        <div id="templatePreviewSubject" class="template-preview-value"></div>
+                      </div>
+                      <div class="template-preview-card">
+                        <div class="template-preview-label">Preheader</div>
+                        <div id="templatePreviewPreheader" class="template-preview-value"></div>
+                      </div>
+                      <div class="template-preview-card">
+                        <div class="template-preview-label">Plain Text</div>
+                        <div id="templatePreviewText" class="template-preview-value template-preview-text"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="actions-inline" style="margin-top:.9rem;">
+                  <button id="templatesSaveBtn" type="submit" class="btn btn-primary">Save Templates</button>
+                </div>
+                <div class="helper-text" style="margin-top:.5rem;">Template changes affect all future emails that use the selected template.</div>
+              </form>
             </div>
-          <div class="panel panel-muted">
-            <div class="scope-badge scope-global">Global</div>
-            <h3>Email Templates</h3>
-            <form id="templatesForm" style="margin-top:.85rem;">
-              <div class="template-workspace">
-                <div class="template-editor-pane">
-                  <div class="field">
-                    <label for="templateEditorSelect">Template</label>
-                    <select id="templateEditorSelect" class="input-base"></select>
-                  </div>
-                  <div class="helper-text" id="templatePreviewData" style="margin-top:.5rem;"></div>
-                  <div id="templateValidation" class="status-line"></div>
-                  <div class="form-grid" style="margin-top:.4rem;">
-                    <div class="field">
-                      <label for="templateSubject">Subject</label>
-                      <input id="templateSubject" class="input-base" type="text" />
-                    </div>
-                    <div class="field">
-                      <label for="templateTitle">Title</label>
-                      <input id="templateTitle" class="input-base" type="text" />
-                    </div>
-                    <div class="field" style="grid-column:1 / -1;">
-                      <label for="templatePreheader">Preheader</label>
-                      <input id="templatePreheader" class="input-base" type="text" />
-                    </div>
-                    <div class="field" style="grid-column:1 / -1;">
-                      <label for="templateText">Plain Text</label>
-                      <textarea id="templateText" style="min-height:180px;"></textarea>
-                    </div>
-                  </div>
-                </div>
-                <div class="template-preview-pane">
-                  <h3 style="margin:0;">Live Preview</h3>
-                  <div class="panel-sub">Preview values use sample data so placeholder variables render the same way users will see them in the plain text version.</div>
-                  <div class="template-preview-stack">
-                    <div class="template-preview-card">
-                      <div class="template-preview-label">Subject</div>
-                      <div id="templatePreviewSubject" class="template-preview-value"></div>
-                    </div>
-                    <div class="template-preview-card">
-                      <div class="template-preview-label">Preheader</div>
-                      <div id="templatePreviewPreheader" class="template-preview-value"></div>
-                    </div>
-                    <div class="template-preview-card">
-                      <div class="template-preview-label">Plain Text</div>
-                      <div id="templatePreviewText" class="template-preview-value template-preview-text"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="actions-inline" style="margin-top:.9rem;">
-                <button id="templatesSaveBtn" type="submit" class="btn btn-primary">Save Templates</button>
-              </div>
-              <div class="helper-text" style="margin-top:.5rem;">Template changes affect all future emails that use the selected template.</div>
-            </form>
           </div>
           <div id="settingsStatus" class="status-line"></div>
         </section>

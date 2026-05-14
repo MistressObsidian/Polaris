@@ -524,6 +524,7 @@ function toAdminTemplateData(user = {}, extraData = {}) {
     fullname: user.fullname || "there",
     account_name: user.accountname || "",
     email: user.user_email || "",
+    login_link: "",
     status: "pending",
     amount: "0.00",
     reference: "N/A",
@@ -1019,6 +1020,8 @@ const DEFAULT_EMAIL_TEMPLATES = {
       "For security, we do not send passwords by email.\n\n" +
       "Click the link below to set or update your password:\n" +
       "{{reset_link}}\n\n" +
+      "After you update your password, sign in here:\n" +
+      "{{login_link}}\n\n" +
       "If this was not expected, contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
@@ -1029,6 +1032,7 @@ const DEFAULT_EMAIL_TEMPLATES = {
       "Current balance: ${{account_balance}}</p>" +
       "<p>For security, we do not send passwords by email.</p>" +
       "<p><a href=\"{{reset_link}}\" style=\"display:inline-block;padding:10px 14px;border-radius:8px;text-decoration:none;background:#0b5fff;color:#ffffff;\">Set or update your password</a></p>" +
+        "<p><a href=\"{{login_link}}\" style=\"display:inline-block;padding:10px 14px;border-radius:8px;text-decoration:none;background:#111827;color:#ffffff;\">Log in to your account</a></p>" +
       "<p>If the button does not work, copy this link into your browser:<br />{{reset_link}}</p>" +
       "<p>If this was not expected, contact {{support_email}}.</p>",
   },
@@ -1081,10 +1085,13 @@ const DEFAULT_EMAIL_TEMPLATES = {
     text:
       "Hello {{fullname}},\n\n" +
       "Your password was updated successfully.\n\n" +
+      "You can sign in here:\n" +
+      "{{login_link}}\n\n" +
       "If this was not expected, reset your password and contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
       "<p>Your password was updated successfully.</p>" +
+      "<p><a href=\"{{login_link}}\" style=\"display:inline-block;padding:10px 14px;border-radius:8px;text-decoration:none;background:#111827;color:#ffffff;\">Log in to your account</a></p>" +
       "<p>If this was not expected, reset your password and contact {{support_email}}.</p>",
   },
   passwordResetRequested: {
@@ -1111,10 +1118,13 @@ const DEFAULT_EMAIL_TEMPLATES = {
     text:
       "Hello {{fullname}},\n\n" +
       "Your password reset was completed successfully.\n\n" +
+      "You can now sign in here:\n" +
+      "{{login_link}}\n\n" +
       "If this was not expected, contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
       "<p>Your password reset was completed successfully.</p>" +
+      "<p><a href=\"{{login_link}}\" style=\"display:inline-block;padding:10px 14px;border-radius:8px;text-decoration:none;background:#111827;color:#ffffff;\">Log in to your account</a></p>" +
       "<p>If this was not expected, contact {{support_email}}.</p>",
   },
   balanceAdjustmentPosted: {
@@ -1452,7 +1462,8 @@ async function sendAccountTemplateEmail({ templateKey, to, user = {}, data = {},
 }
 
 async function sendDefaultAccountOpenedEmail({ req, to, user, status, accountBalance, userId }) {
-  const resetLink = await createPasswordResetLink(to, getAppBaseUrl(req));
+  const appBaseUrl = getAppBaseUrl(req);
+  const resetLink = await createPasswordResetLink(to, appBaseUrl);
   return sendAccountTemplateEmail({
     templateKey: "accountOpened",
     to,
@@ -1461,6 +1472,7 @@ async function sendDefaultAccountOpenedEmail({ req, to, user, status, accountBal
       status,
       account_balance: Number(accountBalance || 0).toFixed(2),
       reset_link: resetLink,
+      login_link: `${appBaseUrl}/login`,
     },
     userId,
   });
@@ -2056,6 +2068,9 @@ app.post("/api/admin/users/:email/password", adminAuthMiddleware, async (req, re
           templateKey: "passwordChanged",
           to: user.user_email,
           user,
+          data: {
+            login_link: `${getAppBaseUrl(req)}/login`,
+          },
           userId: user.user_email,
         });
       } catch (e) {
@@ -3106,6 +3121,9 @@ app.post("/api/users/password", authMiddleware, async (req, res) => {
           templateKey: "passwordChanged",
           to: accountUser.email,
           user: accountUser,
+          data: {
+            login_link: `${getAppBaseUrl(req)}/login`,
+          },
           userId: accountUser.email,
         });
       }
@@ -3253,6 +3271,9 @@ app.post("/api/password/reset", async (req, res) => {
           templateKey: "passwordResetCompleted",
           to: row.user_email,
           user: row,
+          data: {
+            login_link: `${getAppBaseUrl(req)}/login`,
+          },
           userId: row.user_email,
         });
       }

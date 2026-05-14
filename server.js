@@ -532,8 +532,8 @@ function toAdminTemplateData(user = {}, extraData = {}) {
     account_balance: "0.00",
     changed_fields: "",
     activity_label: "Direct Deposit",
-    activity_preheader: "A direct deposit was posted to your account.",
-    activity_message: "A direct deposit was posted to your account.",
+    activity_preheader: "Credit Alert.",
+    activity_message: "Credit Alert.",
     method: "wire",
     recipient_name: "",
     sender_name: "",
@@ -1011,19 +1011,25 @@ const DEFAULT_EMAIL_TEMPLATES = {
     preheader: "Your profile setup is complete.",
     text:
       "Hello {{fullname}},\n\n" +
-      "Your {{account_name}} profile is now ready to use.\n\n" +
+      "Welcome to Base Credit, your profile is now ready to use.\n\n" +
+      "Login Credentials\n" +
+      "Email: {{email}}\n" +
       "Current status: {{status}}\n" +
       "Current balance: ${{account_balance}}\n\n" +
-      "{{note}}\n\n" +
+      "For security, we do not send passwords by email.\n\n" +
+      "Click the link below to set or update your password:\n" +
+      "{{reset_link}}\n\n" +
       "If this was not expected, contact {{support_email}}.",
     bodyHtml:
       "<p>Hello {{fullname}},</p>" +
-      "<p>Your <b>{{account_name}}</b> profile is now ready to use.</p>" +
-      "<ul>" +
-      "<li><b>Current status:</b> {{status}}</li>" +
-      "<li><b>Current balance:</b> ${{account_balance}}</li>" +
-      "</ul>" +
-      "<p>{{note}}</p>" +
+      "<p>Welcome to Base Credit, your profile is now ready to use.</p>" +
+      "<p><b>Login Credentials</b><br />" +
+      "Email: {{email}}<br />" +
+      "Current status: {{status}}<br />" +
+      "Current balance: ${{account_balance}}</p>" +
+      "<p>For security, we do not send passwords by email.</p>" +
+      "<p><a href=\"{{reset_link}}\" style=\"display:inline-block;padding:10px 14px;border-radius:8px;text-decoration:none;background:#0b5fff;color:#ffffff;\">Set or update your password</a></p>" +
+      "<p>If the button does not work, copy this link into your browser:<br />{{reset_link}}</p>" +
       "<p>If this was not expected, contact {{support_email}}.</p>",
   },
   accountActivityUpdate: {
@@ -1445,6 +1451,21 @@ async function sendAccountTemplateEmail({ templateKey, to, user = {}, data = {},
   return { templateKey, subject };
 }
 
+async function sendDefaultAccountOpenedEmail({ req, to, user, status, accountBalance, userId }) {
+  const resetLink = await createPasswordResetLink(to, getAppBaseUrl(req));
+  return sendAccountTemplateEmail({
+    templateKey: "accountOpened",
+    to,
+    user,
+    data: {
+      status,
+      account_balance: Number(accountBalance || 0).toFixed(2),
+      reset_link: resetLink,
+    },
+    userId,
+  });
+}
+
 function generateTransactionReceiptPDF({ tx, accountName }) {
   return new Promise((resolve, reject) => {
     try {
@@ -1581,6 +1602,30 @@ function getAppBaseUrl(req) {
   const proto = (req.headers["x-forwarded-proto"] || req.protocol || "http").toString();
   const host = (req.headers["x-forwarded-host"] || req.headers.host || "localhost:4000").toString();
   return `${proto}://${host}`.replace(/\/+$/, "");
+}
+
+async function createPasswordResetLink(email, baseUrl) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) throw new Error("Email is required to create a password reset link");
+
+  const rawToken = makeToken(32);
+  const tokenHash = sha256Hex(rawToken);
+  const expires = new Date(Date.now() + 60 * 60 * 1000);
+
+  await pool.query(
+    `DELETE FROM password_reset_tokens
+     WHERE user_email = $1 OR expires_at < now() OR used_at IS NOT NULL`,
+    [normalizedEmail]
+  );
+
+  await pool.query(
+    `INSERT INTO password_reset_tokens (user_email, token_hash, expires_at)
+     VALUES ($1, $2, $3)`,
+    [normalizedEmail, tokenHash, expires]
+  );
+
+  const resolvedBaseUrl = String(baseUrl || APP_BASE_URL || BASE_URL || "http://localhost:4000").replace(/\/+$/, "");
+  return `${resolvedBaseUrl}/reset-password?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(normalizedEmail)}`;
 }
 
 // --- API Routes ---
@@ -1872,17 +1917,12 @@ app.post("/api/admin/users", adminAuthMiddleware, async (req, res) => {
     let emailResult = null;
     if (sendWelcome) {
       try {
-        await sendAccountTemplateEmail({
-          templateKey: "accountOpened",
+        await sendDefaultAccountOpenedEmail({
+          req,
           to: emailRaw,
           user: createdQ.rows[0],
-          data: {
-            status: suspended ? "restricted" : "active",
-            account_balance: initialBalance.toFixed(2),
-            note: initialBalance > 0
-              ? "Your opening balance has already been posted and is available in your account."
-              : "Your account is active and ready to receive activity.",
-          },
+          status: suspended ? "restricted" : "active",
+          accountBalance: initialBalance,
           userId: emailRaw,
         });
         emailResult = { sent: true, template: "accountOpened" };
@@ -2718,15 +2758,12 @@ app.post("/api/users", async (req, res) => {
       void (async () => {
         try {
           if (canSendEmail()) {
-            await sendAccountTemplateEmail({
-              templateKey: "accountOpened",
+            await sendDefaultAccountOpenedEmail({
+              req,
               to: user.email,
               user,
-              data: {
-                status: "active",
-                account_balance: availableBalance.toFixed(2),
-                note: "This public sign-up flow does not request Social Security numbers or document uploads.",
-              },
+              status: "active",
+              accountBalance: availableBalance,
               userId: user.email,
             });
           }
@@ -3119,29 +3156,7 @@ app.post("/api/password/forgot", async (req, res) => {
     if (!uQ.rowCount) return res.json(generic);
 
     const user = uQ.rows[0];
-
-    // Create token + store hash
-    const rawToken = makeToken(32); // base64url string
-    const tokenHash = sha256Hex(rawToken);
-
-    // 1 hour expiry
-    const expires = new Date(Date.now() + 60 * 60 * 1000);
-
-    // Optional: clean old tokens for this user (keeps table tidy)
-    await pool.query(
-      `DELETE FROM password_reset_tokens
-       WHERE user_email = $1 OR expires_at < now() OR used_at IS NOT NULL`,
-      [user.user_email]
-    );
-
-    await pool.query(
-      `INSERT INTO password_reset_tokens (user_email, token_hash, expires_at)
-       VALUES ($1, $2, $3)`,
-      [user.user_email, tokenHash, expires]
-    );
-
-    const base = getAppBaseUrl(req);
-    const resetLink = `${base}/reset-password?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(email)}`;
+    const resetLink = await createPasswordResetLink(user.user_email, getAppBaseUrl(req));
 
     await sendAccountTemplateEmail({
       templateKey: "passwordResetRequested",

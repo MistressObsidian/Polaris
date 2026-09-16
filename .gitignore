@@ -11,6 +11,8 @@ sendgrid.env
 data/*.json
 data/*.db
 data/
+!data/migrations/
+!data/migrations/*.sql
 
 # Logs
 npm-debug.log*

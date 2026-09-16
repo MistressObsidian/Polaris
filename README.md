@@ -75,6 +75,7 @@ Notes:
 - `data/schema/postgres-schema.sql` is still a destructive rebuild script because it drops tables first. Do not run it against a populated Neon database.
 - `data/schema/postgres-schema-user-email-reference.sql` is a reference schema snapshot for SQL editor use, not the normal migration path.
 - The migration runner records applied files in a `schema_migrations` table and will stop if an already-applied migration file is changed later.
+- `data/migrations/` SQL files are intended to be tracked in Git; only generated data files should remain ignored.
 
 ## Important Pages
 

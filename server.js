@@ -129,6 +129,23 @@ function issueToken(user) {
   );
 }
 
+function issueStreamToken(user) {
+  const options = {
+    algorithm: "HS256",
+    expiresIn: "5m",
+  };
+  const email = String(user.email || user.user_email || user.id || user.sub || "").trim().toLowerCase();
+  return jwt.sign(
+    {
+      sub: email,
+      email,
+      stream: true,
+    },
+    JWT_SECRET,
+    options
+  );
+}
+
 function verifyJwtToken(token) {
   let lastError = null;
   for (const secret of JWT_VERIFY_SECRETS) {
@@ -140,6 +157,25 @@ function verifyJwtToken(token) {
   }
   throw lastError || new Error("Invalid token");
 }
+
+const rateLimitStore = new Map();
+function checkRateLimit(key, max = 5, windowMs = 15 * 60 * 1000) {
+  if (!key) return { limited: false, remaining: max };
+  const now = Date.now();
+  const entry = rateLimitStore.get(key) || { count: 0, resetAt: now + windowMs };
+  if (now > entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + windowMs;
+  }
+  entry.count += 1;
+  rateLimitStore.set(key, entry);
+  return {
+    limited: entry.count > max,
+    remaining: Math.max(0, max - entry.count),
+    resetAt: entry.resetAt,
+  };
+}
+
 
 function extractBearerToken(req) {
   const auth = String(req.headers.authorization || "").trim();
@@ -264,6 +300,10 @@ async function authMiddleware(req, res, next) {
     payload = verifyJwtToken(token);
   } catch {
     return res.status(401).json({ error: "Unauthorized: invalid or expired token" });
+  }
+
+  if (isStreamRoute && req.query?.token && !payload?.stream) {
+    return res.status(401).json({ error: "Unauthorized: stream token required" });
   }
 
   try {
@@ -1581,7 +1621,24 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 app.use(express.json({ limit: "1mb" }));
-app.use(morgan("dev"));
+
+morgan.token("redacted-url", (req) => {
+  const rawUrl = String(req.originalUrl || req.url || "");
+  return rawUrl.replace(/([?&])(token|stream_token)=[^&]*/gi, "$1$2=[REDACTED]");
+});
+app.use(
+  morgan((tokens, req, res) => {
+    return [
+      tokens.method(req, res),
+      tokens["redacted-url"](req, res),
+      tokens.status(req, res),
+      tokens.res(req, res, "content-length") || "-",
+      "-",
+      tokens["response-time"](req, res),
+      "ms",
+    ].join(" ");
+  })
+);
 
 app.get("/ping", (req, res) => {
   res.status(200).send("ok");
@@ -1646,6 +1703,12 @@ app.post("/api/admin/login", async (req, res) => {
   try {
     if (!hasAdminCredentials()) {
       return res.status(503).json({ error: "Admin access is not configured" });
+    }
+
+    const ipKey = `rate:admin:ip:${req.ip}`;
+    const ipRate = checkRateLimit(ipKey, 10, 15 * 60 * 1000);
+    if (ipRate.limited) {
+      return res.status(429).json({ error: "Too many admin login attempts. Try again later." });
     }
 
     const email = String(req.body?.email || req.body?.user_email || req.body?.username || "")
@@ -2698,13 +2761,50 @@ app.put("/api/admin/email-templates", adminAuthMiddleware, async (req, res) => {
 });
 
 // View email in browser
-app.get("/emails/:id", async (req, res) => {
+app.get("/emails/:id", requireAuth, async (req, res) => {
   const q = await pool.query(
-    "SELECT html_body FROM email_logs WHERE id=$1 LIMIT 1",
+    "SELECT html_body, user_email, to_email FROM email_logs WHERE id=$1 LIMIT 1",
     [req.params.id]
   );
   if (!q.rowCount) return res.status(404).send("Email not found");
-  return res.send(q.rows[0].html_body);
+
+  const row = q.rows[0];
+  const viewerEmail = String(req.user?.email || req.user?.sub || "").trim().toLowerCase();
+  const logRecipient = String(row.user_email || row.to_email || "").trim().toLowerCase();
+
+  if (req.user?.role !== "admin" && viewerEmail !== logRecipient) {
+    return res.status(403).send("Forbidden");
+  }
+
+  return res.send(row.html_body);
+});
+
+app.post("/api/contact", async (req, res) => {
+  try {
+    const name = String(req.body?.name || "").trim();
+    const email = String(req.body?.email || "").trim();
+    const message = String(req.body?.message || "").trim();
+
+    if (!name || !validateEmail(email) || !message) {
+      return res.status(400).json({ error: "Name, valid email, and message are required" });
+    }
+
+    const safeText = `Contact form submission from ${name} <${email}>:\n\n${message}`;
+    if (canSendEmail() && process.env.SUPPORT_EMAIL) {
+      await ensureMailerReady();
+      if (isMailerReady()) {
+        await sendEmail(process.env.SUPPORT_EMAIL, "New contact form message", null, {
+          text: safeText,
+          replyTo: email,
+        });
+      }
+    }
+
+    console.info("Contact form submission received", { name, email });
+    return res.json({ success: true, message: "Thank you, your message was received." });
+  } catch (err) {
+    return handleError(res, "Contact submission error", err);
+  }
 });
 
 // Register
@@ -2835,6 +2935,14 @@ app.post("/api/login", async (req, res) => {
     const emailRaw = req.body.user_email || req.body.email || ""; // accept both frontend fields
     const email = String(emailRaw).trim().toLowerCase();
     const password = String(req.body.password || "");
+
+    const ipKey = `rate:login:ip:${req.ip}`;
+    const emailKey = `rate:login:email:${email}`;
+    const ipRate = checkRateLimit(ipKey, 20, 15 * 60 * 1000);
+    const emailRate = email ? checkRateLimit(emailKey, 8, 15 * 60 * 1000) : { limited: false };
+    if (ipRate.limited || emailRate.limited) {
+      return sendError(429, "Too many login attempts. Try again later.");
+    }
 
     if (!email || !password) {
       return sendError(400, "Missing credentials");
@@ -3014,6 +3122,14 @@ app.put("/api/users/preferences", authMiddleware, async (req, res) => {
   }
 });
 
+app.get("/api/stream-token", requireAuth, async (req, res) => {
+  try {
+    return res.json({ stream_token: issueStreamToken(req.user), expires_in: 300 });
+  } catch (err) {
+    return handleError(res, "Stream token error", err);
+  }
+});
+
 app.get("/api/stream/user/:id", authMiddleware, async (req, res) => {
   const userId = normalizeDbUserId(req.params.id);
   const authedUserId = req.userId || normalizeDbUserId(req.user?.sub);
@@ -3143,6 +3259,14 @@ app.post("/api/password/forgot", async (req, res) => {
     const email = String(req.body?.email || "").trim().toLowerCase();
     if (!validateEmail(email)) {
       return res.status(400).json({ error: "Valid email required" });
+    }
+
+    const ipKey = `rate:password:ip:${req.ip}`;
+    const emailKey = `rate:password:email:${email}`;
+    const ipRate = checkRateLimit(ipKey, 20, 60 * 60 * 1000);
+    const emailRate = checkRateLimit(emailKey, 5, 60 * 60 * 1000);
+    if (ipRate.limited || emailRate.limited) {
+      return res.status(429).json({ error: "Too many password reset requests. Try again later." });
     }
 
     // Always return generic success to prevent email enumeration

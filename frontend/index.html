@@ -1277,8 +1277,12 @@
                     const message = document.getElementById('cMessage').value.trim();
 
                     try {
-                        // Send to SheetDB (Google Sheet)
-                                    await bsLogToSheet({ type:'contact', name, email, message }, { await:true });
+                        // Send to SheetDB (Google Sheet) when available.
+                        if (typeof bsLogToSheet === 'function') {
+                          await bsLogToSheet({ type:'contact', name, email, message }, { await:true });
+                        } else {
+                          console.debug('Sheet logging unavailable; using backend fallback');
+                        }
 
                         // Optional: also forward to backend API if endpoint exists
                         fetch(`/api/contact`, {

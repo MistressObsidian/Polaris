@@ -369,7 +369,7 @@
       loadTransactions();
     }
 
-    function startUserStream(currentUser){
+    async function startUserStream(currentUser){
       if(!currentUser?.id || !currentUser?.token) return;
 
       if(state.sse){
@@ -378,7 +378,23 @@
       }
 
       const resolvedUserId = window.resolveUserId?.(currentUser.id || currentUser.sub) || (currentUser.id || currentUser.sub || "");
-      const streamURL = `${window.API_BASE}/stream/user/${encodeURIComponent(resolvedUserId)}?token=${encodeURIComponent(currentUser.token)}`;
+      let streamToken = currentUser.stream_token;
+      if (!streamToken) {
+        try {
+          const tokenResp = await fetch(`${window.API_BASE}/stream-token`, {
+            headers: { Authorization: `Bearer ${currentUser.token}` },
+          });
+          const tokenData = await tokenResp.json();
+          if (tokenResp.ok && tokenData?.stream_token) {
+            streamToken = tokenData.stream_token;
+          }
+        } catch (err) {
+          console.debug('Unable to fetch stream token', err);
+        }
+      }
+
+      const tokenForStream = streamToken || currentUser.token;
+      const streamURL = `${window.API_BASE}/stream/user/${encodeURIComponent(resolvedUserId)}?token=${encodeURIComponent(tokenForStream)}`;
       const stream = new EventSource(streamURL);
       state.sse = stream;
 

@@ -12,7 +12,9 @@
     "dev:all": "concurrently -n api,web -c blue,magenta \"nodemon server.js\" \"http-server -p 5173 -c-1 frontend\"",
     "db:migrate": "node scripts/migrate-db.js up",
     "db:migrate:status": "node scripts/migrate-db.js status",
-    "db:migrate:new": "node scripts/new-migration.js"
+    "db:migrate:new": "node scripts/new-migration.js",
+    "worker:dev": "wrangler dev",
+    "worker:deploy": "wrangler deploy"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
@@ -32,7 +34,8 @@
   "devDependencies": {
     "concurrently": "^9.1.0",
     "http-server": "^14.1.1",
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "wrangler": "^4.44.0"
   },
   "repository": {
     "type": "git",

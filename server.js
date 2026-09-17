@@ -38,9 +38,10 @@ dotenv.config();
 
 const NODE_ENV = process.env.NODE_ENV || "development";
 const BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://polaris-uru5.onrender.com"
-    : "http://localhost:4000";
+  process.env.APP_BASE_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://polaris.dark-surf-56ad.workers.dev"
+    : "http://localhost:4000");
 const DEFAULT_USER_UUID = process.env.DEFAULT_USER_EMAIL || process.env.DEFAULT_USER_UUID || "guest@example.com";
 
 function normalizeDbUserId(userId) {
@@ -3531,6 +3532,9 @@ app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendDir = path.join(__dirname, "frontend");
+const frontendAvailable = (() => {
+  try { return fs.existsSync(frontendDir); } catch { return false; }
+})();
 const STATIC_PRIVATE_PATHS = [
   /^\/(?:server|bank|generate-jwt(?:-with-new-secret)?|index)\.js$/i,
   /^\/(?:package(?:-lock)?\.json|README\.md|CONTRIBUTING\.md|LICENSE|neon_workflow\.yml|postgres-schema(?:-user-email-reference)?\.sql)$/i,
@@ -3554,7 +3558,7 @@ app.use((req, res, next) => {
 });
 
 // Serve files from the frontend directory (index.html, login.html, ui.css, etc.)
-const staticPageRoutes = fs
+const staticPageRoutes = frontendAvailable ? fs
   .readdirSync(frontendDir, { withFileTypes: true })
   .filter((entry) => entry.isFile() && entry.name.endsWith(".html"))
   .map((entry) => entry.name)
@@ -3566,7 +3570,7 @@ const staticPageRoutes = fs
   .map((fileName) => ({
     fileName,
     routePath: fileName === "index.html" ? "/" : `/${fileName.slice(0, -5)}`,
-  }));
+  })) : [];
 
 const staticPageRedirects = new Map(
   staticPageRoutes.map(({ fileName, routePath }) => [`/${fileName}`, routePath])
@@ -3583,17 +3587,23 @@ app.use((req, res, next) => {
   return res.redirect(301, `${canonicalPath}${queryString}`);
 });
 
-app.use(express.static(frontendDir, { dotfiles: "ignore", index: false }));
+if (frontendAvailable) {
+  app.use(express.static(frontendDir, { dotfiles: "ignore", index: false }));
 
-for (const { routePath, fileName } of staticPageRoutes) {
-  app.get(routePath, (req, res) => res.sendFile(path.join(frontendDir, fileName)));
+  for (const { routePath, fileName } of staticPageRoutes) {
+    app.get(routePath, (req, res) => res.sendFile(path.join(frontendDir, fileName)));
+  }
 }
 
 // --- Start ---
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at ${BASE_URL} (env=${NODE_ENV})`);
-  console.log(`🚀 Server listening on port ${PORT}`);
-});
+if (!globalThis.__POLARIS_WORKER__) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running at ${BASE_URL} (env=${NODE_ENV})`);
+    console.log(`🚀 Server listening on port ${PORT}`);
+  });
+}
+
+export { app };
 
 setTimeout(() => {
   getDB().catch((err) => {

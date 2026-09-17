@@ -3605,12 +3605,16 @@ if (!globalThis.__POLARIS_WORKER__) {
 
 export { app };
 
-setTimeout(() => {
-  getDB().catch((err) => {
-    console.warn("Background DB warmup failed:", err?.message || err);
-  });
+// Background warmup is useful in normal Node.js,
+// but Cloudflare Workers prohibit timers/I/O during global initialization.
+if (!globalThis.__POLARIS_WORKER__) {
+  setTimeout(() => {
+    getDB().catch((err) => {
+      console.warn("Background DB warmup failed:", err?.message || err);
+    });
 
-  ensureMailerReady().catch((err) => {
-    console.warn("Background mailer warmup failed:", err?.message || err);
-  });
-}, 2000);
+    ensureMailerReady().catch((err) => {
+      console.warn("Background mailer warmup failed:", err?.message || err);
+    });
+  }, 2000);
+}

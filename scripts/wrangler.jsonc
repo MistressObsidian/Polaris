@@ -3,16 +3,13 @@
   "name": "polaris",
   "main": "worker.js",
   "compatibility_date": "2026-09-16",
-  "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "NODE_ENV": "production",
     "APP_BASE_URL": "https://polaris.dark-surf-56ad.workers.dev",
     "CORS_ORIGINS": "https://polaris.dark-surf-56ad.workers.dev"
   },
-  "hyperdrive": [
-    {
-      "binding": "HYPERDRIVE",
-      "id": "0a4dc3256390460e8c6d5fb72ff49d9d"
-    }
-  ]
+  "assets": {
+    "directory": "./frontend",
+    "run_worker_first": ["/api/*"]
+  }
 }

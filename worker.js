@@ -41,11 +41,11 @@ for (const key of ENV_KEYS) {
   }
 }
 
-// PostgreSQL on Workers should normally use Hyperdrive. If DATABASE_URL was not
-// supplied directly, use Hyperdrive's generated connection string.
-if (!process.env.DATABASE_URL && env.HYPERDRIVE?.connectionString) {
-  process.env.DATABASE_URL = env.HYPERDRIVE.connectionString;
-}
+// DATABASE_URL must be supplied through a Worker secret for this
+// Express compatibility layer.
+//
+// Hyperdrive must not be accessed here because Worker module
+// initialization runs outside a request context.
 
 // NODE_ENV is supplied by Wrangler's production vars.  Local development can
 // supply it via .env/.dev.vars; server.js has its own development fallback.

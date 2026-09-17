@@ -15,6 +15,7 @@ const ENV_KEYS = [
   "BRAND_LOGO_URL",
   "BRAND_NAME",
   "CORS_ORIGINS",
+  "DATABASE_URL",
   "DEFAULT_USER_EMAIL",
   "DEFAULT_USER_UUID",
   "GS_LOG_ENDPOINT",
@@ -24,6 +25,8 @@ const ENV_KEYS = [
   "JWT_SECRETS",
   "JWT_SECRET_FALLBACKS",
   "MAIL_FROM",
+  "MAIL_FROM_NAME",
+  "MAIL_REPLY_TO",
   "NODE_ENV",
   "PORT",
   "SENDGRID_API_KEY",
@@ -44,7 +47,8 @@ if (!process.env.DATABASE_URL && env.HYPERDRIVE?.connectionString) {
   process.env.DATABASE_URL = env.HYPERDRIVE.connectionString;
 }
 
-process.env.NODE_ENV ||= "production";
+// NODE_ENV is supplied by Wrangler's production vars.  Local development can
+// supply it via .env/.dev.vars; server.js has its own development fallback.
 process.env.PORT ||= "3000";
 process.env.APP_BASE_URL ||= "https://polaris.dark-surf-56ad.workers.dev";
 process.env.CORS_ORIGINS ||= process.env.APP_BASE_URL;

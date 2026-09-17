@@ -1693,7 +1693,7 @@ async function createPasswordResetLink(email, baseUrl) {
     [normalizedEmail, tokenHash, expires]
   );
 
-  const resolvedBaseUrl = String(baseUrl || APP_BASE_URL || BASE_URL || "http://localhost:4000").replace(/\/+$/, "");
+  const resolvedBaseUrl = String(baseUrl || APP_BASE_URL || BASE_URL || "http://localhost:4000,https://polaris.dark-surf-56ad.workers.dev").replace(/\/+$/, "");
   return `${resolvedBaseUrl}/reset-password?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(normalizedEmail)}`;
 }
 

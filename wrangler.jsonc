@@ -1,16 +1,18 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "polaris",
-
   "main": "worker.js",
-
-  "compatibility_date": "2026-09-17",
-
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
-
+  "compatibility_date": "2026-09-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "NODE_ENV": "production",
+    "APP_BASE_URL": "https://polaris.dark-surf-56ad.workers.dev",
+    "CORS_ORIGINS": "https://polaris.dark-surf-56ad.workers.dev"
+  },
+  "assets": {
+    "directory": "./frontend",
+    "run_worker_first": ["/api/*"]
+  },
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",

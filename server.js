@@ -29,6 +29,7 @@ import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { initMailer as initMailerUtils, sendEmail, isMailerReady, getMailerError } from "./utils/mailer.js";
 import PDFDocument from "pdfkit";
 import { initBank, createUser, getUser, getUserBalance, updateUserBalance, getOrCreateAccount, getAccount, addTransaction, getTransactions, getTransactionWithDetails } from "./bank.js";
@@ -36,7 +37,7 @@ import { initBank, createUser, getUser, getUserBalance, updateUserBalance, getOr
 
 dotenv.config();
 
-const NODE_ENV = process.env.NODE_ENV || "development";
+const NODE_ENV = globalThis.__POLARIS_WORKER__ ? "production" : (process.env.NODE_ENV || "development");
 const BASE_URL =
   process.env.APP_BASE_URL ||
   (process.env.NODE_ENV === "production"
@@ -229,12 +230,82 @@ function handleError(res, label, err) {
   return res.status(500).json({ error: err.message || "Server error", stack: err.stack });
 }
 
-let pool;
+const workerEnvContext = new AsyncLocalStorage();
+const dbRequestContext = new AsyncLocalStorage();
+
+export function runWithWorkerEnv(workerEnv, callback) {
+  return workerEnvContext.run(workerEnv, callback);
+}
+
+function getWorkerDbClient() {
+  const client = dbRequestContext.getStore();
+  if (!client) {
+    throw new Error("Database client is not available for this Worker request");
+  }
+  return client;
+}
+
+// Existing route and bank code expects a pg.Pool-shaped object. In Workers,
+// route those calls to the request-scoped pg Client instead. Transactions keep
+// using the same client and release() is intentionally a no-op; Hyperdrive
+// automatically cleans up the client connection when the request completes.
+const workerPoolAdapter = {
+  query(text, params) {
+    return getWorkerDbClient().query(text, params);
+  },
+  async connect() {
+    const client = getWorkerDbClient();
+    return {
+      query: client.query.bind(client),
+      release() {},
+    };
+  },
+};
+
+let pool = globalThis.__POLARIS_WORKER__ ? workerPoolAdapter : null;
 let dbReady = false;
 let dbInitPromise = null;
 let mailerInitPromise = null;
 
+if (globalThis.__POLARIS_WORKER__) {
+  initBank(pool);
+}
+
+async function createWorkerDbClient() {
+  const workerEnv = workerEnvContext.getStore();
+  const connectionString = workerEnv?.HYPERDRIVE?.connectionString || DATABASE_URL;
+  if (!connectionString) throw new Error("DATABASE_URL is not configured");
+
+  const { Client } = await import("pg");
+  let lastError;
+
+  // A fresh Hyperdrive location can occasionally time out while opening its
+  // first origin connection. Retry within the same request before surfacing a
+  // server error to the user.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const client = new Client({
+      connectionString,
+      ssl: getSSLFromDatabaseUrl(connectionString),
+    });
+
+    try {
+      await client.connect();
+      return client;
+    } catch (err) {
+      lastError = err;
+      await client.end().catch(() => {});
+    }
+  }
+
+  throw lastError || new Error("Unable to connect to the database");
+}
+
 async function getDB() {
+  if (globalThis.__POLARIS_WORKER__) {
+    getWorkerDbClient();
+    return pool;
+  }
+
   if (dbReady && pool) return pool;
   if (dbInitPromise) return dbInitPromise;
   if (!DATABASE_URL) throw new Error("DATABASE_URL is not configured");
@@ -1619,8 +1690,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.options("*", cors(corsOptions));
-
 app.use(express.json({ limit: "1mb" }));
 
 morgan.token("redacted-url", (req) => {
@@ -1650,6 +1719,11 @@ app.use(async (req, res, next) => {
   if (!req.path.startsWith("/api/") && !req.path.startsWith("/emails/")) return next();
 
   try {
+    if (globalThis.__POLARIS_WORKER__) {
+      const client = await createWorkerDbClient();
+      return dbRequestContext.run(client, next);
+    }
+
     await getDB();
     return next();
   } catch (err) {
@@ -3529,6 +3603,10 @@ app.post("/api/loans/:id/pay-fee", authMiddleware, async (req, res) => {
 });
 
 // --- Static hosting (frontend) ---
+// Cloudflare Workers serves these files through Wrangler Static Assets.
+// The Worker runtime does not provide a filesystem URL for this module, so
+// only initialize Express's filesystem-based static hosting on regular Node.
+if (!globalThis.__POLARIS_WORKER__) {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendDir = path.join(__dirname, "frontend");
@@ -3593,6 +3671,7 @@ if (frontendAvailable) {
   for (const { routePath, fileName } of staticPageRoutes) {
     app.get(routePath, (req, res) => res.sendFile(path.join(frontendDir, fileName)));
   }
+}
 }
 
 // --- Start ---

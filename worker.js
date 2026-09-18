@@ -1,7 +1,7 @@
 // Cloudflare Worker entry point for the existing Polaris Express backend.
 // Cloudflare's Express adapter runs the existing app behind a Worker fetch handler.
 import { env } from "cloudflare:workers";
-import { httpServerHandler } from "cloudflare:node";
+import { handleAsNodeRequest } from "cloudflare:node";
 
 // server.js expects process.env because it was originally written for Node/Express.
 // Populate those values from Worker vars/secrets before dynamically importing it.
@@ -41,11 +41,8 @@ for (const key of ENV_KEYS) {
   }
 }
 
-// DATABASE_URL must be supplied through a Worker secret for this
-// Express compatibility layer.
-//
-// Hyperdrive must not be accessed here because Worker module
-// initialization runs outside a request context.
+// Hyperdrive is read inside the fetch handler because binding I/O is not
+// permitted during Worker module initialization.
 
 // NODE_ENV is supplied by Wrangler's production vars.  Local development can
 // supply it via .env/.dev.vars; server.js has its own development fallback.
@@ -55,10 +52,15 @@ process.env.CORS_ORIGINS ||= process.env.APP_BASE_URL;
 
 globalThis.__POLARIS_WORKER__ = true;
 
-const { app } = await import("./server.js");
+const { app, runWithWorkerEnv } = await import("./server.js");
 
-// Express listens on an in-memory Worker HTTP server; httpServerHandler bridges it
-// to the Cloudflare Fetch API.
-app.listen(Number(process.env.PORT) || 3000);
+// Express listens on an in-memory Worker HTTP server. handleAsNodeRequest gives
+// us an explicit fetch handler so request-scoped bindings can reach Express.
+const workerPort = Number(process.env.PORT) || 3000;
+app.listen(workerPort);
 
-export default httpServerHandler({ port: Number(process.env.PORT) || 3000 });
+export default {
+  fetch(request, workerEnv) {
+    return runWithWorkerEnv(workerEnv, () => handleAsNodeRequest(workerPort, request));
+  },
+};

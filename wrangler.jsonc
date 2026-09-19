@@ -4,11 +4,14 @@
   "main": "worker.js",
   "compatibility_date": "2026-09-16",
   "compatibility_flags": ["nodejs_compat"],
+   // ...
   "vars": {
-    "NODE_ENV": "production",
+    "ALLOW_ANY_ORIGIN": "0",
     "APP_BASE_URL": "https://polaris.dark-surf-56ad.workers.dev",
-    "CORS_ORIGINS": "https://polaris.dark-surf-56ad.workers.dev"
+    "CORS_ORIGINS": "https://polaris.dark-surf-56ad.workers.dev",
+    "NODE_ENV": "production"
   },
+  // ...
   "assets": {
     "directory": "./frontend",
     "run_worker_first": ["/api/*"]
@@ -20,3 +23,4 @@
     }
   ]
 }
+

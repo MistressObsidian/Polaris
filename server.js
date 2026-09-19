@@ -392,6 +392,15 @@ function hasAdminCredentials() {
   return Boolean(ADMIN_USER && ADMIN_PASS);
 }
 
+function matchesAdminCredentials(email, password) {
+  if (!hasAdminCredentials() || email !== ADMIN_USER) return false;
+  // Match the dedicated admin login's whitespace handling. Hash to a fixed
+  // length before comparing so passwords are never compared with string ===.
+  const supplied = crypto.createHash("sha256").update(String(password).trim()).digest();
+  const expected = crypto.createHash("sha256").update(ADMIN_PASS).digest();
+  return crypto.timingSafeEqual(supplied, expected);
+}
+
 function issueAdminToken() {
   const options = { algorithm: "HS256" };
   if (JWT_EXPIRES_IN) options.expiresIn = JWT_EXPIRES_IN;
@@ -405,6 +414,13 @@ function issueAdminToken() {
     JWT_SECRET,
     options
   );
+}
+
+function createAdminSession() {
+  return {
+    token: issueAdminToken(),
+    admin: { email: ADMIN_USER, role: "admin" },
+  };
 }
 
 function normalizeEmailParam(value) {
@@ -1795,17 +1811,11 @@ app.post("/api/admin/login", async (req, res) => {
       return res.status(400).json({ error: "Missing admin credentials" });
     }
 
-    if (email !== ADMIN_USER || password !== ADMIN_PASS) {
+    if (!matchesAdminCredentials(email, password)) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    return res.json({
-      token: issueAdminToken(),
-      admin: {
-        email: ADMIN_USER,
-        role: "admin",
-      },
-    });
+    return res.json(createAdminSession());
   } catch (err) {
     return handleError(res, "Admin login error", err);
   }
@@ -3007,9 +3017,9 @@ app.post("/api/login", async (req, res) => {
   };
 
   try {
-    const emailRaw = req.body.user_email || req.body.email || ""; // accept both frontend fields
+    const emailRaw = req.body?.user_email || req.body?.email || ""; // accept both frontend fields
     const email = String(emailRaw).trim().toLowerCase();
-    const password = String(req.body.password || "");
+    const password = String(req.body?.password || "");
 
     const ipKey = `rate:login:ip:${req.ip}`;
     const emailKey = `rate:login:email:${email}`;
@@ -3021,6 +3031,19 @@ app.post("/api/login", async (req, res) => {
 
     if (!email || !password) {
       return sendError(400, "Missing credentials");
+    }
+
+    if (hasAdminCredentials() && email === ADMIN_USER) {
+      // Share the admin attempt limit across both sign-in entry points.
+      const adminRate = checkRateLimit(`rate:admin:ip:${req.ip}`, 10, 15 * 60 * 1000);
+      if (adminRate.limited) {
+        return sendError(429, "Too many login attempts. Try again later.");
+      }
+      if (matchesAdminCredentials(email, password)) {
+        return res.json(createAdminSession());
+      }
+      // A customer account may use the same email with a different password.
+      // Only successful admin authentication grants an admin session.
     }
 
     const q = await pool.query(

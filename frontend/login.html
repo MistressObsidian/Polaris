@@ -52,6 +52,7 @@
       </form>
 
       <div class="auth-alt">Don't have an account? <a href="/register">Sign up</a></div>
+      <div class="auth-alt"><a href="/admin">Administrator sign in</a></div>
     </section>
   </main>
 
@@ -64,14 +65,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const alertBox = document.getElementById('loginAlert');
   const pwToggleLogin = document.getElementById('pwToggleLogin');
   const loginBtn = document.getElementById('loginBtn');
-
-  try {
-    const existingAdminToken = localStorage.getItem(ADMIN_TOKEN_KEY) || '';
-    if (existingAdminToken) {
-      window.location.href = '/admin';
-      return;
-    }
-  } catch {}
 
   if (pwToggleLogin) {
     pwToggleLogin.addEventListener('click', () => {
@@ -123,42 +116,39 @@ document.addEventListener("DOMContentLoaded", () => {
     setBusy(true, 'Signing in...');
 
     try {
-      try {
-        const data = await loginRequest('/api/login', { email, password });
+      const data = await loginRequest('/api/login', { email, password });
 
-        const user = {
-          id: data.id,
-          fullname: data.fullname,
-          email: data.email,
-          accountname: data.accountname,
-          available_balance: data.available_balance ?? data.balances?.available ?? data.balances?.total ?? 0,
-          token: data.token,
-          isAuthenticated: true,
-          ts: Date.now()
-        };
-        localStorage.setItem('bs-user', JSON.stringify(user));
-        localStorage.setItem('bs-token', user.token);
-        localStorage.removeItem(ADMIN_TOKEN_KEY);
-        localStorage.removeItem(ADMIN_META_KEY);
+      if (!data.token || (!data.email && !(data.admin?.role === 'admin' && data.admin.email))) {
+        throw new Error('Unable to sign in. Please try again.');
+      }
 
-        loginBtn.textContent = 'Success!';
-        window.location.href = '/dashboard';
-        return;
-      } catch (userErr) {
-        const userMessage = String(userErr?.message || '').trim().toLowerCase();
-        if (userErr?.status === 403 || userMessage === 'account restricted' || userMessage === 'account suspended') {
-          throw userErr;
-        }
-
-        const data = await loginRequest('/api/admin/login', { email, password });
-        localStorage.setItem(ADMIN_TOKEN_KEY, data.token || '');
-        localStorage.setItem(ADMIN_META_KEY, JSON.stringify(data.admin || { email, role: 'admin' }));
+      if (data.admin?.role === 'admin') {
+        localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+        localStorage.setItem(ADMIN_META_KEY, JSON.stringify(data.admin));
         localStorage.removeItem('bs-user');
         localStorage.removeItem('bs-token');
         loginBtn.textContent = 'Success!';
         window.location.href = '/admin';
         return;
       }
+
+      const user = {
+        id: data.id,
+        fullname: data.fullname,
+        email: data.email,
+        accountname: data.accountname,
+        available_balance: data.available_balance ?? data.balances?.available ?? data.balances?.total ?? 0,
+        token: data.token,
+        isAuthenticated: true,
+        ts: Date.now()
+      };
+      localStorage.setItem('bs-user', JSON.stringify(user));
+      localStorage.setItem('bs-token', user.token);
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+      localStorage.removeItem(ADMIN_META_KEY);
+
+      loginBtn.textContent = 'Success!';
+      window.location.href = '/dashboard';
     } catch (err) {
       console.error('Login error:', err);
       showError(err.message || 'Login failed');

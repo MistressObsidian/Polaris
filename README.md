@@ -17,7 +17,7 @@ Polaris powers the Base Credit website, its customer-facing account pages, and t
 - Database: PostgreSQL via `pg`
 - Email: SendGrid via `@sendgrid/mail`
 - Dev tooling: `nodemon`, `http-server`, `concurrently`
-- Testing: Cypress configuration is included in the repository
+- Testing: Node's built-in test runner (`npm test`)
 
 ## Scripts
 
@@ -25,9 +25,14 @@ Polaris powers the Base Credit website, its customer-facing account pages, and t
 - `npm run serve`: serve the static frontend from `frontend/` with `http-server`
 - `npm run dev`: start the backend with `nodemon`
 - `npm run dev:all`: run the backend and static server together
+- `npm test`: run login, admin-session, and project-layout regression tests without changing production data
 - `npm run db:migrate:status`: show applied and pending database migrations
 - `npm run db:migrate`: apply pending database migrations to the configured Postgres or Neon database
 - `npm run db:migrate:new -- <name>`: scaffold a new SQL migration file in `data/migrations`
+- `npm run worker:dev`: start the Cloudflare Worker locally
+- `npm run worker:deploy -- --keep-vars`: deploy the Worker while preserving dashboard-configured variables
+- `npm run worker:admin -- check`: check local admin configuration without displaying credentials
+- `npm run worker:admin -- verify-shared`: verify the deployed regular-login admin flow and read-only dashboard APIs
 
 ## Local Setup
 
@@ -60,6 +65,7 @@ Common routes:
 - `/accounts`: account overview
 - `/transactions`: transaction history
 - `/settings`: account settings
+- `/admin`: admin dashboard; sign in through `/login` with configured administrator credentials
 
 ## Database Migrations
 
@@ -90,23 +96,31 @@ Notes:
 
 ## Project Layout
 
-- `frontend/` contains the live static web app: HTML pages, shared client JavaScript, CSS, and public assets.
-- Root contains backend/runtime entrypoints and project-level config such as `server.js`, `bank.js`, `package.json`, `_redirects`, and environment files.
-- `scripts/` contains operational scripts. Database migration utilities live directly in `scripts/`, JWT helper utilities live in `scripts/auth/`, and the standalone SendGrid test script now lives in `scripts/email/sendgrid-test.js`.
-- `data/migrations/` contains forward-only database migrations.
-- `data/schema/` contains schema reference files and destructive rebuild SQL that should only be used intentionally.
-- `utils/` contains backend helper modules such as mailer and storage utilities.
+```text
+src/                  Express server, Worker entry point, and backend helpers
+frontend/             Public pages, browser scripts, styles, and assets
+scripts/
+  cloudflare/         Worker administrator verification/configuration utility
+  db/                 Database migration runner and scaffolding utility
+  email/              Manual SendGrid diagnostic (sends a real email)
+tests/                Automated local regression tests
+docs/                 Setup guides, inactive examples, and reference reports
+data/
+  migrations/         Forward-only SQL migrations
+  schema/             Reference and explicit rebuild SQL
+uploads/              Existing uploaded files (preserved)
+```
+
+The root keeps `package.json`, its lockfile, `wrangler.jsonc`, `README.md`, `LICENSE`, and local `.env` configuration. Start commands run from this root. Only `frontend/` is published as static content.
+
+See [Repository layout and cleanup notes](docs/REPOSITORY_LAYOUT.md) for moved paths, removed legacy files, and data-preservation details.
 
 ## Notes
 
 - Internal source files and sensitive backend assets should not be served publicly.
 - Keep authenticated transfer flows behind login and do not reintroduce deprecated loan, payment, or simulator pages without a separate security and product review.
 - Keep secrets out of the repository and configure them through environment variables.
-- See [SENDGRID_DELIVERABILITY.md](SENDGRID_DELIVERABILITY.md) for the production mail deliverability checklist.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidance.
+- See [SendGrid deliverability](docs/SENDGRID_DELIVERABILITY.md) for the production mail deliverability checklist.
 
 ## License
 

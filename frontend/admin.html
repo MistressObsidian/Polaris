@@ -646,6 +646,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="admin-operations.css" />
 </head>
 <body>
   <section id="loginScreen" class="login-shell hidden">
@@ -654,22 +655,9 @@
         <span class="pill">Restricted Access</span>
         <span class="pill">Admin Console</span>
       </div>
-      <h1>Manual Project Control</h1>
-      <p>Sign in with the configured admin credentials to manage users, balances, email workflows, and platform settings.</p>
-      <form id="loginForm">
-        <div class="field">
-          <label for="adminEmail">Admin Email</label>
-          <input id="adminEmail" class="input-base" type="email" autocomplete="username" required />
-        </div>
-        <div class="field">
-          <label for="adminPassword">Password</label>
-          <input id="adminPassword" class="input-base" type="password" autocomplete="current-password" required />
-        </div>
-        <div class="actions-inline" style="margin-top:.4rem;">
-          <button type="submit" class="btn btn-primary">Sign In</button>
-        </div>
-        <div id="loginStatus" class="status-line"></div>
-      </form>
+      <h1>Sign in to continue</h1>
+      <p>Use the regular login page with your administrator credentials. Your account will automatically open the admin dashboard.</p>
+      <a href="/login" class="btn btn-primary">Go to sign in</a>
     </div>
   </section>
 
@@ -682,7 +670,8 @@
       </div>
       <div class="appbar-actions">
         <button id="refreshBtn" class="btn btn-primary">Refresh</button>
-        <button id="logoutBtn" class="btn-outline">Logout</button>
+        <!-- This button uses the admin handler, not common.js customer logout. -->
+        <button id="logoutBtn" class="btn-outline" data-logout-bound="1">Logout</button>
       </div>
     </header>
 
@@ -693,11 +682,17 @@
         <li><a class="nav-link" href="#users">Users</a></li>
         <li><a class="nav-link" href="#transactions">Transactions</a></li>
         <li><a class="nav-link" href="#emails">Email Logs</a></li>
-        <li><a class="nav-link" href="#settings">Settings</a></li>
+        <li><a class="nav-link" href="#transfers">Transfers</a></li>
+        <li><a class="nav-link" href="#loans">Loan reviews</a></li>
+        <li><a class="nav-link" href="#activity">Activity history</a></li>
+        <li><a class="nav-link" href="#services">Platform &amp; services</a></li>
+        <li><a class="nav-link" href="#settings">User workspace</a></li>
       </ul>
     </aside>
 
     <main class="main">
+        <div id="globalStatus" class="status-line" role="status" aria-live="polite"></div>
+
       <section id="overview" class="hero">
         <div class="pills">
           <span class="pill">Admin User: <span id="adminUserLabel">—</span></span>
@@ -705,7 +700,7 @@
           <span class="pill">Notify: <span id="notifyEmailLabel">—</span></span>
         </div>
         <h1>Admin Dashboard</h1>
-        <p class="hero-subtitle">Manage users, platform-wide settings, and email templates from one place without guessing what affects everyone.</p>
+        <p class="hero-subtitle">Manage customer access, review account activity, and control your platform from one secure workspace.</p>
         <div class="guide-grid">
           <div class="guide-card">
             <span class="scope-badge scope-global">Global</span>
@@ -724,7 +719,6 @@
           </div>
         </div>
         <div id="statsGrid" class="stats-grid"></div>
-        <div id="globalStatus" class="status-line"></div>
       </section>
 
       <div class="section-grid">
@@ -733,14 +727,14 @@
             <div>
               <div class="scope-badge scope-user">Selected user only</div>
               <h2>Users</h2>
-              <div class="panel-sub">Use this list to find a user and load them into the admin workspace under Settings.</div>
+              <div class="panel-sub">Search every customer account. Select Edit to manage access, profile, balances, and preferences.</div>
             </div>
             <div class="panel-tools">
-              <input id="userSearch" class="search-input" type="search" placeholder="Search users by name or email" style="max-width:320px;" />
-              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="usersPanelBody" data-label-show="Show Users" data-label-hide="Hide Users" aria-expanded="false">Show Users</button>
+              <input id="userSearch" class="search-input" type="search" placeholder="Search all users" aria-label="Search all users" maxlength="120" style="max-width:320px;" />
+              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="usersPanelBody" data-label-show="Show Users" data-label-hide="Hide Users" aria-expanded="true">Hide Users</button>
             </div>
           </div>
-          <div id="usersPanelBody" class="table-wrap collapsed-panel">
+          <div id="usersPanelBody" class="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -758,14 +752,14 @@
         <section id="transactions" class="panel">
           <div class="panel-head">
             <div>
-              <h2>Recent Transactions</h2>
-              <div class="panel-sub">Audit recent balance activity across the platform. Collapsed by default.</div>
+              <h2>Transactions</h2>
+              <div class="panel-sub">Search the account ledger across all customers. Balances are shown in USD.</div>
             </div>
             <div class="panel-tools">
-              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="transactionsPanelBody" data-label-show="Show Transactions" data-label-hide="Hide Transactions" aria-expanded="false">Show Transactions</button>
+              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="transactionsPanelBody" data-label-show="Show Transactions" data-label-hide="Hide Transactions" aria-expanded="true">Hide Transactions</button>
             </div>
           </div>
-          <div id="transactionsPanelBody" class="table-wrap collapsed-panel">
+          <div id="transactionsPanelBody" class="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -787,13 +781,13 @@
           <div class="panel-head">
             <div>
               <h2>Email Logs</h2>
-              <div class="panel-sub">Track delivery history and inspect failures. Collapsed by default.</div>
+              <div class="panel-sub">Review outbound email attempts. Sent means accepted by the email provider, not confirmed inbox delivery.</div>
             </div>
             <div class="panel-tools">
-              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="emailsPanelBody" data-label-show="Show Email Logs" data-label-hide="Hide Email Logs" aria-expanded="false">Show Email Logs</button>
+              <button type="button" class="btn-outline" data-action="toggle-panel" data-target="emailsPanelBody" data-label-show="Show Email Logs" data-label-hide="Hide Email Logs" aria-expanded="true">Hide Email Logs</button>
             </div>
           </div>
-          <div id="emailsPanelBody" class="table-wrap collapsed-panel">
+          <div id="emailsPanelBody" class="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -809,12 +803,42 @@
           </div>
         </section>
 
+        <section id="activity" class="panel hidden">
+          <div class="panel-head"><div><span class="scope-badge">Audit history</span><h2>Account &amp; admin activity</h2><p class="panel-sub">Sign-ins and authenticated account changes recorded from activation of activity tracking. Started means the final outcome could not yet be confirmed.</p></div></div>
+        </section>
+        <section id="transfers" class="panel hidden">
+          <div class="panel-head"><div><h2>Transfer history</h2><p class="panel-sub">Track senders, recipients, amounts, and recorded status across all customers.</p></div></div>
+          <div class="notice">Transfers between Base Credit accounts are available. External bank and crypto transfers require a connected provider and cannot currently be submitted. Existing historical statuses are shown as recorded.</div>
+        </section>
+        <section id="loans" class="panel hidden">
+          <div class="panel-head"><div><h2>Loan reviews</h2><p class="panel-sub">Review existing pending requests and retain the reason for each decision.</p></div></div>
+          <div class="notice">New applications and loan disbursement are unavailable. Recording an approval does not send funds or collect a fee.</div>
+          <form id="loanReviewForm" class="review-form" hidden>
+            <strong id="loanReviewTarget"></strong>
+            <label for="loanDecision">Review decision</label><select id="loanDecision" class="input-base"><option value="approved">Approve review</option><option value="rejected">Reject request</option><option value="cancelled">Cancel request</option></select>
+            <label for="loanReason">Reason</label><textarea id="loanReason" class="input-base" minlength="5" maxlength="1000" required></textarea>
+            <div class="actions-inline"><button class="btn btn-primary" type="submit">Record review</button><button id="cancelReview" class="btn-outline" type="button">Cancel</button></div>
+          </form><div id="loanReviewStatus" class="status-line" role="status"></div>
+        </section>
+        <section id="services" class="panel hidden">
+          <div class="panel-head"><div><span class="scope-badge scope-global">Platform-wide</span><h2>Platform &amp; services</h2><p class="panel-sub">Control service availability and check which providers are configured.</p></div></div>
+          <div id="serviceGrid" class="service-grid" aria-live="polite"></div>
+          <form id="platformForm">
+            <label class="feature-switch"><input id="registration_enabled" type="checkbox" disabled><span><strong>Customer registration</strong><small>Allow new customers to register. Administrators can still create accounts.</small></span></label>
+            <label class="feature-switch"><input id="transfers_enabled" type="checkbox" disabled><span><strong>Transfers</strong><small>Allow supported internal transfers. Turning this off blocks new customer and admin transfers; history remains available.</small></span></label>
+            <label class="feature-switch"><input id="investments_enabled" type="checkbox" disabled><span><strong>Investment connections</strong><small>Allow Coinbase linking and holdings refresh when configured. Public market prices remain available. This does not authorize trading.</small></span></label>
+            <div class="actions-inline" style="margin-top:1rem"><button id="savePlatform" type="submit" class="btn btn-primary" disabled>Save platform controls</button><button id="reloadPlatform" type="button" class="btn-outline">Reload settings</button></div>
+            <div id="platformStatus" class="status-line" role="status"></div>
+          </form>
+          <div class="notice">Enabling a feature does not connect its provider. Coinbase needs its application settings saved privately on the server. No credentials or access tokens are displayed here.</div>
+          <h3>Linked Coinbase accounts</h3><div id="connectionsList"></div>
+        </section>
         <section id="settings" class="panel">
           <div class="panel-head">
             <div>
               <div class="scope-badge">Admin controls</div>
-              <h2>Admin Settings</h2>
-              <div class="panel-sub">Use this area for admin actions and platform-wide changes. User-specific actions work on the account selected from the Users section.</div>
+              <h2>User workspace &amp; email templates</h2>
+              <div class="panel-sub">Choose a customer in Users before changing their account. Email templates below apply across the platform.</div>
             </div>
           </div>
           <div class="panel panel-muted admin-workspace">
@@ -831,6 +855,8 @@
                 <span id="selectedUserState" class="scope-badge">Choose a user from the Users section</span>
               </div>
               <div id="selectedUserMeta" class="helper-text">Open Users, click Edit on an account, then manage that user here.</div>
+              <div class="actions-inline"><button id="viewUserActivity" type="button" class="mini-btn" disabled>View activity</button><button id="revokeSessions" type="button" class="mini-btn bad" disabled>Sign out all devices</button></div>
+              <div id="sessionStatus" class="status-line" role="status"></div>
             </div>
             <form id="createUserForm" class="workspace-form workspace-form-compact">
               <div class="panel-sub" style="margin-bottom:.55rem;">Create New User</div>
@@ -845,7 +871,7 @@
                 </div>
                 <div class="field">
                   <label for="createPassword">Temporary Password</label>
-                  <input id="createPassword" class="input-base" type="text" minlength="6" required />
+                  <input id="createPassword" class="input-base" type="password" autocomplete="new-password" minlength="6" required />
                 </div>
                 <div class="field">
                   <label for="createPhone">Phone</label>
@@ -964,7 +990,7 @@
               <div class="actions-inline" style="margin-top:.9rem;">
                 <button type="submit" class="btn-success">Apply Balance Change</button>
               </div>
-              <div class="helper-text" style="margin-top:.5rem;">Balance updates create a completed transaction entry automatically.</div>
+              <div class="helper-text" style="margin-top:.5rem;">This changes the internal account ledger and creates a transaction record. It does not charge or credit an external bank account.</div>
             </form>
             <hr class="admin-divider" />
             <form id="userPreferencesForm" class="workspace-form workspace-form-compact">
@@ -1002,7 +1028,7 @@
                 </div>
               </div>
               <div class="actions-inline" style="margin-top:.9rem;">
-                <button type="submit" class="btn btn-primary">Save Preferences</button>
+                <button id="saveUserPreferences" type="submit" class="btn btn-primary" disabled>Save Preferences</button>
               </div>
               <div class="helper-text" style="margin-top:.5rem;">These values sync to the user's app preferences. Turning transfers off blocks only the selected user's self-service transfer flow.</div>
             </form>
@@ -1012,17 +1038,17 @@
               <div class="form-grid">
                 <div class="field">
                   <label for="adminSetPassword">New Password</label>
-                  <input id="adminSetPassword" class="input-base" type="text" minlength="6" placeholder="At least 6 characters" />
+                  <input id="adminSetPassword" class="input-base" type="password" autocomplete="new-password" minlength="6" placeholder="At least 6 characters" />
                 </div>
                 <div class="field">
                   <label for="adminConfirmPassword">Confirm Password</label>
-                  <input id="adminConfirmPassword" class="input-base" type="text" minlength="6" placeholder="Re-enter the new password" />
+                  <input id="adminConfirmPassword" class="input-base" type="password" autocomplete="new-password" minlength="6" placeholder="Re-enter the new password" />
                 </div>
               </div>
               <div class="actions-inline" style="margin-top:.9rem;">
                 <button type="submit" class="btn-outline">Set User Password</button>
               </div>
-              <div class="helper-text" style="margin-top:.5rem;">This updates the selected user's password immediately and sends the standard security notice.</div>
+              <div class="helper-text" style="margin-top:.5rem;">Changing the password ends all existing sessions. A security notice is attempted when email delivery is configured.</div>
             </form>
             <hr class="admin-divider" />
             <form id="adminTransferForm" class="workspace-form workspace-form-wide">
@@ -1342,19 +1368,19 @@
     const state = {
       overview: null,
       templates: null,
+      templatesLoaded: false,
       selectedTemplateKey: "",
       selectedUser: null,
       selectedUserPreferences: null,
+      preferencesLoaded: false,
+      profileRequest: 0,
+      profileLoaded: false,
       selectedUserTransfers: [],
     };
 
     const els = {
       loginScreen: document.getElementById("loginScreen"),
       adminShell: document.getElementById("adminShell"),
-      loginForm: document.getElementById("loginForm"),
-      adminEmail: document.getElementById("adminEmail"),
-      adminPassword: document.getElementById("adminPassword"),
-      loginStatus: document.getElementById("loginStatus"),
       globalStatus: document.getElementById("globalStatus"),
       statsGrid: document.getElementById("statsGrid"),
       adminUserLabel: document.getElementById("adminUserLabel"),
@@ -1478,6 +1504,16 @@
 
     function clearAdminSession() {
       setAdminToken("");
+    }
+
+    function returnToLogin(reason = "") {
+      toggleShell(false);
+      window.location.replace(reason ? `/login?reason=${encodeURIComponent(reason)}` : "/login");
+    }
+
+    function handleLogout() {
+      clearAdminSession();
+      returnToLogin("signed-out");
     }
 
     function showStatus(el, message, type = "info") {
@@ -1619,8 +1655,12 @@
 
       if (preferencesResult.status === "fulfilled") {
         fillSelectedUserPreferences(preferencesResult.value);
+        state.preferencesLoaded = true;
+        document.getElementById('saveUserPreferences').disabled = false;
       } else {
-        console.warn("Admin user preferences load failed:", preferencesResult.reason);
+        state.preferencesLoaded = false;
+        document.getElementById('saveUserPreferences').disabled = true;
+        showStatus(els.userEditorStatus, 'Preferences could not be loaded. Select this user again to retry before saving.', 'error');
       }
 
       if (transfersResult.status === "fulfilled") {
@@ -1629,7 +1669,7 @@
       } else {
         state.selectedUserTransfers = [];
         renderSelectedUserTransfers();
-        console.warn("Admin user transfers load failed:", transfersResult.reason);
+        els.userTransfersTableBody.innerHTML = '<tr><td colspan="5">Transfer history unavailable. Select this user again to retry.</td></tr>';
       }
     }
 
@@ -1735,7 +1775,7 @@
         els.templateValidation.innerHTML = `<span class="validation-state success">${escapeHtml(selectedKey)} is valid and ready to save.</span>`;
       }
 
-      els.templatesSaveBtn.disabled = allIssues.length > 0 || !selectedKey;
+      els.templatesSaveBtn.disabled = !state.templatesLoaded || allIssues.length > 0 || !selectedKey;
       els.templatesSaveBtn.style.opacity = els.templatesSaveBtn.disabled ? ".65" : "1";
       els.templatesSaveBtn.style.cursor = els.templatesSaveBtn.disabled ? "not-allowed" : "pointer";
     }
@@ -1811,22 +1851,35 @@
       const token = getAdminToken();
       if (token) headers.Authorization = `Bearer ${token}`;
 
-      const res = await fetch(path, { ...options, headers });
-      const text = await res.text();
-      let data = null;
-      try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+      // Retry only safe reads. Never replay user edits, transfers, or emails.
+      const attempts = String(options.method || "GET").toUpperCase() === "GET" ? 2 : 1;
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        try {
+          const res = await fetch(path, {
+            ...options, headers, cache: "no-store",
+            signal: options.signal || (attempts > 1 ? AbortSignal.timeout(15000) : undefined),
+          });
+          const text = await res.text();
+          let data = null;
+          try { data = text ? JSON.parse(text) : null; } catch {}
 
-      if (res.status === 401 || res.status === 403) {
-        clearAdminSession();
-        toggleShell(false);
-        throw new Error(data?.error || "Admin session expired");
+          if (res.status === 401 || res.status === 403) {
+            clearAdminSession();
+            returnToLogin("admin-session-expired");
+          }
+
+          if (!res.ok || data === null) {
+            const error = new Error(data?.error || (res.ok ? "Invalid server response" : `HTTP ${res.status}`));
+            error.status = res.status;
+            throw error;
+          }
+          return data;
+        } catch (err) {
+          const transient = !err.status || [500, 502, 503, 504].includes(err.status);
+          if (!transient || attempt + 1 >= attempts || options.signal?.aborted) throw err;
+          await new Promise((resolve) => setTimeout(resolve, 400));
+        }
       }
-
-      if (!res.ok) {
-        throw new Error(data?.error || `HTTP ${res.status}`);
-      }
-
-      return data;
     }
 
     function toggleShell(isAuthenticated) {
@@ -1861,6 +1914,7 @@
       const section = document.getElementById(sectionId);
       if (!section) return;
 
+      document.querySelectorAll('.main > section, .section-grid > section').forEach(item => item.classList.toggle('hidden', item.id !== sectionId));
       if (options.panelId) {
         setPanelVisibility(options.panelId, true);
       }
@@ -1870,7 +1924,7 @@
         history.replaceState(null, "", `#${sectionId}`);
       }
 
-      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
 
       if (options.focusElement) {
         window.setTimeout(() => {
@@ -1909,6 +1963,9 @@
       const previousEmail = state.selectedUser?.user_email || "";
       state.selectedUser = user || null;
       const nextEmail = user?.user_email || "";
+      document.getElementById('viewUserActivity').disabled = !nextEmail;
+      document.getElementById('revokeSessions').disabled = !nextEmail;
+      document.getElementById('sessionStatus').textContent = '';
       const userChanged = previousEmail !== nextEmail;
       els.editEmail.value = user?.user_email || "";
       els.editFullname.value = user?.fullname || "";
@@ -1933,6 +1990,9 @@
         ? `${user.user_email} • ${user.accountname || "No account name"} • Available ${fmtMoney(user.available_total ?? user.available_balance ?? 0)}`
         : "Use Edit on the left to load a user into this workspace.";
       if (!nextEmail || userChanged) {
+        state.profileLoaded = false;
+        state.preferencesLoaded = false;
+        document.getElementById('saveUserPreferences').disabled = true;
         fillSelectedUserPreferences(defaultUserPreferences());
         state.selectedUserTransfers = [];
         renderSelectedUserTransfers();
@@ -2078,6 +2138,10 @@
     }
 
     async function handleManualTemplateSave() {
+      if (!state.templatesLoaded) {
+        showStatus(els.manualEmailTemplateStatus, "Refresh the dashboard to load email templates before saving.", "error");
+        return;
+      }
       const templateKey = normalizeTemplateKey(els.manualEmailTemplateKey.value);
       const subject = els.manualEmailSubject.value.trim();
       const titleInput = els.manualEmailTitle.value.trim();
@@ -2137,13 +2201,17 @@
 
     async function loadUserProfile(email) {
       if (!email) return;
+      const request = ++state.profileRequest;
+      state.profileLoaded = false;
       try {
         const profile = await api(`${window.API_BASE}/admin/users/${encodeURIComponent(email)}/profile`);
+        if (request !== state.profileRequest) return;
         const merged = {
           ...(state.overview?.users || []).find((entry) => entry.user_email === email),
           ...profile,
         };
         setSelectedUser(merged);
+        state.profileLoaded = true;
         await loadSelectedUserAppControls(merged.user_email);
       } catch (err) {
         showStatus(els.userEditorStatus, err.message || "Failed to load user profile", "error");
@@ -2173,7 +2241,7 @@
       const system = state.overview?.system || {};
       els.adminUserLabel.textContent = system.admin_user || "—";
       els.mailerStatusLabel.textContent = system.mailer_ready
-        ? "Ready"
+        ? "Configured"
         : (system.mailer_configured ? "Offline" : "Not Configured");
       els.mailerStatusLabel.title = system.mailer_error || "";
       els.notifyEmailLabel.textContent = system.notify_email || "—";
@@ -2280,51 +2348,42 @@
       renderEmails();
       renderSettings();
 
-      const users = state.overview?.users || [];
-      if (!state.selectedUser && users.length) {
-        void loadUserProfile(users[0].user_email);
-      } else if (state.selectedUser?.user_email) {
-        const fresh = users.find((entry) => entry.user_email === state.selectedUser.user_email);
-        if (fresh) {
-          setSelectedUser({ ...state.selectedUser, ...fresh });
-        } else {
-          setSelectedUser(null);
-          if (users.length) {
-            void loadUserProfile(users[0].user_email);
-          }
-        }
-      }
+      // Selection is explicit and persists across paging. Refresh must never
+      // silently switch the account targeted by an admin action.
     }
 
     async function loadDashboard() {
       showStatus(els.globalStatus, "Refreshing dashboard…");
-      const [overview, templates] = await Promise.all([
-        api(`${window.API_BASE}/admin/overview?limit=100`),
-        api(`${window.API_BASE}/admin/email-templates`),
-      ]);
-      state.overview = overview;
-      state.templates = templates;
-      renderAll();
-      showStatus(els.globalStatus, `Dashboard refreshed at ${new Date().toLocaleTimeString()}`, "success");
-    }
-
-    async function handleLogin(event) {
-      event.preventDefault();
-      showStatus(els.loginStatus, "Signing in…");
+      els.refreshBtn.disabled = true;
       try {
-        const data = await api(`${window.API_BASE}/admin/login`, {
-          method: "POST",
-          body: JSON.stringify({
-            email: els.adminEmail.value.trim(),
-            password: els.adminPassword.value,
-          }),
-        });
-        setAdminToken(data.token, data.admin);
-        toggleShell(true);
-        await loadDashboard();
-        showStatus(els.loginStatus, "", "success");
-      } catch (err) {
-        showStatus(els.loginStatus, err.message || "Unable to sign in", "error");
+        const [overview, templates] = await Promise.allSettled([
+          api(`${window.API_BASE}/admin/overview?limit=100`),
+          api(`${window.API_BASE}/admin/email-templates`),
+        ]);
+        if (!getAdminToken()) return; // An authentication failure is redirecting to login.
+
+        state.templatesLoaded = templates.status === "fulfilled";
+        if (state.templatesLoaded) state.templates = templates.value;
+        els.manualEmailSaveTemplateBtn.disabled = !state.templatesLoaded;
+        renderTemplateValidation();
+        if (overview.status === "rejected") throw overview.reason;
+
+        const existingRecords = state.overview;
+        state.overview = overview.value;
+        if (window.AdminConsole && existingRecords) {
+          for (const key of ['users', 'transactions', 'email_logs']) state.overview[key] = existingRecords[key] || [];
+        }
+        renderAll();
+        if (window.dispatchEvent) window.dispatchEvent(new CustomEvent('admin:refreshed'));
+        if (!state.templatesLoaded) {
+          showStatus(els.settingsStatus, "Email templates could not be loaded. Use Refresh to retry before editing templates.", "error");
+          showStatus(els.globalStatus, "Dashboard loaded. Email templates are temporarily unavailable; use Refresh to retry.", "error");
+        } else {
+          showStatus(els.settingsStatus, "");
+          showStatus(els.globalStatus, `Dashboard refreshed at ${new Date().toLocaleTimeString()}`, "success");
+        }
+      } finally {
+        els.refreshBtn.disabled = false;
       }
     }
 
@@ -2417,8 +2476,7 @@
         });
         els.adjustAmount.value = "";
         await loadDashboard();
-        const fresh = state.overview.users.find((user) => user.user_email === state.selectedUser.user_email);
-        if (fresh) setSelectedUser(fresh);
+        await loadUserProfile(state.selectedUser.user_email);
         showStatus(els.userEditorStatus, "Balance updated successfully.", "success");
       } catch (err) {
         showStatus(els.userEditorStatus, err.message || "Failed to adjust balance", "error");
@@ -2427,6 +2485,7 @@
 
     async function handleUserPreferencesSave(event) {
       event.preventDefault();
+      if (!state.preferencesLoaded) { showStatus(els.userEditorStatus, 'Load this user’s preferences before saving.', 'error'); return; }
       if (!state.selectedUser?.user_email) {
         showStatus(els.userEditorStatus, "Select a user first.", "error");
         return;
@@ -2523,6 +2582,10 @@
 
     async function handleTemplatesSave(event) {
       event.preventDefault();
+      if (!state.templatesLoaded) {
+        showStatus(els.settingsStatus, "Refresh the dashboard to load email templates before saving.", "error");
+        return;
+      }
       const issues = validateAllTemplates();
       if (issues.length) {
         renderTemplateValidation();
@@ -2616,6 +2679,7 @@
     }
 
     async function handleTableClick(event) {
+      if (state.mutationPending) return;
       const button = event.target.closest("button[data-action]");
       if (!button) return;
       const action = button.dataset.action;
@@ -2626,7 +2690,7 @@
             setSelectedUser(user);
             await loadUserProfile(user.user_email);
             navigateToSection("settings", { focusElement: els.editFullname });
-            showStatus(els.userEditorStatus, `Selected ${user.user_email}`, "success");
+            if (state.selectedUser?.user_email === user.user_email && state.preferencesLoaded) showStatus(els.userEditorStatus, `Selected ${user.user_email}`, "success");
           }
           return;
         }
@@ -2649,7 +2713,7 @@
           });
           await loadDashboard();
           const user = state.overview?.users?.find((entry) => entry.user_email === button.dataset.email);
-          if (user) setSelectedUser(user);
+          if (user && state.selectedUser?.user_email === user.user_email) await loadUserProfile(user.user_email);
           showStatus(els.userEditorStatus, "User access updated.", "success");
           return;
         }
@@ -2702,30 +2766,52 @@
 
     async function boot() {
       bindNavHighlight();
-      toggleShell(Boolean(getAdminToken()));
-      if (getAdminToken()) {
-        try {
-          await loadDashboard();
-        } catch (err) {
-          clearAdminSession();
-          toggleShell(false);
-          showStatus(els.loginStatus, err.message || "Admin session expired", "error");
+      if (!getAdminToken()) {
+        returnToLogin();
+        return;
+      }
+      toggleShell(true);
+      try {
+        await loadDashboard();
+      } catch (err) {
+        // Only the API's 401/403 handler invalidates a session. Server/network
+        // failures must leave the administrator signed in with a retry path.
+        if (getAdminToken()) {
+          showStatus(els.globalStatus, "Unable to load the dashboard. You are still signed in. Use Refresh to retry.", "error");
         }
       }
     }
 
-    els.loginForm.addEventListener("submit", handleLogin);
-    els.createUserForm.addEventListener("submit", handleCreateUser);
-    els.userEditorForm.addEventListener("submit", handleUserSave);
-    els.balanceAdjustForm.addEventListener("submit", handleBalanceAdjust);
-    els.userPreferencesForm.addEventListener("submit", handleUserPreferencesSave);
-    els.userPasswordForm.addEventListener("submit", handleUserPasswordSave);
-    els.adminTransferForm.addEventListener("submit", handleAdminTransferSubmit);
+    // Lock mutations until their response arrives; do not replay money/email actions.
+    function lockedSubmit(handler) {
+      return async event => {
+        event.preventDefault();
+        if (state.mutationPending) return;
+        if (![handleCreateUser, handleTemplatesSave].includes(handler) && !state.profileLoaded) {
+          showStatus(els.userEditorStatus, 'Select a user and wait for their profile to load before making changes.', 'error'); return;
+        }
+        state.mutationPending = true;
+        const controls = Array.from(document.querySelectorAll('#settings input, #settings select, #settings textarea, #settings button, #users button'));
+        const disabled = controls.map(control => control.disabled);
+        try { const pending = handler(event); controls.forEach(control => control.disabled = true); await pending; }
+        finally {
+          controls.forEach((control, index) => control.disabled = disabled[index]);
+          document.getElementById('saveUserPreferences').disabled = !state.preferencesLoaded;
+          state.mutationPending = false;
+        }
+      };
+    }
+    els.createUserForm.addEventListener("submit", lockedSubmit(handleCreateUser));
+    els.userEditorForm.addEventListener("submit", lockedSubmit(handleUserSave));
+    els.balanceAdjustForm.addEventListener("submit", lockedSubmit(handleBalanceAdjust));
+    els.userPreferencesForm.addEventListener("submit", lockedSubmit(handleUserPreferencesSave));
+    els.userPasswordForm.addEventListener("submit", lockedSubmit(handleUserPasswordSave));
+    els.adminTransferForm.addEventListener("submit", lockedSubmit(handleAdminTransferSubmit));
     els.adminTransferMethod.addEventListener("change", toggleAdminTransferFields);
-    els.manualEmailForm.addEventListener("submit", handleManualEmailSend);
+    els.manualEmailForm.addEventListener("submit", lockedSubmit(handleManualEmailSend));
     els.manualEmailMode.addEventListener("change", renderManualEmailMode);
     els.manualEmailSaveTemplateBtn.addEventListener("click", handleManualTemplateSave);
-    els.templatesForm.addEventListener("submit", handleTemplatesSave);
+    els.templatesForm.addEventListener("submit", lockedSubmit(handleTemplatesSave));
     els.templateEditorSelect.addEventListener("change", () => {
       state.selectedTemplateKey = els.templateEditorSelect.value;
       renderTemplateEditor();
@@ -2747,21 +2833,19 @@
         els.manualEmailTemplateKey.value = normalized;
       }
     });
-    els.userSearch.addEventListener("input", renderUsers);
+
     els.refreshBtn.addEventListener("click", () => loadDashboard().catch((err) => showStatus(els.globalStatus, err.message || "Refresh failed", "error")));
-    els.logoutBtn.addEventListener("click", () => {
-      clearAdminSession();
-      toggleShell(false);
-      showStatus(els.loginStatus, "Signed out.", "success");
-    });
+    els.logoutBtn.addEventListener("click", handleLogout);
     els.menuBtn.addEventListener("click", () => els.sidebar.classList.toggle("active"));
     document.body.addEventListener("click", handleTableClick);
 
+    window.AdminConsole = { api, state, getAdminToken, escapeHtml, renderUsers, renderTransactions, renderEmails, navigateToSection, showStatus, loadUserProfile };
     boot();
     fillSelectedUserPreferences(defaultUserPreferences());
     renderSelectedUserTransfers();
     renderManualEmailMode();
     resetAdminTransferForm();
   </script>
+  <script type="module" src="admin-operations.js"></script>
 </body>
 </html>

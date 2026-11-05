@@ -1,18 +1,20 @@
 # Dependencies
 node_modules/
 
+# Wrangler local build/cache
+.wrangler/
+
 # Local env
 .env
 .env.*
 !.env.example
 sendgrid.env
 
-# Data files
-data/*.json
-data/*.db
-data/
-!data/migrations/
-!data/migrations/*.sql
+# Runtime data stays local; retain migration and schema source files.
+/data/*
+!/data/migrations/
+!/data/schema/
+/uploads/
 
 # Logs
 npm-debug.log*

@@ -44,11 +44,11 @@ test('missing financial values remain unavailable instead of being presented as 
 });
 
 const script = readFileSync(new URL('../frontend/dashboard.js', import.meta.url), 'utf8').replace(/^import[^\n]+\n/, '');
-async function dashboard({ preview = false, user, fail = false, unauthorized = false, portfolio = {}, marketData = {} } = {}) {
+async function dashboard({ preview = false, user, fail = false, unauthorized = false, portfolio = {}, marketData = {}, wallets = { status: 'ready', wallets: [] }, walletPost } = {}) {
   const elements = new Map();
   const element = key => {
     if (!elements.has(key)) elements.set(key, {
-      textContent: '', innerHTML: '', hidden: false, disabled: false, style: {}, dataset: {}, attributes: {}, listeners: {},
+      textContent: '', innerHTML: '', value: '', hidden: false, disabled: false, style: {}, dataset: {}, attributes: {}, listeners: {},
       classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
       setAttribute(name, value) { this.attributes[name] = value; }, removeAttribute() {},
       addEventListener(name, handler) { this.listeners[name] = handler; }, querySelector() { return element('svg'); },
@@ -66,14 +66,15 @@ async function dashboard({ preview = false, user, fail = false, unauthorized = f
     window: { API_BASE: '/api', addEventListener() {} }, URLSearchParams, URL, AbortSignal, innerWidth: 1280,
     setTimeout: () => 0, clearTimeout() {}, setInterval: callback => { intervals.push(callback); return 1; }, clearInterval() {},
     fetch: async (url, opts) => {
-      requests.push({ url, authorization: opts.headers?.Authorization });
+      requests.push({ url, authorization: opts.headers?.Authorization, body: opts.body, method: opts.method });
       if (fail) throw new Error('Offline');
       if (unauthorized) return { ok: false, status: 401 };
+      if (url === '/api/investments/wallets' && opts.method === 'POST') return walletPost || { ok: false, status: 503, json: async () => ({ error: 'Could not save wallet.' }) };
       return { ok: true, status: 200, json: async () => url === '/api/users/me'
         ? { id: 'test@example.com', fullname: 'Test User', available_balance: 500, balances: { accounts: [] } }
         : url === '/api/transactions'
           ? [{ direction: 'debit', amount: 25, description: '<img src=x onerror=alert(1)>', created_at: new Date().toISOString(), balance_after: 500 }]
-          : url === '/api/investments/portfolio' ? portfolio : url === '/api/markets' ? marketData : {} };
+          : url === '/api/investments/portfolio' ? portfolio : url === '/api/investments/wallets' ? wallets : url === '/api/markets' ? marketData : {} };
     },
   });
   vm.runInContext(script, context);
@@ -101,7 +102,7 @@ test('signed-in dashboard uses the bearer session and escapes transaction conten
   const app = await dashboard({ user: { token: 'test-token', id: 'test@example.com' } });
   assert.equal(app.element('heroAvailableBalance').textContent, '$500.00');
   assert.equal(app.element('investmentValue').textContent, '—');
-  assert.equal(app.element('portfolioBadge').textContent, 'Not connected');
+  assert.equal(app.element('portfolioBadge').textContent, 'Add a wallet');
   assert.ok(app.requests.filter(request => request.url !== '/api/markets').every(request => request.authorization === 'Bearer test-token'));
   assert.equal(app.requests.find(request => request.url === '/api/markets').authorization, undefined);
   assert.match(app.element('transactionsTable').innerHTML, /−\$25\.00/);
@@ -146,7 +147,64 @@ test('connected holdings show real values without inventing investment returns',
 test('missing Coinbase configuration is truthful and public quotes remain independent', async () => {
   const app = await dashboard({ user: { token: 'test-token' }, portfolio: { status: 'configuration_required', holdings: [] }, marketData: { quotes: [{ id: 'btc', name: 'Bitcoin', ticker: 'BTC / USD', symbol: '₿', className: 'btc', source: 'Coinbase', frequency: 'Market price', available: true, price: 80000, change: -1, asOf: '2026-10-15T10:00:00Z' }] } });
   assert.equal(app.element('connectCoinbaseBtn').disabled, true);
+  assert.equal(app.element('connectCoinbaseBtn').hidden, true);
+  assert.equal(app.element('addWalletBtn').disabled, false);
+  assert.doesNotMatch(app.element('connectionDescription').textContent, /soon|Coinbase/);
   assert.equal(app.element('investmentValue').textContent, '—');
   assert.equal(app.element('marketBadge').textContent, 'Connected');
   assert.match(app.element('marketList').innerHTML, /80,000\.00/);
+});
+
+test('external wallet balances appear separately from spendable bank funds', async () => {
+  const app = await dashboard({ user: { token: 'test-token' }, wallets: { status: 'ready', wallets: [{ id: '1', network: 'ethereum', name: 'Ethereum', ticker: 'ETH', address: '0x' + '1'.repeat(40), quantity: '1.000000000000000001', value: 2000, asOf: '2026-11-06T12:00:00Z', status: 'available' }] } });
+  assert.equal(app.element('heroAvailableBalance').textContent, '$500.00');
+  assert.equal(app.element('investmentValue').textContent, '$2,000.00');
+  assert.match(app.element('holdingsTable').innerHTML, /1\.000000000000000001 ETH/);
+  assert.equal(app.element('portfolioBadge').textContent, 'Read only');
+  app.element('privacyBtn').listeners.click();
+  assert.doesNotMatch(app.element('walletList').innerHTML, /0x111/);
+  assert.doesNotMatch(app.element('holdingsTable').innerHTML, /1\.000000000000000001/);
+});
+
+test('unavailable wallet balances do not produce zero totals or invented returns', async () => {
+  const app = await dashboard({ user: { token: 'test-token' }, wallets: { status: 'ready', wallets: [{ id: '1', network: 'bitcoin', name: 'Bitcoin', ticker: 'BTC', address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', quantity: null, value: null, asOf: null, status: 'unavailable' }] } });
+  assert.equal(app.element('investmentValue').textContent, '—');
+  assert.equal(app.element('portfolioBadge').textContent, 'Partial update');
+  assert.match(app.element('holdingsTable').innerHTML, /Balance unavailable/);
+  assert.doesNotMatch(app.element('holdingsTable').innerHTML, /\$0\.00/);
+});
+
+test('wallet form rejects secret-shaped text before any network call', async () => {
+  const app = await dashboard({ user: { token: 'test-token' } });
+  const count = app.requests.length;
+  app.element('walletNetwork').value = 'ethereum';
+  for (const candidate of ['abandon '.repeat(11) + 'about', '0x' + 'a'.repeat(64)]) {
+    app.element('walletAddress').value = candidate;
+    await app.element('walletForm').listeners.submit({ preventDefault() {} });
+    assert.equal(app.requests.length, count);
+    assert.equal(app.element('walletError').hidden, false);
+    let prevented = false;
+    app.element('walletAddress').listeners.paste({ clipboardData: { getData: () => candidate }, preventDefault() { prevented = true; } });
+    assert.equal(prevented, true);
+  }
+});
+
+test('failed wallet saves preserve the address and never report success', async () => {
+  const app = await dashboard({ user: { token: 'test-token' } });
+  const address = '0x' + '1'.repeat(40);
+  app.element('walletNetwork').value = 'ethereum'; app.element('walletAddress').value = address;
+  await app.element('walletForm').listeners.submit({ preventDefault() {} });
+  const request = app.requests.find(item => item.method === 'POST');
+  assert.deepEqual(JSON.parse(request.body), { network: 'ethereum', address });
+  assert.equal(app.element('walletAddress').value, address);
+  assert.equal(app.element('walletError').textContent, 'Could not save wallet.');
+  assert.equal(app.element('walletNotice').textContent, '');
+});
+
+test('preview wallet actions never save to a real account', async () => {
+  const app = await dashboard({ preview: true });
+  app.element('addWalletBtn').listeners.click();
+  await app.element('walletForm').listeners.submit({ preventDefault() {} });
+  assert.match(app.element('dialogContent').innerHTML, /Sign in/);
+  assert.deepEqual(app.requests, []);
 });

@@ -33,6 +33,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { initMailer as initMailerUtils, sendEmail, isMailerReady, getMailerError } from "./utils/mailer.js";
 import PDFDocument from "pdfkit";
 import { createMarketFeed, registerInvestmentRoutes } from "./investments.js";
+import { registerExternalWalletRoutes } from "./external-wallets.js";
 import { registerOperationsRoutes, checkCustomerSession, customerPreferences, auditMutation, recordSignIn, requireFeature, getFeatures } from "./admin-operations.js";
 import { initBank, createUser, getUser, getUserBalance, updateUserBalance, getOrCreateAccount, getAccount, addTransaction, getTransactions, getTransactionWithDetails } from "./bank.js";
 
@@ -1765,6 +1766,7 @@ app.use(async (req, res, next) => {
 });
 
 registerInvestmentRoutes(app, { getPool: () => pool, auth: authMiddleware, isEnabled: async () => (await getFeatures(pool)).investments_enabled });
+registerExternalWalletRoutes(app, { getPool: () => pool, auth: authMiddleware, isEnabled: async () => (await getFeatures(pool)).investments_enabled });
 registerOperationsRoutes(app, { getPool: () => pool, auth: adminAuthMiddleware, mailerStatus: isMailerReady });
 
 function sha256Hex(input) {

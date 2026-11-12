@@ -41,7 +41,7 @@ export async function auditMutation(pool, req, res, next) {
     review: 'Loan review recorded', connect: 'Coinbase link started', coinbase: 'Coinbase disconnected',
   };
   const suffix = req.path.split('/').filter(Boolean).at(-1);
-  const action = actions[suffix] || (req.method === 'DELETE' ? 'User deleted' : req.path === '/api/admin/users' ? 'User created' : 'Account updated');
+  const action = req.path.startsWith('/api/investments/wallets') ? (req.method === 'DELETE' ? 'External wallet removed' : 'External wallet added') : actions[suffix] || (req.method === 'DELETE' ? 'User deleted' : req.path === '/api/admin/users' ? 'User created' : 'Account updated');
   const { rows } = await pool.query('INSERT INTO activity_events (actor_email, actor_role, target_email, action) VALUES ($1,$2,$3,$4) RETURNING id', [actor, role, email || null, action]);
   const original = res.json.bind(res);
   // Write the intent before running the operation. A failed outcome write leaves

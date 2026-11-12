@@ -2,9 +2,10 @@ import { escapeHtml as esc, money, direction, transactions, monthlyIncome, balan
 
 const $ = id => document.getElementById(id);
 const preview = new URLSearchParams(location.search).get('preview') === '1';
-const state = { user: null, rows: [], portfolio: null, marketData: null, investmentStale: false, marketStale: false, hasRefreshed: false, range: '1M', filter: 'all', hidden: false, profileReady: false, transactionsReady: false, stream: null, reconnect: null, polling: null, stopped: false, refreshing: false };
+const state = { user: null, rows: [], portfolio: null, wallets: null, walletStale: false, marketData: null, investmentStale: false, marketStale: false, hasRefreshed: false, range: '1M', filter: 'all', hidden: false, profileReady: false, transactionsReady: false, stream: null, reconnect: null, polling: null, stopped: false, refreshing: false };
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const classes = { crypto: 'Cryptocurrency', forex: 'Forex', futures: 'Futures' };
+let walletRevision = 0, refreshAgain = false;
 // Illustrative fixtures are confined to the explicitly labeled preview. They are never persisted.
 const holdings = [
   { id: 'btc', name: 'Bitcoin', ticker: 'BTC', category: 'crypto', symbol: '₿', className: 'btc', detail: '0.3500 BTC', value: 28650.5, pnl: 2450.5, percent: 9.35 },
@@ -27,6 +28,61 @@ function showDialog(title, content, signIn = false) {
   value('dialogTitle', title); $('dialogContent').innerHTML = content;
   $('dialogSignIn').hidden = !signIn; $('detailDialog').showModal();
 }
+function publicAddressShape(network, address) {
+  return network === 'ethereum' ? /^0x[\da-fA-F]{40}$/.test(address) : /^(?:[13][1-9A-HJ-NP-Za-km-z]{25,34}|bc1[ac-hj-np-z02-9]{11,87})$/i.test(address);
+}
+function walletError(message) {
+  value('walletError', message); $('walletError').hidden = !message;
+  $('walletAddress').setAttribute('aria-invalid', String(Boolean(message)));
+}
+function wireWalletUI() {
+  const openPublicWallet = () => {
+    if (preview) { showDialog('Add external wallet', '<p>Sign in to save a Bitcoin or Ethereum public address and track its balance. Recovery phrases and private keys are never needed.</p>', true); return; }
+    walletError(''); $('walletAddress').value = ''; $('walletDialog').showModal(); $('walletAddress').focus();
+  };
+  $('addWalletBtn').addEventListener('click', openPublicWallet);
+  for (const id of ['closeWalletDialog', 'cancelWalletBtn']) $(id).addEventListener('click', () => $('walletDialog').close());
+  $('walletDialog').addEventListener('close', () => { $('walletAddress').value = ''; walletError(''); });
+  $('walletNetwork').addEventListener('change', () => { $('walletAddress').placeholder = $('walletNetwork').value === 'ethereum' ? '0x… Ethereum mainnet address' : 'bc1… or a Bitcoin address'; walletError(''); });
+  $('walletAddress').addEventListener('input', () => walletError(''));
+  $('walletAddress').addEventListener('paste', event => {
+    const candidate = event.clipboardData?.getData('text')?.trim();
+    // Do not put phrases, private keys or arbitrary text into the form or a network request.
+    if (candidate && !publicAddressShape($('walletNetwork').value, candidate)) {
+      event.preventDefault(); walletError('Paste only a public address for the selected network. Recovery phrases and private keys are not accepted.');
+    }
+  });
+  $('walletForm').addEventListener('submit', async event => {
+    event.preventDefault(); if (preview || $('saveWalletBtn').disabled) return;
+    const network = $('walletNetwork').value, address = $('walletAddress').value.trim();
+    if (!publicAddressShape(network, address)) { walletError('Enter a public address for the selected network. Do not enter a recovery phrase or private key.'); return; }
+    $('saveWalletBtn').disabled = true; value('saveWalletBtn', 'Saving…'); walletError('');
+    try {
+      const result = await api('/investments/wallets', { method: 'POST', body: JSON.stringify({ network, address }) });
+      if (!result.wallet?.id || result.wallet.network !== network) throw new Error('The wallet could not be confirmed. Please refresh and check your saved addresses.');
+      const wallet = { ...result.wallet, name: network === 'bitcoin' ? 'Bitcoin' : 'Ethereum', ticker: network === 'bitcoin' ? 'BTC' : 'ETH', quantity: null, value: null, asOf: null, status: 'unavailable' };
+      state.wallets = { status: 'ready', wallets: [...walletList().filter(item => item.id !== wallet.id), wallet] };
+      walletRevision++;
+      $('walletDialog').close(); value('walletNotice', 'Wallet saved. Updating its balance…'); renderInvestments();
+      await refresh(); value('walletNotice', 'Wallet saved for read-only tracking.');
+    } catch (error) { walletError(error.message); }
+    finally { $('saveWalletBtn').disabled = false; value('saveWalletBtn', 'Add wallet'); }
+  });
+  $('walletList').addEventListener('click', event => {
+    const button = event.target.closest('[data-remove-wallet]'); if (!button) return;
+    const wallet = walletList().find(item => item.id === button.dataset.removeWallet); if (!wallet) return;
+    showDialog('Remove this watched address?', `<p>Remove the ${esc(wallet.name)} address ending ${esc(wallet.address.slice(-7))} from your dashboard? Its funds stay in the external wallet.</p><button class="button button-primary" id="confirmRemoveWallet">Remove address</button><p id="removeWalletError" role="alert"></p>`);
+    $('confirmRemoveWallet').addEventListener('click', async () => {
+      $('confirmRemoveWallet').disabled = true;
+      try {
+        const result = await api(`/investments/wallets/${encodeURIComponent(wallet.id)}`, { method: 'DELETE' });
+        if (!result.removed) throw new Error('Removal could not be confirmed. Please refresh and try again.');
+        state.wallets.wallets = walletList().filter(item => item.id !== wallet.id); walletRevision++; renderInvestments();
+        $('detailDialog').close(); value('walletNotice', 'Address removed.');
+      } catch (error) { value('removeWalletError', error.message); $('confirmRemoveWallet').disabled = false; }
+    });
+  });
+}
 function assetMarkup(asset) {
   return `<span class="asset-icon ${esc(asset.className)}" aria-hidden="true">${esc(asset.symbol)}</span><div><strong>${esc(asset.name)}</strong><small>${asset.detail ? privateValue(asset.detail) : esc(asset.ticker)}</small></div>`;
 }
@@ -45,31 +101,48 @@ function renderProfile() {
   $('accountList').innerHTML = accounts.length ? accounts.map(account => `<div class="account-row"><div><span class="account-symbol">${icon('wallet')}</span><div><strong>${esc(account.type === 'available' ? 'Personal account' : account.type || 'Account')}</strong><small>${esc(account.currency || 'USD')} account</small></div></div><span data-private>${privateValue(money(account.available ?? account.balance, account.currency || 'USD'))}</span></div>`).join('') : `<p class="empty-copy">${state.profileReady ? 'No accounts to display.' : state.hasRefreshed ? 'Your account details could not be loaded.' : 'Loading your accounts…'}</p>`;
 }
 
-function activeHoldings() { return preview ? holdings : state.portfolio?.status === 'connected' ? state.portfolio.holdings : []; }
+function walletList() { return Array.isArray(state.wallets?.wallets) ? state.wallets.wallets : []; }
+function activeHoldings() {
+  if (preview) return holdings;
+  return [ ...(state.portfolio?.status === 'connected' ? state.portfolio.holdings : []), ...walletList().map(wallet => ({
+    id: `wallet-${wallet.id}`, name: wallet.name, ticker: wallet.ticker, category: 'crypto', symbol: wallet.network === 'bitcoin' ? '₿' : 'Ξ', className: wallet.network === 'bitcoin' ? 'btc' : 'eth',
+    detail: wallet.quantity === null ? 'Balance unavailable' : `${wallet.quantity} ${wallet.ticker} · Watched address`, value: wallet.value, pnl: null, percent: null,
+  })) ];
+}
 function renderInvestments() {
   const active = activeHoldings();
-  const connected = preview || state.portfolio?.status === 'connected';
-  const total = preview ? active.reduce((sum, asset) => sum + asset.value, 0) : connected ? state.portfolio.total : null;
+  const wallets = walletList();
+  const coinbaseConnected = state.portfolio?.status === 'connected';
+  const connected = preview || coinbaseConnected || wallets.length > 0;
+  const total = connected && active.every(asset => asset.value !== null) ? active.reduce((sum, asset) => sum + asset.value, 0) : null;
   const status = state.portfolio?.status;
+  const paused = state.wallets?.status === 'paused';
+  const stale = state.walletStale || (state.investmentStale && (coinbaseConnected || !wallets.length));
   privateText('investmentValue', money(total)); privateText('allocationValue', money(total));
   value('holdingCount', active.length);
-  value('portfolioBadge', preview ? 'Sample portfolio' : state.investmentStale ? 'Update unavailable' : status === 'paused' ? 'Temporarily paused' : connected ? 'Coinbase · Read only' : status === 'reconnect_required' ? 'Reconnect required' : 'Not connected');
-  value('allocationCaption', preview ? 'Across 3 asset classes' : connected ? (state.investmentStale ? 'Last loaded holdings' : 'Coinbase crypto holdings') : 'Not connected');
-  $('connectCoinbaseBtn').hidden = connected && !preview;
+  value('portfolioBadge', preview ? 'Sample portfolio' : paused ? 'Temporarily paused' : stale ? 'Update unavailable' : wallets.some(wallet => wallet.status !== 'available' || wallet.value === null) ? 'Partial update' : connected ? 'Read only' : 'Add a wallet');
+  value('allocationCaption', preview ? 'Across 3 asset classes' : connected ? (stale ? 'Last loaded holdings' : 'Tracked crypto balances') : 'No wallets added');
+  $('addWalletBtn').disabled = !preview && (!state.wallets || paused || wallets.length >= 5);
+  value('connectionDescription', paused ? 'Investment connections are temporarily paused.' : 'Track an existing wallet with its public address. Your funds stay in your wallet.');
+  $('connectCoinbaseBtn').hidden = preview || coinbaseConnected || !['disconnected', 'reconnect_required'].includes(status);
   $('connectCoinbaseBtn').disabled = !preview && (!state.hasRefreshed || ['configuration_required', 'paused'].includes(status));
-  value('connectCoinbaseBtn', status === 'paused' ? 'Temporarily paused' : status === 'configuration_required' ? 'Coming soon' : status === 'reconnect_required' ? 'Reconnect Coinbase' : 'Connect Coinbase');
+  value('connectCoinbaseBtn', status === 'reconnect_required' ? 'Reconnect Coinbase' : 'Connect Coinbase');
   $('disconnectCoinbaseBtn').hidden = preview || !['connected', 'reconnect_required', 'paused'].includes(status);
-  value('connectionDescription', preview ? 'Connect your Coinbase crypto holdings' : status === 'paused' ? 'Investment connections are temporarily paused. Please try again later.' : connected ? 'Coinbase connected · View access only' : status === 'configuration_required' ? 'Coinbase account linking will be available soon.' : 'Securely view your Coinbase crypto holdings');
+  $('walletList').innerHTML = wallets.map(wallet => `<div class="watched-wallet"><span class="wallet-network">${esc(wallet.name)} <small>Public address</small></span><span class="wallet-address" title="${state.hidden ? '' : esc(wallet.address)}">${privateValue(`${wallet.address.slice(0, 9)}…${wallet.address.slice(-7)}`)}</span><button class="text-link" data-remove-wallet="${esc(wallet.id)}" aria-label="Remove ${esc(wallet.name)} address ending ${esc(wallet.address.slice(-7))}">Remove</button></div>`).join('');
+  $('walletList').hidden = !wallets.length;
+  value('walletLimit', wallets.length ? `${wallets.length} of 5 addresses saved · Read-only tracking` : 'Bitcoin & Ethereum · Public addresses only');
   if (preview) {
     $('investmentCaption').innerHTML = `<span class="positive" data-private>${privateValue('+6.53%')} <span class="muted">sample return</span></span>`;
     value('portfolioNote', 'Illustrative positions only. Forex and futures values represent allocated equity, not notional exposure.');
   } else {
-    value('investmentCaption', connected ? (state.investmentStale ? 'Last loaded value · refresh unavailable' : total === null ? 'Some asset prices are unavailable' : 'Coinbase crypto · estimated USD value') : 'Connect your Coinbase account');
-    const asOf = state.portfolio?.asOf ? new Date(state.portfolio.asOf).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
-    value('portfolioNote', connected ? `${state.investmentStale ? 'Last loaded' : 'Updated'} ${asOf}. Crypto balances only; excludes Coinbase cash, forex and derivatives. Cost basis and unrealized P&L are unavailable.` : 'Link Coinbase to view your crypto balances. Forex and futures holdings require a separate brokerage connection.');
+    value('investmentCaption', connected ? (stale ? 'Last loaded value · refresh unavailable' : total === null ? 'Some balances or prices are unavailable' : 'Tracked crypto · estimated USD value') : 'Add an external wallet to get started');
+    const timestamps = [state.portfolio?.asOf, ...wallets.map(wallet => wallet.asOf)].filter(Boolean).sort();
+    const asOf = timestamps.length ? new Date(timestamps[0]).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+    const sources = [...new Set(wallets.map(wallet => wallet.priceSource).filter(Boolean))].join(' / ');
+    value('portfolioNote', `${asOf ? `${stale ? 'Last loaded' : 'Balance data from'} ${asOf}. ` : ''}${sources ? `USD estimates: ${sources}. ` : ''}Tracks BTC and ETH at saved mainnet addresses only, not the entire wallet. Excludes tokens, NFTs and pending transactions. Addresses do not prove ownership. Values are separate from your bank balance; returns are unavailable.`);
   }
   const filtered = active.filter(asset => state.filter === 'all' || asset.category === state.filter);
-  $('holdingsTable').innerHTML = filtered.length ? filtered.map(asset => `<tr><td><div class="asset-cell">${assetMarkup(asset)}</div></td><td><span class="class-chip">${asset.category === 'crypto' ? 'Crypto' : classes[asset.category]}</span></td><td class="align-right" data-private>${privateValue(money(asset.value))}</td><td class="align-right position-pnl ${asset.pnl === null ? 'muted' : asset.pnl < 0 ? 'negative' : 'positive'}" data-private>${privateValue(asset.pnl === null ? '—' : `${asset.pnl < 0 ? '−' : '+'}${money(Math.abs(asset.pnl))}`)}<span>${privateValue(asset.percent === null ? 'Not supplied' : `${asset.percent > 0 ? '+' : ''}${asset.percent.toFixed(2)}%`)}</span></td><td><button class="details-button" data-holding="${esc(asset.id)}" aria-label="View ${esc(asset.name)} position">${icon('up')}</button></td></tr>`).join('') : `<tr><td colspan="5" class="empty-cell">${state.filter === 'all' || (connected && state.filter === 'crypto') ? connected ? 'No crypto balances in your linked Coinbase accounts.' : 'Your investment portfolio starts here.' : `${classes[state.filter]} positions are not connected.`}</td></tr>`;
+  $('holdingsTable').innerHTML = filtered.length ? filtered.map(asset => `<tr><td><div class="asset-cell">${assetMarkup(asset)}</div></td><td><span class="class-chip">${asset.category === 'crypto' ? 'Crypto' : classes[asset.category]}</span></td><td class="align-right" data-private>${privateValue(money(asset.value))}</td><td class="align-right position-pnl ${asset.pnl === null ? 'muted' : asset.pnl < 0 ? 'negative' : 'positive'}" data-private>${privateValue(asset.pnl === null ? '—' : `${asset.pnl < 0 ? '−' : '+'}${money(Math.abs(asset.pnl))}`)}<span>${privateValue(asset.percent === null ? 'Not supplied' : `${asset.percent > 0 ? '+' : ''}${asset.percent.toFixed(2)}%`)}</span></td><td><button class="details-button" data-holding="${esc(asset.id)}" aria-label="View ${esc(asset.name)} position">${icon('up')}</button></td></tr>`).join('') : `<tr><td colspan="5" class="empty-cell">${state.filter === 'all' || state.filter === 'crypto' ? connected ? 'No crypto balances to display.' : '<strong>Your wallets, in one place.</strong><br>Add a public address to view your crypto balance here.' : `${classes[state.filter]} positions are not connected.`}</td></tr>`;
   const colors = ['#2d6bff', '#8b79e7', '#38bdf8'];
   let offset = 0; const stops = [];
   $('allocationLegend').innerHTML = Object.keys(classes).map((key, index) => {
@@ -78,7 +151,7 @@ function renderInvestments() {
     return `<div class="allocation-row"><span><i class="legend-dot" style="background:${colors[index]}"></i>${classes[key]}</span><strong data-private>${privateValue(total > 0 ? `${allocation.toFixed(1)}%` : '—')}</strong></div>`;
   }).join('');
   $('allocationChart').style.background = total > 0 ? `conic-gradient(${stops.join(',')})` : '';
-  $('allocationChart').setAttribute('aria-label', state.hidden ? 'Allocation hidden' : preview ? 'Sample allocation across cryptocurrency, forex, and futures' : connected && total > 0 ? 'Linked Coinbase portfolio: cryptocurrency' : 'No investment allocation available');
+  $('allocationChart').setAttribute('aria-label', state.hidden ? 'Allocation hidden' : preview ? 'Sample allocation across cryptocurrency, forex, and futures' : connected && total > 0 ? 'Tracked portfolio: cryptocurrency' : 'No investment allocation available');
 }
 function renderMarkets() {
   const quotes = preview ? markets : state.marketData?.quotes || [];
@@ -142,7 +215,7 @@ function renderChart() {
 function renderAll() { renderProfile(); renderInvestments(); renderMarkets(); renderTransactions(); renderChart(); }
 
 async function api(path, options = {}) {
-  const response = await fetch(`${window.API_BASE || '/api'}${path}`, { ...options, headers: { Authorization: `Bearer ${state.user.token}` }, signal: AbortSignal.timeout(15000), cache: 'no-store' });
+  const response = await fetch(`${window.API_BASE || '/api'}${path}`, { ...options, headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), Authorization: `Bearer ${state.user.token}` }, signal: AbortSignal.timeout(15000), cache: 'no-store' });
   if (response.status === 401) { stopSync(); location.replace('/login'); throw new Error('Session expired'); }
   if (response.status === 403) { stopSync(); location.replace('/login?reason=account-restricted'); throw new Error('Account restricted'); }
   if (!response.ok) { const data = await response.json().catch(() => ({})); throw new Error(data.error || 'Account service unavailable'); }
@@ -150,12 +223,13 @@ async function api(path, options = {}) {
 }
 
 async function refresh() {
-  if (state.refreshing) return;
+  if (state.refreshing) { refreshAgain = true; return; }
+  const revision = walletRevision;
   state.refreshing = true; $('refreshBtn').disabled = true;
   try {
     if (preview) { renderAll(); value('syncPill', 'Preview · sample data'); return; }
     value('syncPill', 'Updating…');
-    const [profile, activity, portfolio, quotes] = await Promise.allSettled([api('/users/me'), api('/transactions'), api('/investments/portfolio'), fetch(`${window.API_BASE || '/api'}/markets`, { signal: AbortSignal.timeout(15000), cache: 'no-store' }).then(response => { if (!response.ok) throw new Error('Prices unavailable'); return response.json(); })]);
+    const [profile, activity, portfolio, quotes, wallets] = await Promise.allSettled([api('/users/me'), api('/transactions'), api('/investments/portfolio'), fetch(`${window.API_BASE || '/api'}/markets`, { signal: AbortSignal.timeout(15000), cache: 'no-store' }).then(response => { if (!response.ok) throw new Error('Prices unavailable'); return response.json(); }), api('/investments/wallets')]);
     state.hasRefreshed = true;
     const failures = [];
     if (profile.status === 'fulfilled' && profile.value) {
@@ -167,6 +241,11 @@ async function refresh() {
     state.investmentStale = portfolio.status !== 'fulfilled';
     if (portfolio.status === 'fulfilled') state.portfolio = { holdings: [], ...portfolio.value };
     else failures.push('Investment holdings');
+    if (revision === walletRevision) {
+      state.walletStale = wallets.status !== 'fulfilled';
+      if (wallets.status === 'fulfilled') state.wallets = wallets.value;
+      else failures.push('External wallets');
+    }
     state.marketStale = quotes.status !== 'fulfilled';
     if (quotes.status === 'fulfilled') state.marketData = quotes.value;
     else failures.push('Market prices');
@@ -174,7 +253,10 @@ async function refresh() {
     notice(failures.length ? `${failures.join(' and ')} could not be refreshed. Any previously loaded figures may be out of date. Please try again.` : '');
     value('syncPill', failures.length ? 'Update unavailable' : `Updated ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`);
     value('historyNote', 'Recorded transaction balances · latest 100 transactions');
-  } finally { $('refreshBtn').disabled = false; state.refreshing = false; }
+  } finally {
+    $('refreshBtn').disabled = false; state.refreshing = false;
+    if (refreshAgain && !state.stopped) { refreshAgain = false; void refresh(); }
+  }
 }
 
 async function startStream() {
@@ -194,6 +276,49 @@ async function startStream() {
   } catch { /* Periodic refresh remains available when streaming is unavailable. */ }
 }
 function stopSync() { state.stopped = true; state.stream?.close(); clearTimeout(state.reconnect); clearInterval(state.polling); }
+
+function wireQuickNoteUI() {
+  // A page-local reminder: never included in account storage or API requests.
+  let note = '';
+  const input = $('quickNoteInput');
+  const words = () => input.value.trim().split(/\s+/u).filter(Boolean);
+  const validate = () => {
+    const count = words().length;
+    const tooLong = count > 12 || input.value.length > 240;
+    value('quickNoteCount', count + ' / 12 words');
+    input.setAttribute('aria-invalid', String(tooLong));
+    value('quickNoteError', tooLong ? 'Please shorten your note to 12 words and 240 characters or fewer.' : '');
+    $('quickNoteError').hidden = !tooLong;
+    $('addQuickNote').disabled = !count || tooLong;
+    return count > 0 && !tooLong;
+  };
+  const showEditor = () => {
+    input.value = note;
+    $('quickNoteForm').hidden = false;
+    $('quickNoteDisplay').hidden = true;
+    $('cancelQuickNote').hidden = !note;
+    value('addQuickNote', note ? 'Update note' : 'Add note');
+    validate();
+  };
+  const showNote = () => {
+    value('quickNoteText', note);
+    $('quickNoteForm').hidden = true;
+    $('quickNoteDisplay').hidden = false;
+  };
+  input.addEventListener('input', validate);
+  $('quickNoteForm').addEventListener('submit', event => {
+    event.preventDefault();
+    if (!validate()) { input.focus(); return; }
+    note = words().join(' ');
+    showNote();
+    $('editQuickNote').focus();
+  });
+  $('editQuickNote').addEventListener('click', () => { showEditor(); input.focus(); });
+  $('cancelQuickNote').addEventListener('click', () => { showNote(); input.value = note; $('editQuickNote').focus(); });
+  $('clearQuickNote').addEventListener('click', () => { note = ''; value('quickNoteText', ''); showEditor(); input.focus(); });
+  window.addEventListener('pagehide', () => { note = ''; value('quickNoteText', ''); showEditor(); });
+  showEditor();
+}
 
 function wireUI() {
   const closeMenu = (restoreFocus = false) => {
@@ -252,8 +377,10 @@ function wireUI() {
     const button = event.target.closest('[data-holding]'); if (!button) return;
     const asset = activeHoldings().find(item => item.id === button.dataset.holding);
     if (!asset) return;
-    showDialog(asset.name, `<div class="detail-line"><span>Asset class</span><strong>${classes[asset.category]}</strong></div><div class="detail-line"><span>Position value</span><strong>${privateValue(money(asset.value))}</strong></div><div class="detail-line"><span>Unrealized P&amp;L</span><strong>${privateValue(money(asset.pnl))}</strong></div><p class="dialog-disclaimer">${preview ? 'This is an illustrative position for the design preview.' : 'Read-only Coinbase balance. Estimated USD value is not an executable price. Cost basis and unrealized P&L are not supplied.'}</p>`);
+    showDialog(asset.name, `<div class="detail-line"><span>Asset class</span><strong>${classes[asset.category]}</strong></div><div class="detail-line"><span>Position value</span><strong>${privateValue(money(asset.value))}</strong></div><div class="detail-line"><span>Unrealized P&amp;L</span><strong>${privateValue(money(asset.pnl))}</strong></div><p class="dialog-disclaimer">${preview ? 'This is an illustrative position for the design preview.' : 'Read-only crypto balance. Estimated USD value is not an executable price or spendable bank balance. Cost basis and unrealized P&L are not supplied.'}</p>`);
   });
+  wireWalletUI();
+  wireQuickNoteUI();
   $('connectCoinbaseBtn').addEventListener('click', async () => {
     if (preview) { showDialog('Connect Coinbase', '<p>Sign in to link your own Coinbase account. You will authorize read-only access on Coinbase.</p>', true); return; }
     $('connectCoinbaseBtn').disabled = true;
@@ -297,7 +424,8 @@ async function init() {
     if (!state.user.token) { location.replace('/login'); return; }
     if (readJson('bs-prefs', {}).theme === 'light') document.documentElement.dataset.theme = 'light';
   }
-  wireUI(); renderAll(); await refresh();
+  wireUI(); renderAll();
+  await refresh();
   const outcome = new URLSearchParams(location.search).get('coinbase');
   if (!preview && outcome) {
     const messages = { connected: 'Your Coinbase connection is saved. Your crypto holdings will appear once they finish loading.', cancelled: 'You cancelled the Coinbase connection. Your accounts have not changed.', failed: 'The Coinbase connection could not be completed. Please connect again from this dashboard.', unavailable: 'Coinbase account linking is not available yet.' };
